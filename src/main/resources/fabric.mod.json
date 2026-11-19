@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"id": "filobulus",
+	"version": "${version}",
+	"name": "Filobulus",
+	"description": "Endgame mining mod for Hypixel Skyblock: Glacite Tunnels and Glacite Mineshafts.",
+	"authors": [
+		"Filipovych"
+	],
+	"contact": {
+		"sources": "https://github.com/filipovych/filobulus"
+	},
+	"license": "All-Rights-Reserved",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"io.github.filipovych.filobulus.client.FilobulusClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
