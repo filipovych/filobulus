@@ -2,6 +2,13 @@ plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
+repositories {
+	maven {
+		name = 'Team Resourceful'
+		url = 'https://maven.teamresourceful.com/repository/maven-public/'
+	}
+}
+
 loom {
 	// main = logic without minecraft classes, client = everything that touches the game
 	splitEnvironmentSourceSets()
@@ -18,6 +25,11 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// include packs it inside our jar so players install nothing extra
+	def resourcefulConfig = "com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-${project.minecraft_version}:${project.resourceful_config_version}"
+	implementation resourcefulConfig
+	include resourcefulConfig
 
 	testImplementation platform("org.junit:junit-bom:${project.junit_version}")
 	testImplementation "org.junit.jupiter:junit-jupiter"
