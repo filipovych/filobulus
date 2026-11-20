@@ -6,17 +6,20 @@ import java.util.Optional;
 // walks a route one stop at a time, the line points at next()
 public final class RouteProgress {
 	private final List<Waypoint> stops;
-	private final double reach;
 	private int index;
 
-	public RouteProgress(List<Waypoint> stops, double reach) {
+	public RouteProgress(List<Waypoint> stops) {
 		this.stops = List.copyOf(stops);
-		this.reach = reach;
 	}
 
 	// empty once the last stop was reached, the route is done then
 	public Optional<Waypoint> next() {
 		return finished() ? Optional.empty() : Optional.of(stops.get(index));
+	}
+
+	// the stops still to visit, next one first
+	public List<Waypoint> remaining() {
+		return stops.subList(Math.min(index, stops.size()), stops.size());
 	}
 
 	public boolean finished() {
@@ -25,7 +28,8 @@ public final class RouteProgress {
 
 	// moves on when the player is within reach of the next stop, any direction, height counts
 	// only ever looks at the next stop, so walking past a later one does not skip ahead
-	public boolean update(double x, double y, double z) {
+	// reach comes in every time so changing the setting works mid route
+	public boolean update(double x, double y, double z, double reach) {
 		if (finished()) {
 			return false;
 		}
