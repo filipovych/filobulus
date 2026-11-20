@@ -20,6 +20,8 @@ public final class RouteTracker {
 
 	private final RouteSelector selector;
 	private Location location = Location.elsewhere();
+	// dev client only, stands in for a real shaft so routes can be tried in single player
+	private Location pretend;
 	private LibraryRoute tracked;
 	private RouteProgress progress;
 	private int ticks;
@@ -38,6 +40,10 @@ public final class RouteTracker {
 		return location;
 	}
 
+	public void pretend(Location location) {
+		pretend = location;
+	}
+
 	// /filo load of the route that is already showing starts it again from the first stop
 	public void restart() {
 		tracked = null;
@@ -51,7 +57,9 @@ public final class RouteTracker {
 			return;
 		}
 		if (ticks++ % LOCATION_INTERVAL == 0) {
-			location = LocationParser.parse(GameText.tabLines(minecraft), GameText.sidebarLines(minecraft));
+			location = pretend != null
+					? pretend
+					: LocationParser.parse(GameText.tabLines(minecraft), GameText.sidebarLines(minecraft));
 			selector.onLocation(location).ifPresent(route -> announce(minecraft, route));
 		}
 

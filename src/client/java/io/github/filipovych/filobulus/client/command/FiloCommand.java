@@ -7,10 +7,18 @@ import com.mojang.brigadier.context.CommandContext;
 import com.teamresourceful.resourcefulconfig.api.client.ResourcefulConfigScreen;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.route.LibraryRoute;
+import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
+import io.github.filipovych.filobulus.shaft.ShaftType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -26,7 +34,7 @@ public final class FiloCommand {
 	}
 
 	private static LiteralArgumentBuilder<FabricClientCommandSource> build(String name) {
-		return ClientCommands.literal(name)
+		LiteralArgumentBuilder<FabricClientCommandSource> command = ClientCommands.literal(name)
 				.executes(FiloCommand::openSettings)
 				.then(ClientCommands.literal("load")
 						.then(ClientCommands.argument("route", StringArgumentType.word())
@@ -34,7 +42,14 @@ public final class FiloCommand {
 										SharedSuggestionProvider.suggest(FilobulusClient.routes().ids(), builder))
 								.executes(FiloCommand::load)))
 				.then(ClientCommands.literal("unload").executes(FiloCommand::unload))
-				.then(ClientCommands.literal("routes").executes(FiloCommand::listRoutes));
+				.then(ClientCommands.literal("routes").executes(FiloCommand::listRoutes))
+				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
+		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+			// /filo pretend JASP_1 acts like standing in that shaft, anything else switches it off
+			command.then(ClientCommands.literal("pretend")
+					.then(ClientCommands.argument("code", StringArgumentType.word()).executes(FiloCommand::pretend)));
+		}
+		return command;
 	}
 
 	private static int openSettings(CommandContext<FabricClientCommandSource> context) {
@@ -73,6 +88,36 @@ public final class FiloCommand {
 					.append(Component.literal(" - " + route.title() + ", " + route.stops().size() + " stops")
 							.withStyle(ChatFormatting.GRAY)));
 		}
+		return 1;
+	}
+
+	// shows what the mod reads from the game, for when a shaft is not picked up
+	private static int debug(CommandContext<FabricClientCommandSource> context) {
+		Minecraft minecraft = Minecraft.getInstance();
+		Location location = FilobulusClient.tracker().location();
+		List<String> lines = new ArrayList<>();
+		lines.add("location: " + location.area() + location.shaft().map(type -> " " + type.code()).orElse(""));
+		lines.add("stops left: " + FilobulusClient.tracker().upcoming().size());
+		for (String line : GameText.tabLines(minecraft)) {
+			if (line.contains("Area")) {
+				lines.add("tab: " + line);
+			}
+		}
+		for (String line : GameText.sidebarLines(minecraft)) {
+			lines.add("sidebar: " + line);
+		}
+		for (String line : lines) {
+			FilobulusClient.LOGGER.info("debug {}", line);
+			context.getSource().sendFeedback(Component.literal(line).withStyle(ChatFormatting.GRAY));
+		}
+		return 1;
+	}
+
+	private static int pretend(CommandContext<FabricClientCommandSource> context) {
+		String code = StringArgumentType.getString(context, "code").toUpperCase(Locale.ROOT);
+		Optional<ShaftType> type = ShaftType.parse(code);
+		FilobulusClient.tracker().pretend(type.map(Location::mineshaft).orElse(null));
+		say(context, type.map(t -> "Pretending to be in a " + t.code() + " shaft.").orElse("Pretending switched off."));
 		return 1;
 	}
 
