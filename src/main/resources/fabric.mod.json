@@ -11,6 +11,7 @@
 		"sources": "https://github.com/filipovych/filobulus"
 	},
 	"license": "All-Rights-Reserved",
+	"icon": "assets/filobulus/icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
