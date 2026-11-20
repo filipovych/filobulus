@@ -8,6 +8,7 @@ import com.teamresourceful.resourcefulconfig.api.client.ResourcefulConfigScreen;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
+import io.github.filipovych.filobulus.client.hud.HudEditScreen;
 import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
@@ -43,6 +44,7 @@ public final class FiloCommand {
 								.executes(FiloCommand::load)))
 				.then(ClientCommands.literal("unload").executes(FiloCommand::unload))
 				.then(ClientCommands.literal("routes").executes(FiloCommand::listRoutes))
+				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// /filo pretend JASP_1 acts like standing in that shaft, anything else switches it off
@@ -57,6 +59,12 @@ public final class FiloCommand {
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.schedule(() -> minecraft.gui.setScreen(
 				ResourcefulConfigScreen.make(FilobulusClient.configurator(), FilobulusConfig.class).build()));
+		return 1;
+	}
+
+	private static int editHud(CommandContext<FabricClientCommandSource> context) {
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.schedule(() -> minecraft.gui.setScreen(new HudEditScreen()));
 		return 1;
 	}
 

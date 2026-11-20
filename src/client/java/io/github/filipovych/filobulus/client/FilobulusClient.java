@@ -4,6 +4,7 @@ import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
 import io.github.filipovych.filobulus.client.config.ConfigRouteSettings;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.render.RouteRenderer;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.route.RouteFormatException;
@@ -47,6 +48,7 @@ public final class FilobulusClient implements ClientModInitializer {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> tracker.tick(minecraft));
 		LevelRenderEvents.BEFORE_GIZMOS.register(RouteRenderer::draw);
+		Hud.register();
 
 		LOGGER.info("Filobulus loaded with {} routes", routes.all().size());
 	}
