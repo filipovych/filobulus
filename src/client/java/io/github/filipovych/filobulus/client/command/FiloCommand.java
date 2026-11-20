@@ -48,8 +48,10 @@ public final class FiloCommand {
 	private static int load(CommandContext<FabricClientCommandSource> context) {
 		String name = StringArgumentType.getString(context, "route");
 		switch (FilobulusClient.selector().load(name)) {
-			case LoadResult.Loaded loaded ->
-					say(context, "Loaded " + loaded.route().title() + " route (" + loaded.route().stops().size() + " stops)");
+			case LoadResult.Loaded loaded -> {
+				FilobulusClient.tracker().restart();
+				say(context, "Loaded " + loaded.route().title() + " route (" + loaded.route().stops().size() + " stops)");
+			}
 			case LoadResult.NotInMineshaft ignored ->
 					fail(context, "Shaft routes can only be loaded inside a mineshaft.");
 			case LoadResult.UnknownRoute unknown ->
