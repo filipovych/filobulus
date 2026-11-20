@@ -5,6 +5,7 @@ import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.RoutesConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.detect.LocationParser;
+import io.github.filipovych.filobulus.detect.SteadyLocation;
 import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteProgress;
@@ -12,6 +13,7 @@ import io.github.filipovych.filobulus.route.RouteSelector;
 import io.github.filipovych.filobulus.route.Waypoint;
 import java.util.List;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 
 // runs every client tick: works out where we are, keeps the selector up to date and walks the active route
 public final class RouteTracker {
@@ -19,7 +21,9 @@ public final class RouteTracker {
 	private static final int LOCATION_INTERVAL = 10;
 
 	private final RouteSelector selector;
-	private Location location = Location.elsewhere();
+	private final SteadyLocation location = new SteadyLocation();
+	// a new level means the server moved us, so the old shaft is gone for sure
+	private ClientLevel level;
 	// dev client only, stands in for a real shaft so routes can be tried in single player
 	private Location pretend;
 	private LibraryRoute tracked;
@@ -37,7 +41,7 @@ public final class RouteTracker {
 	}
 
 	public Location location() {
-		return location;
+		return location.current();
 	}
 
 	public void pretend(Location location) {
@@ -51,16 +55,22 @@ public final class RouteTracker {
 
 	public void tick(Minecraft minecraft) {
 		if (minecraft.player == null || minecraft.level == null || !FilobulusConfig.enabled) {
-			location = Location.elsewhere();
-			selector.onLocation(location);
+			level = null;
+			location.reset();
+			selector.onLocation(location.current());
 			upcoming = List.of();
 			return;
 		}
+		if (minecraft.level != level) {
+			level = minecraft.level;
+			location.reset();
+			ticks = 0;
+		}
 		if (ticks++ % LOCATION_INTERVAL == 0) {
-			location = pretend != null
+			Location read = pretend != null
 					? pretend
 					: LocationParser.parse(GameText.tabLines(minecraft), GameText.sidebarLines(minecraft));
-			selector.onLocation(location).ifPresent(route -> announce(minecraft, route));
+			selector.onLocation(location.update(read)).ifPresent(route -> announce(minecraft, route));
 		}
 
 		LibraryRoute active = selector.active().orElse(null);
@@ -89,7 +99,7 @@ public final class RouteTracker {
 		if (!RoutesConfig.announceLoad) {
 			return;
 		}
-		String code = location.shaft().map(type -> type.code()).orElse(route.title());
+		String code = location.current().shaft().map(type -> type.code()).orElse(route.title());
 		minecraft.gui.hud.getChat().addClientSystemMessage(
 				FilobulusClient.chatLine("Loaded " + code + " route (" + route.stops().size() + " stops)"));
 	}
