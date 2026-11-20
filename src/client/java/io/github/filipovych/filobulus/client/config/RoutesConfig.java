@@ -23,6 +23,12 @@ public final class RoutesConfig {
 	@Comment("Which route auto-load uses in a normal (non-crystal) jasper shaft.")
 	public static JasperRoute jasperRoute = JasperRoute.DEFAULT;
 
+	@ConfigEntry(id = "reach", translation = "filobulus.config.routes.reach")
+	@Comment("How close you have to get to a stop, in blocks, before the route moves on to the next one.")
+	@ConfigOption.Range(min = 1, max = 10)
+	@ConfigOption.Slider
+	public static int reach = 3;
+
 	@ConfigEntry(id = "announceLoad", translation = "filobulus.config.routes.announceLoad")
 	@Comment("Say in chat which route was loaded.")
 	public static boolean announceLoad = true;
