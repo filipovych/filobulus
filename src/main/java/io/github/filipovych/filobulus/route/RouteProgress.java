@@ -22,6 +22,15 @@ public final class RouteProgress {
 		return stops.subList(Math.min(index, stops.size()), stops.size());
 	}
 
+	// how many stops are behind us
+	public int reached() {
+		return index;
+	}
+
+	public int total() {
+		return stops.size();
+	}
+
 	public boolean finished() {
 		return index >= stops.size();
 	}

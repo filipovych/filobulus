@@ -4,5 +4,7 @@
 	"filobulus.config.routes.autoLoad": "Auto-load in",
 	"filobulus.config.routes.jasperRoute": "Jasper route",
 	"filobulus.config.routes.reach": "Stop reach",
-	"filobulus.config.routes.announceLoad": "Announce in chat"
+	"filobulus.config.routes.announceLoad": "Announce in chat",
+	"filobulus.config.hud.routeHud": "Route HUD",
+	"filobulus.config.hud.background": "Panel background"
 }

@@ -6,7 +6,7 @@ import com.teamresourceful.resourcefulconfig.api.annotations.ConfigEntry;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigInfo;
 
 // resourceful config builds the screen from these, entries must be public static and not final
-@Config(value = "filobulus", categories = {RoutesConfig.class})
+@Config(value = "filobulus", categories = {RoutesConfig.class, HudConfig.class})
 @ConfigInfo(
 		title = "Filobulus",
 		description = "Endgame mining: Glacite Tunnels and Mineshafts.",

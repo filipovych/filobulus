@@ -8,10 +8,12 @@ import io.github.filipovych.filobulus.detect.LocationParser;
 import io.github.filipovych.filobulus.detect.SteadyLocation;
 import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.route.Location;
+import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.route.RouteProgress;
 import io.github.filipovych.filobulus.route.RouteSelector;
 import io.github.filipovych.filobulus.route.Waypoint;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 
@@ -29,6 +31,8 @@ public final class RouteTracker {
 	private LibraryRoute tracked;
 	private RouteProgress progress;
 	private int ticks;
+	// wall clock time we got into the shaft, 0 while not in one
+	private long shaftEnteredAt;
 	// read by the renderer, so it is swapped as a whole and never changed in place
 	private volatile List<Waypoint> upcoming = List.of();
 
@@ -42,6 +46,14 @@ public final class RouteTracker {
 
 	public Location location() {
 		return location.current();
+	}
+
+	public Optional<RouteProgress> progress() {
+		return Optional.ofNullable(progress);
+	}
+
+	public long shaftEnteredAt() {
+		return shaftEnteredAt;
 	}
 
 	public void pretend(Location location) {
@@ -59,6 +71,7 @@ public final class RouteTracker {
 			location.reset();
 			selector.onLocation(location.current());
 			upcoming = List.of();
+			shaftEnteredAt = 0;
 			return;
 		}
 		if (minecraft.level != level) {
@@ -71,6 +84,11 @@ public final class RouteTracker {
 					? pretend
 					: LocationParser.parse(GameText.tabLines(minecraft), GameText.sidebarLines(minecraft));
 			selector.onLocation(location.update(read)).ifPresent(route -> announce(minecraft, route));
+		}
+		if (location.current().area() != Area.MINESHAFT) {
+			shaftEnteredAt = 0;
+		} else if (shaftEnteredAt == 0) {
+			shaftEnteredAt = System.currentTimeMillis();
 		}
 
 		LibraryRoute active = selector.active().orElse(null);
