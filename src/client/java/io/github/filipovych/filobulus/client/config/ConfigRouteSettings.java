@@ -2,7 +2,6 @@ package io.github.filipovych.filobulus.client.config;
 
 import io.github.filipovych.filobulus.route.RouteSettings;
 import io.github.filipovych.filobulus.shaft.ShaftGroup;
-import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.Optional;
 
@@ -21,9 +20,8 @@ public final class ConfigRouteSettings implements RouteSettings {
 	}
 
 	@Override
-	public String preferredRouteId(ShaftType type) {
-		boolean normalJasper = type.material() == ShaftMaterial.JASPER && !type.isCrystal();
-		return normalJasper ? RoutesConfig.jasperRoute.routeId() : "";
+	public String preferredRouteId(String routeKey) {
+		return routeKey.equals("JASP_1") ? RoutesConfig.jasperRoute.routeId() : "";
 	}
 
 	@Override

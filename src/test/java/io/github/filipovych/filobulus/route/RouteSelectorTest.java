@@ -30,7 +30,7 @@ class RouteSelectorTest {
 		}
 
 		@Override
-		public String preferredRouteId(ShaftType type) {
+		public String preferredRouteId(String routeKey) {
 			return preferred;
 		}
 

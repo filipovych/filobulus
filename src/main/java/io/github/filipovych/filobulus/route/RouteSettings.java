@@ -6,7 +6,8 @@ import java.util.Optional;
 public interface RouteSettings {
 	boolean autoLoad(ShaftType type);
 
-	String preferredRouteId(ShaftType type);
+	// the route the player picked for a shaft, routeKey is a type code or CRYSTAL
+	String preferredRouteId(String routeKey);
 
 	Optional<String> tunnelsRouteId();
 }

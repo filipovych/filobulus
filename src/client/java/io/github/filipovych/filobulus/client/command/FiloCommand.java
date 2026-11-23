@@ -39,10 +39,12 @@ public final class FiloCommand {
 		LiteralArgumentBuilder<FabricClientCommandSource> command = ClientCommands.literal(name)
 				.executes(FiloCommand::openSettings)
 				.then(ClientCommands.literal("load")
+						.executes(context -> load(context, FilobulusClient.selector().loadHere()))
 						.then(ClientCommands.argument("route", StringArgumentType.word())
 								.suggests((context, builder) ->
 										SharedSuggestionProvider.suggest(FilobulusClient.routes().ids(), builder))
-								.executes(FiloCommand::load)))
+								.executes(context -> load(context, FilobulusClient.selector()
+										.load(StringArgumentType.getString(context, "route"))))))
 				.then(ClientCommands.literal("unload").executes(FiloCommand::unload))
 				.then(ClientCommands.literal("routes").executes(FiloCommand::listRoutes))
 				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
@@ -69,9 +71,9 @@ public final class FiloCommand {
 		return 1;
 	}
 
-	private static int load(CommandContext<FabricClientCommandSource> context) {
-		String name = StringArgumentType.getString(context, "route");
-		switch (FilobulusClient.selector().load(name)) {
+	// without a name it is the route picked for the shaft we are in
+	private static int load(CommandContext<FabricClientCommandSource> context, LoadResult result) {
+		switch (result) {
 			case LoadResult.Loaded loaded -> {
 				FilobulusClient.tracker().restart();
 				say(context, "Loaded " + loaded.route().title() + " route (" + loaded.route().stops().size() + " stops)");
@@ -80,6 +82,9 @@ public final class FiloCommand {
 					fail(context, "Shaft routes can only be loaded inside a mineshaft.");
 			case LoadResult.UnknownRoute unknown ->
 					fail(context, "No route called \"" + unknown.name() + "\". See /filo routes.");
+			case LoadResult.NoRouteHere none -> fail(context, none.code().isEmpty()
+					? "The shaft type is not read yet, try again in a second."
+					: "There is no route for " + none.code() + " yet. Import one at /filo routes.");
 		}
 		return 1;
 	}

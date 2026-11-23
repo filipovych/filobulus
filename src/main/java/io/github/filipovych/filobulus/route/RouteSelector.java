@@ -15,6 +15,10 @@ public final class RouteSelector {
 
 		record UnknownRoute(String name) implements LoadResult {
 		}
+
+		// the shaft we are in has no route, code is empty while the type is not read yet
+		record NoRouteHere(String code) implements LoadResult {
+		}
 	}
 
 	private final RouteLibrary library;
@@ -56,9 +60,23 @@ public final class RouteSelector {
 		if (!settings.autoLoad(type)) {
 			return Optional.empty();
 		}
-		Optional<LibraryRoute> route = library.routeFor(type, settings.preferredRouteId(type));
+		Optional<LibraryRoute> route = picked(type.routeKey());
 		shaftRoute = route.orElse(null);
 		return route;
+	}
+
+	// /filo load without a name: the route picked for the shaft we are standing in
+	public LoadResult loadHere() {
+		if (location.area() != Area.MINESHAFT) {
+			return new LoadResult.NotInMineshaft();
+		}
+		Optional<LibraryRoute> route = location.shaft().flatMap(type -> picked(type.routeKey()));
+		if (route.isEmpty()) {
+			return new LoadResult.NoRouteHere(location.shaft().map(ShaftType::code).orElse(""));
+		}
+		shaftRoute = route.get();
+		decided = true;
+		return new LoadResult.Loaded(route.get());
 	}
 
 	public LoadResult load(String name) {
@@ -69,9 +87,18 @@ public final class RouteSelector {
 		if (route.isEmpty()) {
 			return new LoadResult.UnknownRoute(name);
 		}
+		// the first route of a shaft answers to the shaft's name, so jasper means whatever is picked for jasper
+		// a longer id like jasper_failsayfe always means exactly that route
+		if (library.routesFor(route.get().routeKey()).get(0) == route.get()) {
+			route = picked(route.get().routeKey());
+		}
 		shaftRoute = route.get();
 		decided = true;
 		return new LoadResult.Loaded(route.get());
+	}
+
+	private Optional<LibraryRoute> picked(String routeKey) {
+		return library.routeFor(routeKey, settings.preferredRouteId(routeKey));
 	}
 
 	public void unload() {
