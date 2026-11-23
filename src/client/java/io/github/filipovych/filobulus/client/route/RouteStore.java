@@ -8,6 +8,7 @@ import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.route.CollectionCodec;
 import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.route.RouteChoices;
+import io.github.filipovych.filobulus.route.RouteCollection;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.SharedRoute;
@@ -107,6 +108,31 @@ public final class RouteStore {
 		} catch (IOException e) {
 			FilobulusClient.LOGGER.error("Could not save {}", file, e);
 		}
+	}
+
+	// adds the route, or finds it when the same stops are already there, and makes it the one its shaft uses
+	public LibraryRoute add(SharedRoute route) {
+		ShaftLayout layout = ShaftLayout.byKey(route.shaft()).orElseThrow();
+		LibraryRoute added = library.addUser(layout, route.name(), route.author(), route.stops(), null);
+		choices.pick(layout.key(), added.id());
+		return added;
+	}
+
+	public void delete(LibraryRoute route) {
+		if (library.removeUser(route.id()) && choices.preferredRouteId(route.routeKey()).equals(route.id())) {
+			choices.pick(route.routeKey(), "");
+		}
+	}
+
+	// the route each shaft uses, wherever that is not the bundled default
+	public RouteCollection picked(String name) {
+		List<SharedRoute> routes = new ArrayList<>();
+		for (ShaftLayout layout : ShaftLayout.all()) {
+			library.routeFor(layout.key(), choices.preferredRouteId(layout.key()))
+					.filter(route -> !route.bundled() || !route.name().equals(LibraryRoute.DEFAULT_NAME))
+					.ifPresent(route -> routes.add(shared(route)));
+		}
+		return new RouteCollection(name, routes);
 	}
 
 	private static SharedRoute shared(LibraryRoute route) {
