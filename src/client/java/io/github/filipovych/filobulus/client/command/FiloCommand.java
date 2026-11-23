@@ -10,7 +10,7 @@ import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
-import io.github.filipovych.filobulus.route.LibraryRoute;
+import io.github.filipovych.filobulus.client.screen.RoutesScreen;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
 import io.github.filipovych.filobulus.shaft.ShaftType;
@@ -46,7 +46,7 @@ public final class FiloCommand {
 								.executes(context -> load(context, FilobulusClient.selector()
 										.load(StringArgumentType.getString(context, "route"))))))
 				.then(ClientCommands.literal("unload").executes(FiloCommand::unload))
-				.then(ClientCommands.literal("routes").executes(FiloCommand::listRoutes))
+				.then(ClientCommands.literal("routes").executes(FiloCommand::openRoutes))
 				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
@@ -71,6 +71,12 @@ public final class FiloCommand {
 		return 1;
 	}
 
+	private static int openRoutes(CommandContext<FabricClientCommandSource> context) {
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new RoutesScreen(null)));
+		return 1;
+	}
+
 	// without a name it is the route picked for the shaft we are in
 	private static int load(CommandContext<FabricClientCommandSource> context, LoadResult result) {
 		switch (result) {
@@ -92,16 +98,6 @@ public final class FiloCommand {
 	private static int unload(CommandContext<FabricClientCommandSource> context) {
 		FilobulusClient.selector().unload();
 		say(context, "Route hidden.");
-		return 1;
-	}
-
-	private static int listRoutes(CommandContext<FabricClientCommandSource> context) {
-		say(context, "Routes:");
-		for (LibraryRoute route : FilobulusClient.routes().all()) {
-			context.getSource().sendFeedback(Component.literal("  " + route.id()).withStyle(ChatFormatting.AQUA)
-					.append(Component.literal(" - " + route.title() + ", " + route.stops().size() + " stops")
-							.withStyle(ChatFormatting.GRAY)));
-		}
 		return 1;
 	}
 
