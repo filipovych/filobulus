@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.hud;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.hud.HudPlacement;
 import java.util.List;
@@ -36,7 +37,7 @@ public final class Hud {
 	private static void draw(GuiGraphicsExtractor graphics, DeltaTracker delta) {
 		Minecraft minecraft = Minecraft.getInstance();
 		// /filo hud draws the widgets itself
-		if (minecraft.gui.screen() instanceof HudEditScreen) {
+		if (GameCompat.screen(minecraft) instanceof HudEditScreen) {
 			return;
 		}
 		try {

@@ -6,6 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.teamresourceful.resourcefulconfig.api.client.ResourcefulConfigScreen;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
@@ -57,14 +58,14 @@ public final class FiloCommand {
 	private static int openSettings(CommandContext<FabricClientCommandSource> context) {
 		// chat closes right after the command and would take our screen with it, so open it next tick
 		Minecraft minecraft = Minecraft.getInstance();
-		minecraft.schedule(() -> minecraft.gui.setScreen(
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft,
 				ResourcefulConfigScreen.make(FilobulusClient.configurator(), FilobulusConfig.class).build()));
 		return 1;
 	}
 
 	private static int editHud(CommandContext<FabricClientCommandSource> context) {
 		Minecraft minecraft = Minecraft.getInstance();
-		minecraft.schedule(() -> minecraft.gui.setScreen(new HudEditScreen()));
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new HudEditScreen()));
 		return 1;
 	}
 

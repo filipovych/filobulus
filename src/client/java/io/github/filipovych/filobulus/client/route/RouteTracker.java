@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.route;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.RoutesConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
@@ -118,7 +119,7 @@ public final class RouteTracker {
 			return;
 		}
 		String code = location.current().shaft().map(type -> type.code()).orElse(route.title());
-		minecraft.gui.hud.getChat().addClientSystemMessage(
+		GameCompat.say(minecraft,
 				FilobulusClient.chatLine("Loaded " + code + " route (" + route.stops().size() + " stops)"));
 	}
 }
