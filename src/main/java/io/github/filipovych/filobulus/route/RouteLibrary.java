@@ -1,8 +1,8 @@
 package io.github.filipovych.filobulus.route;
 
+import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import io.github.filipovych.filobulus.shaft.ShaftType;
-import io.github.filipovych.filobulus.shaft.ShaftVariant;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -29,10 +29,14 @@ public final class RouteLibrary {
 
 	public RouteLibrary(Collection<LibraryRoute> routes) {
 		for (LibraryRoute route : routes) {
-			byId.put(route.id(), route);
-			byRouteKey.computeIfAbsent(route.routeKey(), key -> new ArrayList<>()).add(route);
+			put(route);
 		}
 		buildAliases();
+	}
+
+	private void put(LibraryRoute route) {
+		byId.put(route.id(), route);
+		byRouteKey.computeIfAbsent(route.routeKey(), key -> new ArrayList<>()).add(route);
 	}
 
 	public static RouteLibrary loadBundled() throws IOException, RouteFormatException {
@@ -43,11 +47,11 @@ public final class RouteLibrary {
 		}
 		for (Map.Entry<String, ShaftType> entry : firstTypePerKey.entrySet()) {
 			String routeKey = entry.getKey();
-			ShaftType type = entry.getValue();
+			ShaftLayout layout = ShaftLayout.of(entry.getValue());
 			String file = routeKey.toLowerCase(Locale.ROOT);
 			String text = readResource(file + ".json");
 			if (text != null) {
-				routes.add(new LibraryRoute(defaultId(type), defaultTitle(type), routeKey, RouteCodec.parseColeweight(text)));
+				routes.add(new LibraryRoute(layout.name(), layout.title(), routeKey, RouteCodec.parseColeweight(text)));
 			}
 			for (Alternative alternative : ALTERNATIVES) {
 				if (!alternative.routeKey().equals(routeKey)) {
@@ -56,10 +60,11 @@ public final class RouteLibrary {
 				String altText = readResource(file + "." + alternative.suffix() + ".json");
 				if (altText != null) {
 					routes.add(new LibraryRoute(
-							defaultId(type) + "_" + alternative.suffix(),
-							defaultTitle(type) + " (" + alternative.author() + ")",
+							layout.name() + "_" + alternative.suffix(),
+							layout.title() + " (" + alternative.author() + ")",
 							routeKey,
-							RouteCodec.parseColeweight(altText)));
+							RouteCodec.parseColeweight(altText),
+							alternative.author(), alternative.author(), true));
 				}
 			}
 		}
@@ -75,11 +80,20 @@ public final class RouteLibrary {
 	}
 
 	public List<LibraryRoute> routesFor(ShaftType type) {
-		return byRouteKey.getOrDefault(type.routeKey(), List.of());
+		return routesFor(type.routeKey());
+	}
+
+	public List<LibraryRoute> routesFor(String routeKey) {
+		return List.copyOf(byRouteKey.getOrDefault(routeKey, List.of()));
 	}
 
 	public Optional<LibraryRoute> routeFor(ShaftType type, String preferredId) {
-		List<LibraryRoute> candidates = routesFor(type);
+		return routeFor(type.routeKey(), preferredId);
+	}
+
+	// the route picked for a shaft, or its first one when nothing was picked or the pick is gone
+	public Optional<LibraryRoute> routeFor(String routeKey, String preferredId) {
+		List<LibraryRoute> candidates = routesFor(routeKey);
 		for (LibraryRoute route : candidates) {
 			if (route.id().equals(preferredId)) {
 				return Optional.of(route);
@@ -105,7 +119,55 @@ public final class RouteLibrary {
 		return byId.keySet();
 	}
 
+	// adds a route of the player's own, the same stops twice for one shaft give back the route that is already there
+	// wantedId keeps the id of a saved route the same after a restart
+	public LibraryRoute addUser(ShaftLayout layout, String name, String author, List<Waypoint> stops, String wantedId) {
+		for (LibraryRoute route : routesFor(layout.key())) {
+			if (route.sameStops(stops)) {
+				return route;
+			}
+		}
+		String shown = name == null || name.isBlank() ? "Imported" : name.strip();
+		String id = wantedId != null && !wantedId.isBlank() && isFree(wantedId) ? wantedId : freeId(layout, shown);
+		LibraryRoute route = new LibraryRoute(
+				id, layout.title() + " (" + shown + ")", layout.key(), stops, shown, author, false);
+		put(route);
+		buildAliases();
+		return route;
+	}
+
+	// only routes the player added can go, the bundled ones stay
+	public boolean removeUser(String id) {
+		LibraryRoute route = byId.get(id);
+		if (route == null || route.bundled()) {
+			return false;
+		}
+		byId.remove(id);
+		byRouteKey.get(route.routeKey()).remove(route);
+		buildAliases();
+		return true;
+	}
+
+	public List<LibraryRoute> userRoutes() {
+		return byId.values().stream().filter(route -> !route.bundled()).toList();
+	}
+
+	private boolean isFree(String id) {
+		return !byId.containsKey(id) && !aliases.containsKey(id);
+	}
+
+	private String freeId(ShaftLayout layout, String name) {
+		String slug = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("^_+|_+$", "");
+		String base = layout.name() + "_" + (slug.isEmpty() ? "custom" : slug);
+		String id = base;
+		for (int n = 2; !isFree(id); n++) {
+			id = base + "_" + n;
+		}
+		return id;
+	}
+
 	private void buildAliases() {
+		aliases.clear();
 		for (ShaftType type : ShaftType.all()) {
 			List<LibraryRoute> routes = routesFor(type);
 			if (routes.isEmpty()) {
@@ -129,26 +191,6 @@ public final class RouteLibrary {
 				aliases.putIfAbsent(materialName(material), plain.get(0).id());
 			}
 		}
-	}
-
-	private static String defaultId(ShaftType type) {
-		if (type.isCrystal()) {
-			return "crystal";
-		}
-		String material = materialName(type.material());
-		return hasTwoLayouts(type.material()) ? material + "_" + type.variant().suffix() : material;
-	}
-
-	private static String defaultTitle(ShaftType type) {
-		if (type.isCrystal()) {
-			return "Crystal";
-		}
-		String material = type.material().displayName();
-		return hasTwoLayouts(type.material()) ? material + " " + type.variant().suffix() : material;
-	}
-
-	private static boolean hasTwoLayouts(ShaftMaterial material) {
-		return ShaftType.all().stream().anyMatch(t -> t.material() == material && t.variant() == ShaftVariant.TWO);
 	}
 
 	private static String materialName(ShaftMaterial material) {
