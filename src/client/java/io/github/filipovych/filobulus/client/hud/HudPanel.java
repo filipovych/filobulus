@@ -11,7 +11,10 @@ import net.minecraft.world.item.ItemStack;
 // only shadowed text over the game unless the dark panel is switched on
 // always drawn at 0,0, the caller moves and scales it
 public final class HudPanel {
-	public record Row(String label, String value) {
+	public record Row(String label, String value, int color) {
+		public Row(String label, String value) {
+			this(label, value, VALUE);
+		}
 	}
 
 	public record Content(ItemStack icon, String title, int titleColor, List<Row> rows) {
@@ -67,7 +70,7 @@ public final class HudPanel {
 		int y = PADDING + ROW_HEIGHT;
 		for (Row row : content.rows()) {
 			graphics.text(font, row.label(), PADDING, y, LABEL, true);
-			graphics.text(font, row.value(), width - PADDING - font.width(row.value()), y, VALUE, true);
+			graphics.text(font, row.value(), width - PADDING - font.width(row.value()), y, row.color(), true);
 			y += ROW_HEIGHT;
 		}
 	}
