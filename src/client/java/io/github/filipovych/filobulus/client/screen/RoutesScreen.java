@@ -202,6 +202,8 @@ public final class RoutesScreen extends FlatScreen {
 			return;
 		}
 		store.delete(route);
+		FilobulusClient.splits().bests().forget(route.id());
+		FilobulusClient.splits().save();
 		store.save();
 		confirmDelete = "";
 		FilobulusClient.routeChanged(route.routeKey());
