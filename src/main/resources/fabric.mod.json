@@ -20,9 +20,9 @@
 	},
 	"depends": {
 		"fabricloader": ">=0.20.1",
-		"minecraft": "~26.3",
+		"minecraft": "~${minecraft}",
 		"java": ">=25",
 		"fabric-api": "*",
-		"resourcefulconfig": ">=6.0.2"
+		"resourcefulconfig": ">=${resourceful_config}"
 	}
 }

@@ -2,6 +2,17 @@ plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
+// everything that differs between game versions comes from gradle.properties
+def mc = project.property('mc').toString()
+if (!project.property('supported').toString().split(',').contains(mc)) {
+	throw new GradleException("no versions set for minecraft ${mc}, see gradle.properties")
+}
+def fabricApi = project.property("fabric_api_${mc}")
+def (resourcefulArtifact, resourcefulVersion) = project.property("resourceful_config_${mc}").toString().split(':')
+
+// jars are named filobulus-0.1.0+26.3.jar
+version = "${project.version}+${mc}"
+
 repositories {
 	maven {
 		name = 'Team Resourceful'
@@ -21,13 +32,15 @@ loom {
 	}
 }
 
+sourceSets.client.java.srcDir "src/client-${project.property("compat_${mc}")}/java"
+
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	minecraft "com.mojang:minecraft:${mc}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${fabricApi}"
 
 	// include packs it inside our jar so players install nothing extra
-	def resourcefulConfig = "com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-${project.minecraft_version}:${project.resourceful_config_version}"
+	def resourcefulConfig = "com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-${resourcefulArtifact}:${resourcefulVersion}"
 	implementation resourcefulConfig
 	include resourcefulConfig
 
@@ -37,11 +50,11 @@ dependencies {
 }
 
 processResources {
-	def version = project.version
-	inputs.property "version", version
+	def values = [version: project.version, minecraft: mc, resourceful_config: resourcefulVersion]
+	inputs.properties values
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand values
 	}
 }
 
@@ -51,12 +64,29 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 java {
-	withSourcesJar()
-
 	sourceCompatibility = JavaVersion.VERSION_25
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
 test {
 	useJUnitPlatform()
+}
+
+// one jar per supported game version, all of them end up in build/libs
+def buildEach = project.property('supported').toString().split(',').collect { target ->
+	tasks.register("build_${target}", GradleBuild) {
+		group = 'build'
+		buildName = "filobulus_${target.replace('.', '_')}"
+		tasks = ['build']
+		startParameter.projectProperties = [mc: target]
+		notCompatibleWithConfigurationCache('runs a build of its own')
+	}
+}
+for (int i = 1; i < buildEach.size(); i++) {
+	def before = buildEach[i - 1]
+	buildEach[i].configure { mustRunAfter before }
+}
+tasks.register('buildAll') {
+	group = 'build'
+	dependsOn buildEach
 }
