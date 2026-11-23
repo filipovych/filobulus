@@ -66,7 +66,7 @@ public final class Hud {
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(box.left(), box.top());
 		graphics.pose().scale(scale, scale);
-		HudPanel.draw(graphics, font, content, HudConfig.background);
+		HudPanel.draw(graphics, font, content, HudConfig.panel);
 		graphics.pose().popMatrix();
 	}
 }

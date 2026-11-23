@@ -14,9 +14,9 @@ public final class HudConfig {
 	@Comment("In a mineshaft, show its type, the stop you are on and the time spent inside.")
 	public static boolean routeHud = true;
 
-	@ConfigEntry(id = "background", translation = "filobulus.config.hud.background")
-	@Comment("Draw a dark panel behind the text.")
-	public static boolean background = true;
+	@ConfigEntry(id = "panel", translation = "filobulus.config.hud.panel")
+	@Comment("Draw a dark panel behind the text. Off shows only the text over the game.")
+	public static boolean panel = false;
 
 	// where the route hud sits, changed by dragging it in /filo hud and not shown in the settings
 	@ConfigEntry(id = "routeHudAnchorX")

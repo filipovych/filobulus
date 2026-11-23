@@ -4,5 +4,5 @@
 	"filobulus.config.routes.reach": "Stop reach",
 	"filobulus.config.routes.announceLoad": "Announce in chat",
 	"filobulus.config.hud.routeHud": "Route HUD",
-	"filobulus.config.hud.background": "Panel background"
+	"filobulus.config.hud.panel": "Panel background"
 }
