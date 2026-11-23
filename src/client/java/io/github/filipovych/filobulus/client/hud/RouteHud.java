@@ -9,6 +9,8 @@ import io.github.filipovych.filobulus.hud.HudAnchor;
 import io.github.filipovych.filobulus.hud.HudPlacement;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.Location.Area;
+import io.github.filipovych.filobulus.route.RouteSplits;
+import io.github.filipovych.filobulus.route.SplitText;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.ArrayList;
@@ -16,8 +18,12 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 
-// shown in a mineshaft: its type code, the stop the line points at and the time spent inside
+// shown in a mineshaft: its type code, the stop the line points at, the time spent inside and the run against the best
 public final class RouteHud implements HudWidget {
+	// argb, ahead of the best run and behind it
+	private static final int AHEAD = 0xFF55FF55;
+	private static final int BEHIND = 0xFFFF5555;
+
 	@Override
 	public Optional<Content> content() {
 		RouteTracker tracker = FilobulusClient.tracker();
@@ -29,7 +35,11 @@ public final class RouteHud implements HudWidget {
 		// the stop row goes away once the route is done or when none is loaded
 		tracker.progress().filter(progress -> !progress.finished()).ifPresent(progress ->
 				rows.add(new Row("Stop", (progress.reached() + 1) + "/" + progress.total())));
-		rows.add(new Row("Time", clock(System.currentTimeMillis() - tracker.shaftEnteredAt())));
+		long now = System.currentTimeMillis();
+		rows.add(new Row("Time", SplitText.clock(now - tracker.shaftEnteredAt())));
+		if (HudConfig.splits) {
+			tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), now));
+		}
 		// the type code comes a moment after the area, until then the title is plain
 		String title = location.shaft().map(ShaftType::code).orElse("Mineshaft");
 		int color = location.shaft().map(type -> ShaftColors.of(type.material())).orElse(ShaftColors.GLACITE);
@@ -40,7 +50,8 @@ public final class RouteHud implements HudWidget {
 	@Override
 	public Content sample() {
 		return new Content(ShaftIcons.of(ShaftMaterial.JASPER), "JASP_1", ShaftColors.of(ShaftMaterial.JASPER),
-				List.of(new Row("Stop", "12/47"), new Row("Time", "2:31")));
+				List.of(new Row("Stop", "12/47"), new Row("Time", "2:31"), new Row("Run", "1:42"),
+						new Row("Split", "-3.2s", AHEAD), new Row("Left", "4:55")));
 	}
 
 	@Override
@@ -64,8 +75,17 @@ public final class RouteHud implements HudWidget {
 		return new HudPlacement(HudAnchor.START, 4, HudAnchor.CENTRE, 0, 1f);
 	}
 
-	private static String clock(long millis) {
-		long seconds = Math.max(0, millis) / 1000;
-		return seconds / 60 + ":" + String.format("%02d", seconds % 60);
+	// before the first stop only the best is shown, after it the run, how it compares and what is left
+	private static void splitRows(List<Row> rows, RouteSplits run, Optional<long[]> best, long now) {
+		if (!run.started()) {
+			best.ifPresent(times -> rows.add(new Row("Best", SplitText.clock(times[times.length - 1]))));
+			return;
+		}
+		rows.add(new Row("Run", SplitText.clock(run.elapsed(now))));
+		best.ifPresent(times -> {
+			long behind = run.behind(times);
+			rows.add(new Row("Split", SplitText.delta(behind), behind <= 0 ? AHEAD : BEHIND));
+			rows.add(new Row("Left", SplitText.clock(run.left(times, now))));
+		});
 	}
 }
