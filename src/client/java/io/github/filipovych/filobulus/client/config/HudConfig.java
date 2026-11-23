@@ -18,6 +18,10 @@ public final class HudConfig {
 	@Comment("Draw a dark panel behind the text. Off shows only the text over the game.")
 	public static boolean panel = false;
 
+	@ConfigEntry(id = "splits", translation = "filobulus.config.hud.splits")
+	@Comment("Time your run of a shaft route against your best, from its first stop to its last.")
+	public static boolean splits = true;
+
 	// where the route hud sits, changed by dragging it in /filo hud and not shown in the settings
 	@ConfigEntry(id = "routeHudAnchorX")
 	@ConfigOption.Hidden

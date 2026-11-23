@@ -3,6 +3,7 @@ package io.github.filipovych.filobulus.client.route;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.config.RoutesConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.detect.LocationParser;
@@ -12,6 +13,8 @@ import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.route.RouteProgress;
 import io.github.filipovych.filobulus.route.RouteSelector;
+import io.github.filipovych.filobulus.route.RouteSplits;
+import io.github.filipovych.filobulus.route.SplitText;
 import io.github.filipovych.filobulus.route.Waypoint;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +34,7 @@ public final class RouteTracker {
 	private Location pretend;
 	private LibraryRoute tracked;
 	private RouteProgress progress;
+	private RouteSplits splits;
 	private int ticks;
 	// wall clock time we got into the shaft, 0 while not in one
 	private long shaftEnteredAt;
@@ -51,6 +55,19 @@ public final class RouteTracker {
 
 	public Optional<RouteProgress> progress() {
 		return Optional.ofNullable(progress);
+	}
+
+	// the timing of the run in progress, gone with the route
+	public Optional<RouteSplits> splits() {
+		return progress == null ? Optional.empty() : Optional.ofNullable(splits);
+	}
+
+	// the best run of the route that is showing
+	public Optional<long[]> best() {
+		LibraryRoute route = tracked;
+		return route == null
+				? Optional.empty()
+				: FilobulusClient.splits().bests().best(route.id(), route.stops().size());
 	}
 
 	public long shaftEnteredAt() {
@@ -97,14 +114,21 @@ public final class RouteTracker {
 		if (changed) {
 			tracked = active;
 			progress = active == null ? null : new RouteProgress(active.stops());
+			splits = active == null ? null : new RouteSplits(active.stops().size());
 		}
 		if (progress == null) {
 			upcoming = List.of();
 			return;
 		}
 		// measured from the feet, the same point f3 shows
-		changed |= progress.update(
-				minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ(), RoutesConfig.reach);
+		if (progress.update(
+				minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ(), RoutesConfig.reach)) {
+			changed = true;
+			splits.reached(System.currentTimeMillis());
+			if (splits.finished()) {
+				finished(minecraft, active);
+			}
+		}
 		if (changed) {
 			upcoming = List.copyOf(progress.remaining());
 		}
@@ -112,6 +136,28 @@ public final class RouteTracker {
 			// gemstones do not respawn in a shaft, so a finished route is cleared instead of looped
 			selector.unload();
 		}
+	}
+
+	// a finished run is kept when it beats the best, and chat says how it went
+	private void finished(Minecraft minecraft, LibraryRoute route) {
+		long[] times = splits.times();
+		long total = times[times.length - 1];
+		Optional<long[]> best = FilobulusClient.splits().bests().best(route.id(), times.length);
+		if (FilobulusClient.splits().bests().offer(route.id(), times)) {
+			FilobulusClient.splits().save();
+		}
+		// a route of one stop has nothing to time
+		if (!HudConfig.splits || times.length < 2) {
+			return;
+		}
+		String text = "Route done in " + SplitText.clock(total);
+		if (best.isPresent()) {
+			long behind = total - best.get()[times.length - 1];
+			text += behind < 0
+					? ", new best (" + SplitText.delta(behind) + ")"
+					: " (" + SplitText.delta(behind) + " on your best)";
+		}
+		GameCompat.say(minecraft, FilobulusClient.chatLine(text));
 	}
 
 	private void announce(Minecraft minecraft, LibraryRoute route) {
