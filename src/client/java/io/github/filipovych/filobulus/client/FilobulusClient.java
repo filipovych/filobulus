@@ -7,6 +7,7 @@ import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.render.RouteRenderer;
 import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
+import io.github.filipovych.filobulus.client.route.SplitStore;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteSelector;
@@ -30,6 +31,7 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	private static final Configurator CONFIGURATOR = new Configurator(MOD_ID);
 	private static RouteStore store;
+	private static SplitStore splits;
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -48,6 +50,8 @@ public final class FilobulusClient implements ClientModInitializer {
 		// the player's own routes and choices sit next to the settings file
 		store = new RouteStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("routes.json"), routes);
 		store.load();
+		splits = new SplitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("splits.json"));
+		splits.load();
 		selector = new RouteSelector(routes, store.choices());
 		tracker = new RouteTracker(selector);
 
@@ -69,6 +73,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static RouteStore store() {
 		return store;
+	}
+
+	public static SplitStore splits() {
+		return splits;
 	}
 
 	// the routes screen changed what a shaft uses, show that at once when we are standing in such a shaft
