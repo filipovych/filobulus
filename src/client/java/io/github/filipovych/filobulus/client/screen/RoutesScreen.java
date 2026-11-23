@@ -5,8 +5,10 @@ import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
 import io.github.filipovych.filobulus.client.route.RouteStore;
+import io.github.filipovych.filobulus.route.CollectionCodec;
 import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.route.RouteCodec;
+import io.github.filipovych.filobulus.route.RouteCollection;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteImport;
 import io.github.filipovych.filobulus.route.SharedRoute;
@@ -90,6 +92,11 @@ public final class RoutesScreen extends FlatScreen {
 		int x = left + 8;
 		if (button(graphics, x, y, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(null))) {
 			tooltip(graphics, "Import what is on your clipboard: a route collection, or a route for the shaft you are in.",
+					mouseX, mouseY);
+		}
+		x += buttonWidth("Import") + GAP;
+		if (button(graphics, x, y, buttonWidth("Export all"), "Export all", TEXT, mouseX, mouseY, this::exportAll)) {
+			tooltip(graphics, "Copy every route you changed as one string that other Filobulus players can import.",
 					mouseX, mouseY);
 		}
 		int doneWidth = buttonWidth("Done");
@@ -231,6 +238,17 @@ public final class RoutesScreen extends FlatScreen {
 		say(titles.size() == 1
 				? "Now using " + titles.get(0) + " (" + routes.get(0).stops().size() + " stops)."
 				: "Imported " + titles.size() + " routes: " + String.join(", ", titles), GOOD);
+	}
+
+	private void exportAll() {
+		confirmDelete = "";
+		RouteCollection collection = store.picked(minecraft.getUser().getName() + "'s routes");
+		if (collection.routes().isEmpty()) {
+			say("Nothing to export yet, every shaft uses its bundled route.", MUTED);
+			return;
+		}
+		minecraft.keyboardHandler.setClipboard(CollectionCodec.export(collection));
+		say("Copied " + collection.routes().size() + " routes as one string. Paste it to someone, they press Import.", GOOD);
 	}
 
 	private void say(String text, int color) {
