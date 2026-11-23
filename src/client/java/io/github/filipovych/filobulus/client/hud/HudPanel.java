@@ -5,14 +5,16 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
-// the flat dark panel every hud uses: a bold title in a colour of its own, then rows of a grey label and a value on the right
+// what every hud is made of: an item and a bold title in a colour of its own, then rows of a grey label and a value on the right
+// only shadowed text over the game unless the dark panel is switched on
 // always drawn at 0,0, the caller moves and scales it
 public final class HudPanel {
 	public record Row(String label, String value) {
 	}
 
-	public record Content(String title, int titleColor, List<Row> rows) {
+	public record Content(ItemStack icon, String title, int titleColor, List<Row> rows) {
 		public Content {
 			rows = List.copyOf(rows);
 		}
@@ -21,6 +23,9 @@ public final class HudPanel {
 	private static final int PADDING = 5;
 	private static final int ROW_HEIGHT = 11;
 	private static final int TEXT_HEIGHT = 9;
+	// items are 16 pixels in the game, drawn smaller here so one fits a line of text
+	private static final int ICON_SIZE = 10;
+	private static final int ICON_GAP = 3;
 	// smallest space between a label and its value
 	private static final int COLUMN_GAP = 12;
 	// argb
@@ -40,7 +45,7 @@ public final class HudPanel {
 			values = Math.max(values, font.width(row.value()));
 		}
 		int rows = content.rows().isEmpty() ? 0 : labels + COLUMN_GAP + values;
-		return Math.max(font.width(title(content)), rows) + PADDING * 2;
+		return Math.max(ICON_SIZE + ICON_GAP + font.width(title(content)), rows) + PADDING * 2;
 	}
 
 	public static int height(Content content) {
@@ -53,7 +58,12 @@ public final class HudPanel {
 			graphics.fill(0, 0, width, height(content), BACKGROUND);
 			graphics.outline(0, 0, width, height(content), OUTLINE);
 		}
-		graphics.text(font, title(content), PADDING, PADDING, content.titleColor(), true);
+		graphics.pose().pushMatrix();
+		graphics.pose().translate(PADDING, PADDING - 1);
+		graphics.pose().scale(ICON_SIZE / 16f, ICON_SIZE / 16f);
+		graphics.item(content.icon(), 0, 0);
+		graphics.pose().popMatrix();
+		graphics.text(font, title(content), PADDING + ICON_SIZE + ICON_GAP, PADDING, content.titleColor(), true);
 		int y = PADDING + ROW_HEIGHT;
 		for (Row row : content.rows()) {
 			graphics.text(font, row.label(), PADDING, y, LABEL, true);

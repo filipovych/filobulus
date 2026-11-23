@@ -14,6 +14,7 @@ import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.world.item.ItemStack;
 
 // shown in a mineshaft: its type code, the stop the line points at and the time spent inside
 public final class RouteHud implements HudWidget {
@@ -32,12 +33,13 @@ public final class RouteHud implements HudWidget {
 		// the type code comes a moment after the area, until then the title is plain
 		String title = location.shaft().map(ShaftType::code).orElse("Mineshaft");
 		int color = location.shaft().map(type -> ShaftColors.of(type.material())).orElse(ShaftColors.GLACITE);
-		return Optional.of(new Content(title, color, rows));
+		ItemStack icon = ShaftIcons.of(location.shaft().map(ShaftType::material).orElse(ShaftMaterial.LITTLEFOOT));
+		return Optional.of(new Content(icon, title, color, rows));
 	}
 
 	@Override
 	public Content sample() {
-		return new Content("JASP_1", ShaftColors.of(ShaftMaterial.JASPER),
+		return new Content(ShaftIcons.of(ShaftMaterial.JASPER), "JASP_1", ShaftColors.of(ShaftMaterial.JASPER),
 				List.of(new Row("Stop", "12/47"), new Row("Time", "2:31")));
 	}
 
