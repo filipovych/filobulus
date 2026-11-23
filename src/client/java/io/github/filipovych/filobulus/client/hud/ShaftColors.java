@@ -23,7 +23,7 @@ public final class ShaftColors {
 			case AQUAMARINE -> 0xFF3D6FD9;
 			case AMETHYST -> 0xFFB84DE0;
 			case CITRINE -> 0xFFCC4422;
-			case ONYX -> 0xFF5A5A64;
+			case ONYX -> 0xFF777783;
 			case OPAL -> 0xFFFFFFFF;
 			case TITANIUM -> 0xFFD9E2EA;
 			case TUNGSTEN -> 0xFF8C9AA6;
