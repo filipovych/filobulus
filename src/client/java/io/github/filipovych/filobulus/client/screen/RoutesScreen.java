@@ -5,6 +5,7 @@ import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
 import io.github.filipovych.filobulus.client.route.RouteStore;
+import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -111,6 +112,40 @@ public final class RoutesScreen extends FlatScreen {
 			store.choices().setAutoLoad(key, !auto);
 			store.save();
 		}, null);
+
+		List<LibraryRoute> routes = store.library().routesFor(key);
+		LibraryRoute picked = store.library().routeFor(key, store.choices().preferredRouteId(key)).orElse(null);
+
+		int x = left + panelWidth - 8 + GAP;
+		int routeLeft = left + ROUTE_COLUMN;
+		int routeWidth = x - GAP - routeLeft;
+		if (picked == null) {
+			graphics.text(font, "no route yet", routeLeft, y + 6, FAINT, true);
+			return;
+		}
+		boolean several = routes.size() > 1;
+		// a long name is cut short, the stop count always stays
+		String count = " (" + picked.stops().size() + " stops)";
+		String label = clip(picked.name(), routeWidth - font.width(count) - (several ? font.width("<  >") : 0)) + count;
+		graphics.text(font, several ? "< " + label + " >" : label, routeLeft, y + 6, several ? TEXT : MUTED, true);
+		boolean hovered = mouseX >= routeLeft && mouseX < routeLeft + routeWidth && mouseY >= y && mouseY < y + ROW;
+		if (several) {
+			int at = routes.indexOf(picked);
+			clickable(routeLeft, y, routeWidth, ROW,
+					() -> pick(routes.get((at + 1) % routes.size())),
+					() -> pick(routes.get((at + routes.size() - 1) % routes.size())));
+		}
+		if (hovered && (several || !picked.author().isEmpty())) {
+			String credit = picked.author().isEmpty() ? "" : "By " + picked.author() + ". ";
+			tooltip(graphics, credit + (several ? "Click for the next route of this shaft, right click for the one before." : ""),
+					mouseX, mouseY);
+		}
+	}
+
+	private void pick(LibraryRoute route) {
+		store.choices().pick(route.routeKey(), route.id());
+		store.save();
+		FilobulusClient.routeChanged(route.routeKey());
 	}
 
 	private void say(String text, int color) {
