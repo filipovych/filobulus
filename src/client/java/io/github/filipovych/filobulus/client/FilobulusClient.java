@@ -2,17 +2,19 @@ package io.github.filipovych.filobulus.client;
 
 import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
-import io.github.filipovych.filobulus.client.config.ConfigRouteSettings;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.render.RouteRenderer;
+import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteSelector;
+import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
 import java.io.IOException;
 import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
@@ -27,23 +29,27 @@ public final class FilobulusClient implements ClientModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	private static final Configurator CONFIGURATOR = new Configurator(MOD_ID);
-	private static RouteLibrary routes = new RouteLibrary(List.of());
-	private static RouteSelector selector = new RouteSelector(routes, new ConfigRouteSettings());
-	private static RouteTracker tracker = new RouteTracker(selector);
+	private static RouteStore store;
+	private static RouteSelector selector;
+	private static RouteTracker tracker;
 
 	@Override
 	public void onInitializeClient() {
 		// reads config/filobulus.jsonc, creates it on first run
 		CONFIGURATOR.register(FilobulusConfig.class);
 
+		RouteLibrary routes = new RouteLibrary(List.of());
 		try {
 			routes = RouteLibrary.loadBundled();
-			selector = new RouteSelector(routes, new ConfigRouteSettings());
-			tracker = new RouteTracker(selector);
 		} catch (IOException | RouteFormatException e) {
 			// keep the empty library, the mod still loads
 			LOGGER.error("Could not load the bundled routes", e);
 		}
+		// the player's own routes and choices sit next to the settings file
+		store = new RouteStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("routes.json"), routes);
+		store.load();
+		selector = new RouteSelector(routes, store.choices());
+		tracker = new RouteTracker(selector);
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> tracker.tick(minecraft));
@@ -58,7 +64,22 @@ public final class FilobulusClient implements ClientModInitializer {
 	}
 
 	public static RouteLibrary routes() {
-		return routes;
+		return store.library();
+	}
+
+	public static RouteStore store() {
+		return store;
+	}
+
+	// the routes screen changed what a shaft uses, show that at once when we are standing in such a shaft
+	public static void routeChanged(String routeKey) {
+		if (tracker.location().shaft().filter(type -> type.routeKey().equals(routeKey)).isPresent()) {
+			// nothing left to load means its last route was just deleted
+			if (!(selector.loadHere() instanceof LoadResult.Loaded)) {
+				selector.unload();
+			}
+			tracker.restart();
+		}
 	}
 
 	public static RouteSelector selector() {
