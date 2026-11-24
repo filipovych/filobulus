@@ -64,9 +64,13 @@ public final class Hud {
 		Box box = box(font, widget, content, graphics.guiWidth(), graphics.guiHeight());
 		float scale = widget.placement().scale();
 		graphics.pose().pushMatrix();
-		graphics.pose().translate(box.left(), box.top());
-		graphics.pose().scale(scale, scale);
-		content.draw(graphics, font);
-		graphics.pose().popMatrix();
+		try {
+			graphics.pose().translate(box.left(), box.top());
+			graphics.pose().scale(scale, scale);
+			content.draw(graphics, font);
+		} finally {
+			// a widget that throws must not leave its matrix on what is drawn after it
+			graphics.pose().popMatrix();
+		}
 	}
 }
