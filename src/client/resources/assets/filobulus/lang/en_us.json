@@ -2,6 +2,7 @@
 	"filobulus.config.enabled": "Enabled",
 	"filobulus.config.routes.showRoutes": "Show routes",
 	"filobulus.config.routes.reach": "Stop reach",
+	"filobulus.config.routes.stopsShown": "Stops shown",
 	"filobulus.config.routes.announceLoad": "Announce in chat",
 	"filobulus.config.hud.routeHud": "Route HUD",
 	"filobulus.config.hud.splits": "Route splits",

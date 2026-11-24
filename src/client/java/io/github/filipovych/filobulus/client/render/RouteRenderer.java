@@ -14,10 +14,13 @@ import net.minecraft.world.phys.Vec3;
 
 // draws the route with minecraft's own debug shapes (gizmos), everything version fragile about drawing is in here
 public final class RouteRenderer {
-	// argb, glacite blue for the next stop and a faded white for the one after it
+	// argb, glacite blue for the next stop and white for the ones after it, each fainter than the one before
 	private static final int NEXT = 0xFF7FD4FF;
 	private static final int NEXT_FILL = 0x507FD4FF;
-	private static final int LATER = 0xB0FFFFFF;
+	private static final int LATER = 0xFFFFFF;
+	private static final int LATER_ALPHA = 0xB0;
+	private static final int LATER_FADE = 0x26;
+	private static final int FAINTEST = 0x30;
 	private static final float STROKE = 2.5f;
 	// labels keep their size on screen past this many blocks
 	private static final double LABEL_FULL_SIZE_RANGE = 8;
@@ -37,8 +40,9 @@ public final class RouteRenderer {
 			CameraRenderState camera = context.levelState().cameraRenderState;
 			Waypoint next = stops.get(0);
 			drawStop(next, camera.pos, GizmoStyle.strokeAndFill(NEXT, STROKE, NEXT_FILL), NEXT);
-			if (stops.size() > 1) {
-				drawStop(stops.get(1), camera.pos, GizmoStyle.stroke(LATER, STROKE), LATER);
+			for (int i = 1; i < stops.size() && i < RoutesConfig.stopsShown; i++) {
+				int later = Math.max(FAINTEST, LATER_ALPHA - (i - 1) * LATER_FADE) << 24 | LATER;
+				drawStop(stops.get(i), camera.pos, GizmoStyle.stroke(later, STROKE), later);
 			}
 			// one block in front of the camera is where the crosshair points
 			Vec3 crosshair = camera.pos.add(Vec3.directionFromRotation(camera.xRot, camera.yRot));

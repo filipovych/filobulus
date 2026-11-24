@@ -31,6 +31,12 @@ public final class RoutesConfig {
 	@ConfigOption.Slider
 	public static int reach = 3;
 
+	@ConfigEntry(id = "stopsShown", translation = "filobulus.config.routes.stopsShown")
+	@Comment("How many of the next stops are drawn. The next one is filled, the ones after it get fainter.")
+	@ConfigOption.Range(min = 1, max = 6)
+	@ConfigOption.Slider
+	public static int stopsShown = 2;
+
 	@ConfigEntry(id = "announceLoad", translation = "filobulus.config.routes.announceLoad")
 	@Comment("Say in chat which route was loaded.")
 	public static boolean announceLoad = true;
