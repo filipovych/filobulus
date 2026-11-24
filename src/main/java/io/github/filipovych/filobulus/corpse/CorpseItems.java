@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 // turns the reward names of the loot block into bazaar product ids, all the item names we know are here
 public final class CorpseItems {
@@ -13,6 +14,9 @@ public final class CorpseItems {
 	private static final List<String> TIERS = List.of("rough", "flawed", "fine", "flawless", "perfect");
 
 	private static final Map<String, String> TABLE = buildTable();
+	// auction only and worth more than any key, the id is SHATTERED_PENDANT for the locket but we never ask a price for these
+	private static final Set<String> RARE = Set.of("shattered locket", "frostbitten dye", "caged wisp");
+	private static final Set<String> WORTHLESS = Set.of("glacite powder", "hotm experience", "dead man's chestplate");
 
 	private CorpseItems() {
 	}
@@ -60,6 +64,20 @@ public final class CorpseItems {
 			return Optional.of(gemId(words[0], words[1]));
 		}
 		return Optional.empty();
+	}
+
+	public static boolean rare(String rewardName) {
+		return RARE.contains(plain(rewardName));
+	}
+
+	// things we know and count as 0: powder, experience and the crystals are not items, the chestplate sells for next to nothing
+	public static boolean worthless(String rewardName) {
+		String name = plain(rewardName);
+		if (WORTHLESS.contains(name) || name.endsWith(" hotm experience")) {
+			return true;
+		}
+		String[] words = name.split(" ");
+		return words.length == 2 && words[1].equals("crystal") && GEMS.contains(words[0]);
 	}
 
 	private static String gemId(String tier, String gem) {

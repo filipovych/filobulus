@@ -1,6 +1,8 @@
 package io.github.filipovych.filobulus.corpse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -49,10 +51,45 @@ class CorpseItemsTest {
 	void matchingIgnoresCase() {
 		assertEquals(Optional.of("FROZEN_SCUTE"), CorpseItems.id("FROZEN SCUTE"));
 		assertEquals(Optional.of("FINE_ONYX_GEM"), CorpseItems.id(" fine onyx gemstone "));
+		assertTrue(CorpseItems.rare("shattered locket"));
+		assertTrue(CorpseItems.worthless("GLACITE POWDER"));
 	}
 
 	@Test
 	void aCurlyApostropheIsReadLikeAStraightOne() {
 		assertEquals(Optional.of("DWARVEN_OS_METALLIC_MINIS"), CorpseItems.id("Dwarven O\u2019s Metallic Minis"));
+		assertTrue(CorpseItems.worthless("Dead Man\u2019s Chestplate"));
+	}
+
+	@Test
+	void theRareOnesHaveNoBazaarId() {
+		for (String name : new String[] {"Shattered Locket", "Frostbitten Dye", "Caged Wisp"}) {
+			assertTrue(CorpseItems.rare(name), name);
+			assertEquals(Optional.empty(), CorpseItems.id(name), name);
+			assertFalse(CorpseItems.worthless(name), name);
+		}
+		assertFalse(CorpseItems.rare("Skeleton Key"));
+		assertFalse(CorpseItems.rare("Umber Plate"));
+	}
+
+	@Test
+	void knowsWhatCountsAsNothing() {
+		for (String name : new String[] {"Glacite Powder", "HOTM Experience", "+1,000 HOTM Experience", "Onyx Crystal",
+				"Opal Crystal", "Jasper Crystal", "Dead Man's Chestplate"}) {
+			assertTrue(CorpseItems.worthless(name), name);
+			assertEquals(Optional.empty(), CorpseItems.id(name), name);
+			assertFalse(CorpseItems.rare(name), name);
+		}
+		assertFalse(CorpseItems.worthless("Fine Onyx Gemstone"));
+		assertFalse(CorpseItems.worthless("Glacite Crystal"));
+	}
+
+	@Test
+	void anUnknownNameIsNoneOfThem() {
+		for (String name : new String[] {"Mystery Thing", "", null}) {
+			assertEquals(Optional.empty(), CorpseItems.id(name));
+			assertFalse(CorpseItems.rare(name));
+			assertFalse(CorpseItems.worthless(name));
+		}
 	}
 }
