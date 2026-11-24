@@ -53,6 +53,7 @@ public final class FiloCommand {
 				.then(ClientCommands.literal("journal").executes(FiloCommand::openJournal))
 				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
 				.then(ClientCommands.literal("alert").executes(FiloCommand::tryAlert))
+				.then(ClientCommands.literal("wisp").executes(FiloCommand::wisp))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// /filo pretend JASP_1 acts like standing in that shaft, anything else switches it off
@@ -91,6 +92,12 @@ public final class FiloCommand {
 	// shows the jasper alert with the sound picked in the settings, to hear it and to see where alerts sit
 	private static int tryAlert(CommandContext<FabricClientCommandSource> context) {
 		Alerts.show("shaft", "JASPER", "This is a test", 0xFF55FF, 1, Alerts.LONG, AlertsConfig.jasperSound.event());
+		return 1;
+	}
+
+	private static int wisp(CommandContext<FabricClientCommandSource> context) {
+		FilobulusClient.wisp().placed();
+		say(context, "Will-o'-wisp timer started, 5 minutes.");
 		return 1;
 	}
 

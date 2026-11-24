@@ -17,6 +17,10 @@ public final class AlertsConfig {
 	@Comment("The sound of the alert for a jasper shaft. /filo alert plays it.")
 	public static AlertSound jasperSound = AlertSound.LEVEL_UP;
 
+	@ConfigEntry(id = "wisp", translation = "filobulus.config.alerts.wisp")
+	@Comment("Warn when your Will-o'-wisp has 10 seconds left and when it is gone, 5 minutes after you used it. /filo wisp starts the timer by hand, for a wisp someone else placed.")
+	public static boolean wisp = true;
+
 	@ConfigEntry(id = "newBest", translation = "filobulus.config.alerts.newBest")
 	@Comment("Show a new best time on a shaft route in big letters.")
 	public static boolean newBest = true;

@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client;
 
 import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
 import io.github.filipovych.filobulus.client.alert.ShaftAlert;
+import io.github.filipovych.filobulus.client.alert.WispWatch;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.hud.Hud;
@@ -38,6 +39,7 @@ public final class FilobulusClient implements ClientModInitializer {
 	private static SplitStore splits;
 	private static JournalStore journal;
 	private static ShaftLog shaftLog;
+	private static WispWatch wisp;
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -66,10 +68,13 @@ public final class FilobulusClient implements ClientModInitializer {
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
 		ShaftAlert shaftAlert = new ShaftAlert();
+		wisp = new WispWatch();
+		wisp.register();
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			tracker.tick(minecraft);
 			shaftLog.tick(minecraft);
 			shaftAlert.tick();
+			wisp.tick(minecraft);
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> shaftLog.close());
 		LevelRenderEvents.BEFORE_GIZMOS.register(RouteRenderer::draw);
@@ -100,6 +105,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static ShaftLog shaftLog() {
 		return shaftLog;
+	}
+
+	public static WispWatch wisp() {
+		return wisp;
 	}
 
 	// the routes screen changed what a shaft uses, show that at once when we are standing in such a shaft
