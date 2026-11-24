@@ -31,6 +31,12 @@ public final class RoutesConfig {
 	@ConfigOption.Slider
 	public static int reach = 3;
 
+	@ConfigEntry(id = "skipAhead", translation = "filobulus.config.routes.skipAhead")
+	@Comment("How many stops past the next one also count when you get to them, which skips the stops in between. 0 keeps the route strictly in order. A run with skipped stops is not kept as a best.")
+	@ConfigOption.Range(min = 0, max = 5)
+	@ConfigOption.Slider
+	public static int skipAhead = 0;
+
 	@ConfigEntry(id = "stopsShown", translation = "filobulus.config.routes.stopsShown")
 	@Comment("How many of the next stops are drawn. The next one is filled, the ones after it get fainter.")
 	@ConfigOption.Range(min = 1, max = 6)

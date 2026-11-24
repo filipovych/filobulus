@@ -126,10 +126,11 @@ public final class RouteTracker {
 			return;
 		}
 		// measured from the feet, the same point f3 shows
-		if (progress.update(
-				minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ(), RoutesConfig.reach)) {
+		int before = progress.reached();
+		if (progress.update(minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ(),
+				RoutesConfig.reach, RoutesConfig.skipAhead)) {
 			changed = true;
-			splits.reached(System.currentTimeMillis());
+			splits.reached(System.currentTimeMillis(), progress.reached() - before);
 			if (splits.finished()) {
 				finished(minecraft, active);
 			}
@@ -147,30 +148,34 @@ public final class RouteTracker {
 	private void finished(Minecraft minecraft, LibraryRoute route) {
 		long[] times = splits.times();
 		long total = times[times.length - 1];
-		Optional<long[]> best = FilobulusClient.splits().bests().best(route.id(), times.length);
-		if (FilobulusClient.splits().bests().offer(route.id(), times)) {
-			FilobulusClient.splits().save();
-		}
 		// a route of one stop has nothing to time
 		if (times.length < 2) {
 			return;
 		}
-		FilobulusClient.shaftLog().ran(total);
-		if (!HudConfig.splits) {
-			return;
-		}
 		String text = "Route done in " + SplitText.clock(total);
-		if (best.isPresent()) {
-			long behind = total - best.get()[times.length - 1];
-			text += behind < 0
-					? ", new best (" + SplitText.delta(behind) + ")"
-					: " (" + SplitText.delta(behind) + " on your best)";
-			if (behind < 0 && AlertsConfig.newBest) {
-				Alerts.show("best", "NEW BEST", SplitText.clock(total) + " (" + SplitText.delta(behind) + ")",
-						NEW_BEST, 2, Alerts.LONG, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
+		if (!splits.clean()) {
+			// leaving stops out makes a run fast for the wrong reason
+			text += ", stops were skipped so it does not count";
+		} else {
+			Optional<long[]> best = FilobulusClient.splits().bests().best(route.id(), times.length);
+			if (FilobulusClient.splits().bests().offer(route.id(), times)) {
+				FilobulusClient.splits().save();
+			}
+			FilobulusClient.shaftLog().ran(total);
+			if (best.isPresent()) {
+				long behind = total - best.get()[times.length - 1];
+				text += behind < 0
+						? ", new best (" + SplitText.delta(behind) + ")"
+						: " (" + SplitText.delta(behind) + " on your best)";
+				if (behind < 0 && HudConfig.splits && AlertsConfig.newBest) {
+					Alerts.show("best", "NEW BEST", SplitText.clock(total) + " (" + SplitText.delta(behind) + ")",
+							NEW_BEST, 2, Alerts.LONG, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
+				}
 			}
 		}
-		GameCompat.say(minecraft, FilobulusClient.chatLine(text));
+		if (HudConfig.splits) {
+			GameCompat.say(minecraft, FilobulusClient.chatLine(text));
+		}
 	}
 
 	private void announce(Minecraft minecraft, LibraryRoute route) {
