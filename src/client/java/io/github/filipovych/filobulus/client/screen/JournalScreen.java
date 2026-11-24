@@ -137,7 +137,7 @@ public final class JournalScreen extends FlatScreen {
 						"Mineshafts you entered in this period."),
 				new Tile(String.valueOf(stats.jasper()), ShaftColors.of(ShaftMaterial.JASPER),
 						stats.shafts() == 0 ? "" : JournalText.percent(stats.jasperRate()), "Jasper", "Jasper",
-						"Jasper shafts in this period and their share of all shafts. Jasper crystal shafts do not count."),
+						"Jasper shafts in this period, jasper crystal ones included, and their share of all shafts."),
 				new Tile(String.valueOf(store.journal().sinceJasper()), TEXT, "", "Since jasper", "Dry streak",
 						"Shafts entered since your last jasper shaft. This one always counts up to now, whatever the period."),
 				new Tile(String.valueOf(stats.longestDry()), TEXT, "", "Longest dry", "Max dry",

@@ -55,15 +55,18 @@ class ShaftJournalTest {
 		assertEquals(1, journal.sinceJasper());
 		journal.put(ShaftVisit.entered(2, "JASP_1"));
 		assertEquals(0, journal.sinceJasper());
-		journal.put(ShaftVisit.entered(3, "JASP_C"));
+		journal.put(ShaftVisit.entered(3, "RUBY_C"));
 		journal.put(ShaftVisit.entered(4, ""));
 		assertEquals(2, journal.sinceJasper());
+		journal.put(ShaftVisit.entered(5, "JASP_C"));
+		assertEquals(0, journal.sinceJasper());
 	}
 
 	@Test
-	void onlyTheNormalJasperShaftIsJasper() {
+	void bothJasperShaftsAreJasper() {
 		assertTrue(ShaftVisit.entered(1, "JASP_1").isJasper());
-		assertFalse(ShaftVisit.entered(1, "JASP_C").isJasper());
+		assertTrue(ShaftVisit.entered(1, "JASP_C").isJasper());
+		assertFalse(ShaftVisit.entered(1, "OPAL_C").isJasper());
 		assertFalse(ShaftVisit.entered(1, "").isJasper());
 		assertEquals("CRYSTAL", ShaftVisit.entered(1, "RUBY_C").key());
 		assertEquals("RUBY_2", ShaftVisit.entered(1, "RUBY_2").key());

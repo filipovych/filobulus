@@ -28,7 +28,7 @@ public final class ShaftAlert {
 		if (!AlertsConfig.shaftType) {
 			return;
 		}
-		boolean jasper = type.material() == ShaftMaterial.JASPER && !type.isCrystal();
+		boolean jasper = type.material() == ShaftMaterial.JASPER;
 		Alerts.show("shaft", type.displayName().toUpperCase(Locale.ROOT), type.code(), ShaftColors.of(type.material()),
 				jasper ? 1 : 0, jasper ? Alerts.LONG : Alerts.SHORT, jasper ? SoundEvents.PLAYER_LEVELUP : null);
 	}

@@ -20,9 +20,9 @@ public record ShaftVisit(long enteredAt, String code, long spentMillis, long run
 		return type().map(ShaftType::routeKey).orElse("");
 	}
 
-	// the shaft everyone is after, a jasper crystal shaft is not one
+	// the shaft everyone is after, a jasper crystal shaft is one too and ends a dry streak
 	public boolean isJasper() {
-		return type().filter(type -> type.material() == ShaftMaterial.JASPER && !type.isCrystal()).isPresent();
+		return type().filter(type -> type.material() == ShaftMaterial.JASPER).isPresent();
 	}
 
 	public ShaftVisit withCode(String code) {

@@ -9,7 +9,7 @@ import com.teamresourceful.resourcefulconfig.api.annotations.ConfigInfo;
 @ConfigInfo(title = "Alerts", description = "Big text in the middle of the screen. Move it with /filo hud.", icon = "bell")
 public final class AlertsConfig {
 	@ConfigEntry(id = "shaftType", translation = "filobulus.config.alerts.shaftType")
-	@Comment("When you enter a mineshaft, show its type in big letters. A jasper shaft stays longer and has a sound.")
+	@Comment("When you enter a mineshaft, show its type in big letters. A jasper shaft, crystal or not, stays longer and has a sound.")
 	public static boolean shaftType = true;
 
 	@ConfigEntry(id = "newBest", translation = "filobulus.config.alerts.newBest")
