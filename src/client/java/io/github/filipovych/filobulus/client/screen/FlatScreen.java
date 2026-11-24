@@ -10,12 +10,12 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 
-// the look of our own screens: a dark panel like the hud's and flat text buttons, no vanilla widgets
+// the look of our own screens: a see-through dark panel over the blurred game and flat text buttons, no vanilla widgets
 // buttons are drawn and remembered every frame, a click goes to whichever one was drawn under the mouse
 public abstract class FlatScreen extends Screen {
 	// argb
-	protected static final int DIM = 0x90000000;
-	protected static final int PANEL = 0xF0101010;
+	protected static final int DIM = 0x50000000;
+	protected static final int PANEL = 0xB4101010;
 	protected static final int OUTLINE = 0x80808080;
 	protected static final int ACCENT = 0xFF7FD4FF;
 	protected static final int TEXT = 0xFFFFFFFF;
@@ -43,6 +43,8 @@ public abstract class FlatScreen extends Screen {
 
 	@Override
 	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		// the game behind stays visible but soft, how soft is the game's own menu blur setting
+		extractBlurredBackground(graphics);
 		graphics.fill(0, 0, width, height, DIM);
 	}
 
