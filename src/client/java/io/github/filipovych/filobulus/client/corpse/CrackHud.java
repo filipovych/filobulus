@@ -1,5 +1,6 @@
 package io.github.filipovych.filobulus.client.corpse;
 
+import io.github.filipovych.filobulus.client.config.CorpsesConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.hud.HudDrawable;
 import io.github.filipovych.filobulus.client.hud.HudWidget;
@@ -10,16 +11,20 @@ import io.github.filipovych.filobulus.corpse.CorpseVerdict;
 import io.github.filipovych.filobulus.corpse.CrackTier;
 import io.github.filipovych.filobulus.corpse.CrackTimeline;
 import io.github.filipovych.filobulus.corpse.CrackTimeline.Frame;
+import io.github.filipovych.filobulus.corpse.CrackTimeline.Sound;
 import io.github.filipovych.filobulus.hud.HudAnchor;
 import io.github.filipovych.filobulus.hud.HudPlacement;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -102,9 +107,23 @@ public final class CrackHud implements HudWidget {
 		}
 	}
 
+	private static Scene scene;
 	private static Optional<HudDrawable> shown = Optional.empty();
 	private static long startedAt;
+	// how far into the reveal the sounds have been played
+	private static long heard;
 	private static ItemStack dirt;
+
+	public static void play(CorpseVerdict verdict) {
+		show(new Scene(verdict, -1));
+		startedAt = System.currentTimeMillis();
+		heard = -1;
+	}
+
+	// stays on that one moment until the next play, to look at a frame for as long as it takes
+	public static void hold(CorpseVerdict verdict, long elapsed) {
+		show(new Scene(verdict, elapsed));
+	}
 
 	// made up numbers that land in the tier, for /filo crack and the hud editor
 	public static CorpseVerdict example(CrackTier tier) {
@@ -116,6 +135,43 @@ public final class CrackHud implements HudWidget {
 			case JASPER -> 3.2;
 		};
 		return new CorpseVerdict(CorpseType.UMBER, tier, roi * KEY_COST, KEY_COST, false, "", 0);
+	}
+
+	// once a client tick: the sounds that came due since the last one, and the end of the reveal
+	public static void tick() {
+		Scene playing = scene;
+		if (playing == null || playing.at() >= 0) {
+			return;
+		}
+		long elapsed = System.currentTimeMillis() - startedAt;
+		if (CorpsesConfig.revealSounds) {
+			for (Sound sound : CrackTimeline.cues(heard, elapsed)) {
+				sound(sound, playing.verdict().tier());
+			}
+		}
+		heard = elapsed;
+		if (elapsed >= CrackTimeline.TOTAL) {
+			show(null);
+		}
+	}
+
+	private static void show(Scene next) {
+		scene = next;
+		shown = Optional.ofNullable(next);
+	}
+
+	private static void sound(Sound sound, CrackTier tier) {
+		Minecraft.getInstance().getSoundManager().play(switch (sound.cue()) {
+			case CRACK -> SimpleSoundInstance.forUI(SoundEvents.GLASS_HIT, 0.8f + 0.1f * sound.step(), 0.7f);
+			case SHATTER -> SimpleSoundInstance.forUI(SoundEvents.GLASS_BREAK, 1f, 1f);
+			case REVEAL -> switch (tier) {
+				case DIRT -> SimpleSoundInstance.forUI(SoundEvents.VILLAGER_NO, 0.7f, 1f);
+				case GLACITE -> SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_BASS.value(), 0.5f, 1f);
+				case RUBY -> SimpleSoundInstance.forUI(SoundEvents.EXPERIENCE_ORB_PICKUP, 1f, 1f);
+				case AQUAMARINE -> SimpleSoundInstance.forUI(SoundEvents.PLAYER_LEVELUP, 1f, 1f);
+				case JASPER -> SimpleSoundInstance.forUI(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+			};
+		});
 	}
 
 	private static void draw(GuiGraphicsExtractor graphics, Font font, Scene scene, long elapsed) {
