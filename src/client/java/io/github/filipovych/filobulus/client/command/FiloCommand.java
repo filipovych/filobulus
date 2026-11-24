@@ -10,14 +10,17 @@ import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RoutesScreen;
+import io.github.filipovych.filobulus.corpse.CrackTier;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -54,6 +57,12 @@ public final class FiloCommand {
 				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
 				.then(ClientCommands.literal("alert").executes(FiloCommand::tryAlert))
 				.then(ClientCommands.literal("wisp").executes(FiloCommand::wisp))
+				.then(ClientCommands.literal("crack")
+						.executes(context -> crack(context, "jasper"))
+						.then(ClientCommands.argument("tier", StringArgumentType.word())
+								.suggests((context, builder) -> SharedSuggestionProvider.suggest(
+										Arrays.stream(CrackTier.values()).map(tier -> tier.name().toLowerCase(Locale.ROOT)), builder))
+								.executes(context -> crack(context, StringArgumentType.getString(context, "tier")))))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// /filo pretend JASP_1 acts like standing in that shaft, anything else switches it off
@@ -98,6 +107,18 @@ public final class FiloCommand {
 	private static int wisp(CommandContext<FabricClientCommandSource> context) {
 		FilobulusClient.wisp().placed();
 		say(context, "Will-o'-wisp timer started, 5 minutes.");
+		return 1;
+	}
+
+	// plays the corpse reveal with made up numbers, to see and hear a tier without looting a corpse
+	private static int crack(CommandContext<FabricClientCommandSource> context, String name) {
+		for (CrackTier tier : CrackTier.values()) {
+			if (tier.name().equalsIgnoreCase(name)) {
+				CrackHud.play(CrackHud.example(tier));
+				return 1;
+			}
+		}
+		fail(context, "No tier called \"" + name + "\". Try dirt, glacite, ruby, aquamarine or jasper.");
 		return 1;
 	}
 
