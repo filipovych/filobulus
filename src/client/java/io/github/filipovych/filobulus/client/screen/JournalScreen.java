@@ -1,0 +1,104 @@
+package io.github.filipovych.filobulus.client.screen;
+
+import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.compat.GameCompat;
+import io.github.filipovych.filobulus.client.journal.JournalStore;
+import io.github.filipovych.filobulus.journal.JournalPeriod;
+import io.github.filipovych.filobulus.journal.JournalText;
+import io.github.filipovych.filobulus.journal.ShaftVisit;
+import java.time.ZoneId;
+import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+
+// /filo journal: what the logged shafts add up to, a count per shaft layout that also filters, and the log itself
+public final class JournalScreen extends FlatScreen {
+	private static final int MAX_WIDTH = 560;
+	private static final int MAX_HEIGHT = 420;
+	private static final int MARGIN = 8;
+	private static final int PAD = 8;
+	private static final int TILES_TOP = 28;
+	private static final int TILE_HEIGHT = 32;
+	private static final int BODY_TOP = TILES_TOP + TILE_HEIGHT + 10;
+	private static final int FOOTER = 26;
+	// argb
+	private static final int CHIP_ON = 0xFF2F86B3;
+
+	// the period stays as it was left while the game runs
+	private static JournalPeriod period = JournalPeriod.ALL;
+
+	private final Screen parent;
+	private final JournalStore store = FilobulusClient.journal();
+	private final ZoneId zone = ZoneId.systemDefault();
+
+	public JournalScreen(Screen parent) {
+		super(Component.literal("Filobulus journal"));
+		this.parent = parent;
+	}
+
+	@Override
+	protected void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+		long now = System.currentTimeMillis();
+		int panelWidth = Math.min(width - MARGIN * 2, MAX_WIDTH);
+		int panelHeight = Math.min(height - MARGIN * 2, MAX_HEIGHT);
+		int left = (width - panelWidth) / 2;
+		int top = (height - panelHeight) / 2;
+		int right = left + panelWidth;
+		int bottom = top + panelHeight;
+		panel(graphics, left, top, panelWidth, panelHeight);
+
+		graphics.text(font, Component.literal("Shaft journal").withStyle(ChatFormatting.BOLD), left + PAD, top + 9, ACCENT, true);
+		int x = right - PAD;
+		JournalPeriod[] periods = JournalPeriod.values();
+		for (int i = periods.length - 1; i >= 0; i--) {
+			JournalPeriod each = periods[i];
+			x -= buttonWidth(each.title());
+			chip(graphics, x, top + 6, each.title(), each == period, mouseX, mouseY, () -> period = each);
+			x -= 2;
+		}
+
+		int bodyTop = top + BODY_TOP;
+		int bodyBottom = bottom - FOOTER;
+		if (store.journal().visits().isEmpty()) {
+			int middle = (bodyTop + bodyBottom) / 2;
+			graphics.centeredText(font, "No shafts yet.", width / 2, middle - 10, MUTED);
+			graphics.centeredText(font, "Every mineshaft you enter is written down here by itself.", width / 2, middle + 2, FAINT);
+		}
+
+		int y = bottom - BUTTON_HEIGHT - 6;
+		int doneWidth = buttonWidth("Done");
+		button(graphics, right - PAD - doneWidth, y, doneWidth, "Done", ACCENT, mouseX, mouseY, this::onClose);
+		graphics.text(font, clip(summary(now), right - PAD * 3 - doneWidth - left), left + PAD, y + 3, FAINT, true);
+	}
+
+	private void chip(GuiGraphicsExtractor graphics, int left, int top, String label, boolean on,
+			int mouseX, int mouseY, Runnable action) {
+		int chipWidth = buttonWidth(label);
+		if (on) {
+			graphics.fill(left, top, left + chipWidth, top + BUTTON_HEIGHT, CHIP_ON);
+			graphics.centeredText(font, label, left + chipWidth / 2, top + 3, TEXT);
+		} else {
+			button(graphics, left, top, chipWidth, label, MUTED, mouseX, mouseY, action);
+		}
+	}
+
+	private String summary(long now) {
+		List<ShaftVisit> all = store.journal().visits();
+		if (all.isEmpty()) {
+			return "";
+		}
+		String since = JournalText.day(all.get(0).enteredAt(), now, zone);
+		return shafts(all.size()) + " logged since " + Character.toLowerCase(since.charAt(0)) + since.substring(1);
+	}
+
+	private static String shafts(int count) {
+		return count == 1 ? "1 shaft" : count + " shafts";
+	}
+
+	@Override
+	public void onClose() {
+		GameCompat.setScreen(minecraft, parent);
+	}
+}
