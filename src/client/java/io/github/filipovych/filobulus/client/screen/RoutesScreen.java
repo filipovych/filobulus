@@ -77,12 +77,7 @@ public final class RoutesScreen extends FlatScreen {
 			}
 		}
 		graphics.disableScissor();
-		if (maxScroll > 0) {
-			int track = listBottom - listTop;
-			int thumb = Math.max(12, track * track / (layouts.size() * ROW));
-			int thumbTop = listTop + (track - thumb) * scroll / maxScroll;
-			graphics.fill(left + panelWidth - 3, thumbTop, left + panelWidth - 1, thumbTop + thumb, OUTLINE);
-		}
+		scrollbar(graphics, left + panelWidth - 1, listTop, listBottom, layouts.size() * ROW, scroll);
 		// clicks in the header and footer must not reach a row that is scrolled under them
 		clickable(left, top, panelWidth, LIST_TOP, null, null);
 		clickable(left, listBottom, panelWidth, FOOTER, null, null);
@@ -256,14 +251,6 @@ public final class RoutesScreen extends FlatScreen {
 	private void say(String text, int color) {
 		status = text;
 		statusColor = color;
-	}
-
-	private void tooltip(GuiGraphicsExtractor graphics, String text, int mouseX, int mouseY) {
-		graphics.setTooltipForNextFrame(font, Component.literal(text), mouseX, mouseY);
-	}
-
-	private String clip(String text, int maxWidth) {
-		return font.width(text) <= maxWidth ? text : font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width("..."))) + "...";
 	}
 
 	@Override

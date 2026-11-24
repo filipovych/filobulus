@@ -26,6 +26,7 @@ public abstract class FlatScreen extends Screen {
 	protected static final int HOVER = 0x28FFFFFF;
 	protected static final int BUTTON = 0x18FFFFFF;
 	protected static final int BUTTON_HEIGHT = 14;
+	private static final int TOOLTIP_WIDTH = 210;
 
 	private record Hit(int left, int top, int width, int height, Runnable onLeft, Runnable onRight) {
 		boolean contains(double x, double y) {
@@ -78,6 +79,29 @@ public abstract class FlatScreen extends Screen {
 
 	protected int buttonWidth(String label) {
 		return font.width(label) + 8;
+	}
+
+	// long text wraps instead of running off the screen
+	protected void tooltip(GuiGraphicsExtractor graphics, String text, int mouseX, int mouseY) {
+		graphics.setTooltipForNextFrame(font, font.split(Component.literal(text), TOOLTIP_WIDTH), mouseX, mouseY);
+	}
+
+	// cuts text that is too wide and ends it in three dots
+	protected String clip(String text, int maxWidth) {
+		return font.width(text) <= maxWidth
+				? text
+				: font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width("..."))) + "...";
+	}
+
+	// a bar on the right edge of a list that says where the scrolling is
+	protected void scrollbar(GuiGraphicsExtractor graphics, int right, int top, int bottom, int content, int scroll) {
+		int track = bottom - top;
+		if (content <= track) {
+			return;
+		}
+		int thumb = Math.max(12, track * track / content);
+		int thumbTop = top + (track - thumb) * scroll / (content - track);
+		graphics.fill(right - 2, thumbTop, right, thumbTop + thumb, OUTLINE);
 	}
 
 	@Override
