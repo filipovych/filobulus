@@ -137,7 +137,8 @@ public final class JournalScreen extends FlatScreen {
 						"Mineshafts you entered in this period."),
 				new Tile(String.valueOf(stats.jasper()), ShaftColors.of(ShaftMaterial.JASPER),
 						stats.shafts() == 0 ? "" : JournalText.percent(stats.jasperRate()), "Jasper", "Jasper",
-						"Jasper shafts in this period, jasper crystal ones included, and their share of all shafts."),
+						"Jasper shafts in this period, jasper crystal ones included, and their share of all shafts. "
+								+ "The wiki's spawn weights put it at about 4.3%, or 5.9% when the last block you mined has no shaft type of its own."),
 				new Tile(String.valueOf(store.journal().sinceJasper()), TEXT, "", "Since jasper", "Dry streak",
 						"Shafts entered since your last jasper shaft. This one always counts up to now, whatever the period."),
 				new Tile(String.valueOf(stats.longestDry()), TEXT, "", "Longest dry", "Max dry",
