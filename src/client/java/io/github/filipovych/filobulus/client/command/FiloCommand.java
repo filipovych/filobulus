@@ -10,6 +10,7 @@ import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
+import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RoutesScreen;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
@@ -47,6 +48,7 @@ public final class FiloCommand {
 										.load(StringArgumentType.getString(context, "route"))))))
 				.then(ClientCommands.literal("unload").executes(FiloCommand::unload))
 				.then(ClientCommands.literal("routes").executes(FiloCommand::openRoutes))
+				.then(ClientCommands.literal("journal").executes(FiloCommand::openJournal))
 				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
@@ -74,6 +76,12 @@ public final class FiloCommand {
 	private static int openRoutes(CommandContext<FabricClientCommandSource> context) {
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new RoutesScreen(null)));
+		return 1;
+	}
+
+	private static int openJournal(CommandContext<FabricClientCommandSource> context) {
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new JournalScreen(null)));
 		return 1;
 	}
 
