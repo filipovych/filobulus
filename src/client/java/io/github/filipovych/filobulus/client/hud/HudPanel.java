@@ -1,5 +1,6 @@
 package io.github.filipovych.filobulus.client.hud;
 
+import io.github.filipovych.filobulus.client.config.HudConfig;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
@@ -17,9 +18,24 @@ public final class HudPanel {
 		}
 	}
 
-	public record Content(ItemStack icon, String title, int titleColor, List<Row> rows) {
+	public record Content(ItemStack icon, String title, int titleColor, List<Row> rows) implements HudDrawable {
 		public Content {
 			rows = List.copyOf(rows);
+		}
+
+		@Override
+		public int width(Font font) {
+			return HudPanel.width(font, this);
+		}
+
+		@Override
+		public int height() {
+			return HudPanel.height(this);
+		}
+
+		@Override
+		public void draw(GuiGraphicsExtractor graphics, Font font) {
+			HudPanel.draw(graphics, font, this, HudConfig.panel);
 		}
 	}
 

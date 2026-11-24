@@ -155,7 +155,7 @@ public final class HudEditScreen extends Screen {
 		return Hud.box(font, widget, shown(widget), width, height);
 	}
 
-	private static HudPanel.Content shown(HudWidget widget) {
+	private static HudDrawable shown(HudWidget widget) {
 		return widget.content().orElseGet(widget::sample);
 	}
 }

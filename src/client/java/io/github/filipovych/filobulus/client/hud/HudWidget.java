@@ -6,10 +6,10 @@ import java.util.Optional;
 // one panel on screen that the player can move around
 public interface HudWidget {
 	// what to show right now, empty hides the panel
-	Optional<HudPanel.Content> content();
+	Optional<HudDrawable> content();
 
 	// made up content for /filo hud, so the panel can be placed while it has nothing to show
-	HudPanel.Content sample();
+	HudDrawable sample();
 
 	HudPlacement placement();
 

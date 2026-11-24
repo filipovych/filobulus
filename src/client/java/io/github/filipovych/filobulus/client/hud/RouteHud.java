@@ -25,7 +25,7 @@ public final class RouteHud implements HudWidget {
 	private static final int BEHIND = 0xFFFF5555;
 
 	@Override
-	public Optional<Content> content() {
+	public Optional<HudDrawable> content() {
 		RouteTracker tracker = FilobulusClient.tracker();
 		Location location = tracker.location();
 		if (!HudConfig.routeHud || location.area() != Area.MINESHAFT) {

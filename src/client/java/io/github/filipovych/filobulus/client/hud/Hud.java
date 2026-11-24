@@ -2,7 +2,6 @@ package io.github.filipovych.filobulus.client.hud;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
-import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.hud.HudPlacement;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -53,20 +52,20 @@ public final class Hud {
 		}
 	}
 
-	static Box box(Font font, HudWidget widget, HudPanel.Content content, int screenWidth, int screenHeight) {
+	static Box box(Font font, HudWidget widget, HudDrawable content, int screenWidth, int screenHeight) {
 		HudPlacement placement = widget.placement();
-		int width = Math.round(HudPanel.width(font, content) * placement.scale());
-		int height = Math.round(HudPanel.height(content) * placement.scale());
+		int width = Math.round(content.width(font) * placement.scale());
+		int height = Math.round(content.height() * placement.scale());
 		return new Box(placement.left(width, screenWidth), placement.top(height, screenHeight), width, height);
 	}
 
-	static void draw(GuiGraphicsExtractor graphics, Font font, HudWidget widget, HudPanel.Content content) {
+	static void draw(GuiGraphicsExtractor graphics, Font font, HudWidget widget, HudDrawable content) {
 		Box box = box(font, widget, content, graphics.guiWidth(), graphics.guiHeight());
 		float scale = widget.placement().scale();
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(box.left(), box.top());
 		graphics.pose().scale(scale, scale);
-		HudPanel.draw(graphics, font, content, HudConfig.panel);
+		content.draw(graphics, font);
 		graphics.pose().popMatrix();
 	}
 }
