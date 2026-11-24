@@ -111,6 +111,22 @@ class CorpseLootReaderTest {
 	}
 
 	@Test
+	void aBlockThatNeverClosesIsDropped() {
+		CorpseLootReader reader = new CorpseLootReader();
+		reader.read("  UMBER CORPSE LOOT!");
+		for (int i = 0; i < 40; i++) {
+			reader.read("    Umber Plate");
+		}
+		assertTrue(reader.read(BAR).isPresent());
+
+		reader.read("  UMBER CORPSE LOOT!");
+		for (int i = 0; i < 41; i++) {
+			reader.read("    Umber Plate");
+		}
+		assertEquals(Optional.empty(), reader.read(BAR));
+	}
+
+	@Test
 	void resetForgetsAHalfReadBlock() {
 		CorpseLootReader reader = new CorpseLootReader();
 		feed(reader, "  UMBER CORPSE LOOT!", "    Umber Plate");

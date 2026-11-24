@@ -17,9 +17,11 @@ public final class CorpseLootReader {
 	private static final String INDENT = "    ";
 	private static final char BAR = '▬';
 	private static final int MIN_BAR = 10;
+	private static final int MAX_LINES = 40;
 
 	private CorpseType type;
 	private final List<CorpseLoot.Reward> rewards = new ArrayList<>();
+	private int lines;
 
 	// one line at a time with the colour codes stripped, gives the loot on the line that closes the block
 	public Optional<CorpseLoot> read(String line) {
@@ -43,6 +45,11 @@ public final class CorpseLootReader {
 			reset();
 			return loot;
 		}
+		// the bar never came, better to drop the block than to pick up lines from somewhere else
+		if (++lines > MAX_LINES) {
+			reset();
+			return Optional.empty();
+		}
 		if (line.startsWith(INDENT) && line.length() > INDENT.length() && line.charAt(INDENT.length()) != ' ') {
 			reward(line.substring(INDENT.length()).stripTrailing());
 		}
@@ -53,6 +60,7 @@ public final class CorpseLootReader {
 	public void reset() {
 		type = null;
 		rewards.clear();
+		lines = 0;
 	}
 
 	private void reward(String text) {
