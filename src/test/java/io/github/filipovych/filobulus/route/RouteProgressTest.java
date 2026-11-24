@@ -57,6 +57,21 @@ class RouteProgressTest {
 	}
 
 	@Test
+	void skipsAheadOnlyAsFarAsAllowed() {
+		assertFalse(progress.update(40.5, 10.5, 0.5, REACH, 1));
+		assertTrue(progress.update(20.5, 10.5, 0.5, REACH, 1));
+		assertEquals(2, progress.reached());
+		assertEquals("3", next());
+	}
+
+	@Test
+	void theNextStopWinsOverALaterOne() {
+		RouteProgress close = new RouteProgress(List.of(new Waypoint(0, 10, 0, "1"), new Waypoint(2, 10, 0, "2")));
+		assertTrue(close.update(1.5, 10.5, 0.5, REACH, 3));
+		assertEquals(1, close.reached());
+	}
+
+	@Test
 	void theRouteIsDoneAfterTheLastStop() {
 		progress.update(0.5, 10.5, 0.5, REACH);
 		progress.update(20.5, 10.5, 0.5, REACH);

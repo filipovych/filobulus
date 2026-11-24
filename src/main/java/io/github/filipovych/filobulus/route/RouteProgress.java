@@ -39,17 +39,21 @@ public final class RouteProgress {
 	// only ever looks at the next stop, so walking past a later one does not skip ahead
 	// reach comes in every time so changing the setting works mid route
 	public boolean update(double x, double y, double z, double reach) {
-		if (finished()) {
-			return false;
+		return update(x, y, z, reach, 0);
+	}
+
+	// ahead is how many stops past the next one count as well, reaching one of those skips the stops before it
+	public boolean update(double x, double y, double z, double reach, int ahead) {
+		for (int i = index; i < stops.size() && i <= index + ahead; i++) {
+			Waypoint stop = stops.get(i);
+			double dx = stop.x() + 0.5 - x;
+			double dy = stop.y() + 0.5 - y;
+			double dz = stop.z() + 0.5 - z;
+			if (dx * dx + dy * dy + dz * dz <= reach * reach) {
+				index = i + 1;
+				return true;
+			}
 		}
-		Waypoint stop = stops.get(index);
-		double dx = stop.x() + 0.5 - x;
-		double dy = stop.y() + 0.5 - y;
-		double dz = stop.z() + 0.5 - z;
-		if (dx * dx + dy * dy + dz * dz > reach * reach) {
-			return false;
-		}
-		index++;
-		return true;
+		return false;
 	}
 }
