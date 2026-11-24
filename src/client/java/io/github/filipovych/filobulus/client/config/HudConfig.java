@@ -62,7 +62,7 @@ public final class HudConfig {
 
 	@ConfigEntry(id = "sessionHudY")
 	@ConfigOption.Hidden
-	public static int sessionHudY = -62;
+	public static int sessionHudY = -66;
 
 	@ConfigEntry(id = "sessionHudScale")
 	@ConfigOption.Hidden
