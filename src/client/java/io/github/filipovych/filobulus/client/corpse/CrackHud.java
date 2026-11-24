@@ -4,6 +4,7 @@ import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.hud.HudDrawable;
 import io.github.filipovych.filobulus.client.hud.HudWidget;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
+import io.github.filipovych.filobulus.client.hud.ShaftIcons;
 import io.github.filipovych.filobulus.corpse.CorpseType;
 import io.github.filipovych.filobulus.corpse.CorpseVerdict;
 import io.github.filipovych.filobulus.corpse.CrackTier;
@@ -19,6 +20,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 // the corpse reveal: a block of ice cracks, shatters and shows how the loot did against the key
 // what is drawn at which moment comes from CrackTimeline, here it is only put on screen with the game's own textures
@@ -35,6 +38,9 @@ public final class CrackHud implements HudWidget {
 	private static final int TITLE_Y = 64;
 	private static final int CAPTION_Y = 82;
 	private static final float TITLE_SCALE = 2f;
+	private static final float ITEM_SCALE = 3f;
+	private static final int ORBIT = 28;
+	private static final int SPARKS = 6;
 	// text this faint is not worth drawing, and the game shows an alpha of zero as solid
 	private static final int MIN_ALPHA = 10;
 	// rgb
@@ -98,6 +104,7 @@ public final class CrackHud implements HudWidget {
 
 	private static Optional<HudDrawable> shown = Optional.empty();
 	private static long startedAt;
+	private static ItemStack dirt;
 
 	// made up numbers that land in the tier, for /filo crack and the hud editor
 	public static CorpseVerdict example(CrackTier tier) {
@@ -129,6 +136,9 @@ public final class CrackHud implements HudWidget {
 				graphics.pose().popMatrix();
 			}
 		}
+		if (frame.reveal() > 0) {
+			drawItem(graphics, scene, frame.reveal(), elapsed);
+		}
 		if (frame.burst() >= 0 && frame.burst() < 1) {
 			drawShards(graphics, frame.burst());
 		}
@@ -147,6 +157,33 @@ public final class CrackHud implements HudWidget {
 				graphics.pose().popMatrix();
 			}
 			graphics.text(font, scene.caption(), CX - font.width(scene.caption()) / 2, CAPTION_Y, alpha << 24 | CAPTION, true);
+		}
+	}
+
+	// an item can not be faded, so it grows in and shrinks away
+	private static void drawItem(GuiGraphicsExtractor graphics, Scene scene, float reveal, long elapsed) {
+		CrackTier tier = scene.verdict().tier();
+		float size = reveal * ITEM_SCALE;
+		graphics.pose().pushMatrix();
+		try {
+			graphics.pose().translate(CX, CY + (float) Math.sin(elapsed / 320.0) * 1.5f);
+			graphics.pose().scale(size, size);
+			graphics.item(icon(tier), -8, -8);
+		} finally {
+			graphics.pose().popMatrix();
+		}
+		if (tier != CrackTier.JASPER) {
+			return;
+		}
+		// jasper gets a ring of sparks going round the item
+		for (int spark = 0; spark < SPARKS; spark++) {
+			double angle = elapsed / 380.0 + spark * (Math.PI * 2 / SPARKS);
+			int x = CX + (int) Math.round(Math.cos(angle) * ORBIT * reveal);
+			int y = CY + (int) Math.round(Math.sin(angle) * ORBIT * reveal);
+			int color = 0xFF000000 | (spark % 2 == 0 ? scene.color() : WHITE);
+			// two bars make a small cross, a square dot looks like a stray pixel
+			graphics.fill(x - 2, y, x + 3, y + 1, color);
+			graphics.fill(x, y - 2, x + 1, y + 3, color);
 		}
 	}
 
@@ -173,6 +210,22 @@ public final class CrackHud implements HudWidget {
 				graphics.pose().popMatrix();
 			}
 		}
+	}
+
+	private static ItemStack icon(CrackTier tier) {
+		return switch (tier) {
+			case DIRT -> {
+				// made late, item stacks can not be built while the game is still starting
+				if (dirt == null) {
+					dirt = new ItemStack(Items.DIRT);
+				}
+				yield dirt;
+			}
+			case GLACITE -> ShaftIcons.of(ShaftMaterial.LITTLEFOOT);
+			case RUBY -> ShaftIcons.of(ShaftMaterial.RUBY);
+			case AQUAMARINE -> ShaftIcons.of(ShaftMaterial.AQUAMARINE);
+			case JASPER -> ShaftIcons.of(ShaftMaterial.JASPER);
+		};
 	}
 
 	private static int colorOf(CrackTier tier) {
