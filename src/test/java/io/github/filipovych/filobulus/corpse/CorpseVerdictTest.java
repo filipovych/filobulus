@@ -144,4 +144,38 @@ class CorpseVerdictTest {
 		assertEquals(CrackTier.DIRT, verdict.tier());
 		assertEquals("-660k?  0.34x key", verdict.summary());
 	}
+
+	@Test
+	void summaryIsTheProfitAndHowManyKeysItWas() {
+		assertEquals("+400k  1.4x key", jewels(140, false).summary());
+		assertEquals("-550k  0.45x key", jewels(45, false).summary());
+		assertEquals("+0  1.0x key", jewels(100, false).summary());
+		assertEquals("+11.0M  12x key", jewels(1200, false).summary());
+		assertEquals("+400k  1.4x key  key saved", jewels(40, true).summary());
+		assertEquals("-1.0M  0.00x key", jewels(0, false).summary());
+	}
+
+	@Test
+	void coinsAreWrittenShort() {
+		assertEquals("0", CoinText.amount(0));
+		assertEquals("850", CoinText.amount(850));
+		assertEquals("999", CoinText.amount(999.4));
+		assertEquals("1.0k", CoinText.amount(999.5));
+		assertEquals("1.5k", CoinText.amount(1_500));
+		assertEquals("9.9k", CoinText.amount(9_949));
+		assertEquals("10k", CoinText.amount(9_960));
+		assertEquals("12k", CoinText.amount(12_400));
+		assertEquals("850k", CoinText.amount(850_000));
+		assertEquals("1.0M", CoinText.amount(999_960));
+		assertEquals("1.2M", CoinText.amount(1_200_000));
+		assertEquals("12.4M", CoinText.amount(12_400_000));
+		assertEquals("99.9M", CoinText.amount(99_949_999));
+		assertEquals("100M", CoinText.amount(99_960_000));
+		assertEquals("680M", CoinText.amount(680_000_000));
+		assertEquals("1.25B", CoinText.amount(1_250_000_000));
+		assertEquals("1.8M", CoinText.amount(-1_800_000));
+		assertEquals("-1.8M", CoinText.signed(-1_800_000));
+		assertEquals("+1.2M", CoinText.signed(1_200_000));
+		assertEquals("+0", CoinText.signed(-0.2));
+	}
 }
