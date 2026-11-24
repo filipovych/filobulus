@@ -16,7 +16,9 @@ import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 // the corpse reveal: a block of ice cracks, shatters and shows how the loot did against the key
 // what is drawn at which moment comes from CrackTimeline, here it is only put on screen with the game's own textures
@@ -24,7 +26,10 @@ public final class CrackHud implements HudWidget {
 	// fixed while it plays so the widget does not jump around, only a long caption makes it wider
 	private static final int WIDTH = 160;
 	private static final int HEIGHT = 92;
+	// the middle of the block, the revealed item sits there too
 	private static final int CX = WIDTH / 2;
+	private static final int CY = 32;
+	private static final int BLOCK = 48;
 	private static final int TITLE_Y = 64;
 	private static final int CAPTION_Y = 82;
 	private static final float TITLE_SCALE = 2f;
@@ -33,9 +38,21 @@ public final class CrackHud implements HudWidget {
 	// rgb
 	private static final int CAPTION = 0xE0E0E0;
 	private static final int BROWN = 0xB9855A;
+	// a dark edge, pale ice on a pale wall is hard to see without one
+	private static final int EDGE = 0xFF1E2C52;
+	// the crack textures are grey, this makes them a dark blue
+	private static final int CRACK_TINT = 0xFF5078D8;
+	private static final Identifier ICE = Identifier.withDefaultNamespace("textures/block/packed_ice.png");
+	private static final Identifier[] CRACKS = new Identifier[10];
 	private static final double KEY_COST = 4_000_000;
 	// the editor shows the moment after the reveal has settled
 	private static final Scene SAMPLE = new Scene(example(CrackTier.JASPER), 3600);
+
+	static {
+		for (int stage = 0; stage < CRACKS.length; stage++) {
+			CRACKS[stage] = Identifier.withDefaultNamespace("textures/block/destroy_stage_" + stage + ".png");
+		}
+	}
 
 	// one reveal with its words made once, at is the moment it is frozen on or -1 while it plays
 	private record Scene(CorpseVerdict verdict, Component title, Component caption, int color, long at) implements HudDrawable {
@@ -85,6 +102,22 @@ public final class CrackHud implements HudWidget {
 
 	private static void draw(GuiGraphicsExtractor graphics, Font font, Scene scene, long elapsed) {
 		Frame frame = CrackTimeline.at(elapsed);
+		if (frame.block() > 0) {
+			graphics.pose().pushMatrix();
+			try {
+				graphics.pose().translate(CX + frame.shakeX(), CY + frame.shakeY());
+				graphics.pose().scale(frame.block(), frame.block());
+				graphics.fill(-BLOCK / 2 - 1, -BLOCK / 2 - 1, BLOCK / 2 + 1, BLOCK / 2 + 1, EDGE);
+				// a block texture is 16 pixels, stretched flat over the square
+				graphics.blit(RenderPipelines.GUI_TEXTURED, ICE, -BLOCK / 2, -BLOCK / 2, 0f, 0f, BLOCK, BLOCK, 16, 16, 16, 16, -1);
+				if (frame.cracks() >= 0) {
+					graphics.blit(RenderPipelines.GUI_TEXTURED, CRACKS[frame.cracks()], -BLOCK / 2, -BLOCK / 2, 0f, 0f,
+							BLOCK, BLOCK, 16, 16, 16, 16, CRACK_TINT);
+				}
+			} finally {
+				graphics.pose().popMatrix();
+			}
+		}
 		int alpha = Math.round(frame.text() * 255);
 		if (alpha >= MIN_ALPHA) {
 			graphics.pose().pushMatrix();
