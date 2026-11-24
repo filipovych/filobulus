@@ -68,6 +68,27 @@ public final class HudConfig {
 	@ConfigOption.Hidden
 	public static float sessionHudScale = 1f;
 
+	// and for the alerts
+	@ConfigEntry(id = "alertsAnchorX")
+	@ConfigOption.Hidden
+	public static HudAnchor alertsAnchorX = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "alertsX")
+	@ConfigOption.Hidden
+	public static int alertsX = 0;
+
+	@ConfigEntry(id = "alertsAnchorY")
+	@ConfigOption.Hidden
+	public static HudAnchor alertsAnchorY = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "alertsY")
+	@ConfigOption.Hidden
+	public static int alertsY = -48;
+
+	@ConfigEntry(id = "alertsScale")
+	@ConfigOption.Hidden
+	public static float alertsScale = 1f;
+
 	private HudConfig() {
 	}
 }
