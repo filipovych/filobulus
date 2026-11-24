@@ -12,6 +12,7 @@ import io.github.filipovych.filobulus.journal.JournalText;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
+import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -112,6 +113,8 @@ public final class JournalScreen extends FlatScreen {
 			int groupsWidth = Math.min(215, (panelWidth - PAD * 3) * 9 / 20);
 			logLeft = left + PAD + groupsWidth + PAD;
 			drawGroups(graphics, left + PAD, bodyTop, groupsWidth, bodyBottom, mouseX, mouseY);
+			graphics.fill(logLeft - PAD / 2, bodyTop, logLeft - PAD / 2 + 1, bodyBottom, TRACK);
+			drawLog(graphics, logLeft, bodyTop, right - PAD - logLeft, bodyBottom, mouseX, mouseY, now);
 		}
 
 		int y = bottom - BUTTON_HEIGHT - 6;
@@ -225,6 +228,67 @@ public final class JournalScreen extends FlatScreen {
 			text += " Fastest route " + JournalText.duration(group.bestRun()) + ".";
 		}
 		return text + (picked.contains(group.key()) ? " Click to show every shaft again." : " Click to show only these in the log.");
+	}
+
+	private void drawLog(GuiGraphicsExtractor graphics, int left, int top, int width, int bottom,
+			int mouseX, int mouseY, long now) {
+		int right = left + width - 5;
+		int insideRight = right - NUMBER_COLUMN;
+		int atRight = insideRight - NUMBER_COLUMN;
+		String head = picked.isEmpty() ? "Log" : "Log: " + String.join(", ", picked.stream().map(JournalScreen::title).toList());
+		int headRoom = atRight - 30 - left - (picked.isEmpty() ? 0 : buttonWidth("Clear") + GAP);
+		graphics.text(font, clip(head, headRoom), left, top, FAINT, true);
+		if (!picked.isEmpty()) {
+			int clearLeft = left + Math.min(font.width(head), headRoom) + GAP;
+			button(graphics, clearLeft, top - 3, buttonWidth("Clear"), "Clear", MUTED, mouseX, mouseY, picked::clear);
+		}
+		rightText(graphics, "At", atRight, top, FAINT);
+		rightText(graphics, "Inside", insideRight, top, FAINT);
+		rightText(graphics, "Route", right, top, FAINT);
+		int listTop = top + LIST_HEAD;
+		if (log.isEmpty()) {
+			graphics.text(font, "Nothing in this period.", left, listTop + 4, FAINT, true);
+			return;
+		}
+		int content = log.size() * LOG_ROW;
+		logScroll = Math.max(0, Math.min(logScroll, content - (bottom - listTop)));
+		ShaftVisit open = FilobulusClient.shaftLog().open();
+		graphics.enableScissor(left, listTop, left + width, bottom);
+		int last = Math.min(log.size(), (logScroll + bottom - listTop) / LOG_ROW + 1);
+		for (int i = logScroll / LOG_ROW; i < last; i++) {
+			int y = listTop + i * LOG_ROW - logScroll;
+			Entry entry = log.get(i);
+			if (entry.visit() == null) {
+				graphics.text(font, entry.day(), left, y + 3, TEXT, true);
+				int dayRight = left + font.width(entry.day());
+				graphics.text(font, shafts(entry.shafts()), dayRight + 6, y + 3, FAINT, true);
+				graphics.fill(dayRight + 12 + font.width(shafts(entry.shafts())), y + 7, right, y + 8, TRACK);
+				continue;
+			}
+			ShaftVisit visit = entry.visit();
+			Optional<ShaftType> type = visit.type();
+			if (mouseX >= left && mouseX < left + width && mouseY >= Math.max(y, listTop) && mouseY < Math.min(y + LOG_ROW, bottom)) {
+				graphics.fill(left, y, right + 3, y + LOG_ROW, ROW_HOVER);
+			}
+			type.ifPresent(known -> smallItem(graphics, known, left + 2, y + 1));
+			graphics.text(font, clip(type.map(ShaftType::displayName).orElse("Unknown"), atRight - 34 - left - 15),
+					left + 15, y + 3, type.map(known -> ShaftColors.of(known.material())).orElse(MUTED), true);
+			rightText(graphics, JournalText.clock(visit.enteredAt(), zone), atRight, y + 3, MUTED);
+			boolean inside = open != null && open.enteredAt() == visit.enteredAt();
+			String spent = inside ? "inside" : visit.spentMillis() > 0 ? JournalText.duration(visit.spentMillis()) : "-";
+			rightText(graphics, spent, insideRight, y + 3, inside ? GOOD : TEXT);
+			rightText(graphics, visit.runMillis() > 0 ? JournalText.duration(visit.runMillis()) : "", right, y + 3, ACCENT);
+		}
+		graphics.disableScissor();
+		scrollbar(graphics, left + width, listTop, bottom, content, logScroll);
+	}
+
+	private void smallItem(GuiGraphicsExtractor graphics, ShaftType type, int x, int y) {
+		graphics.pose().pushMatrix();
+		graphics.pose().translate(x, y);
+		graphics.pose().scale(10 / 16f, 10 / 16f);
+		graphics.item(ShaftIcons.of(type.material()), 0, 0);
+		graphics.pose().popMatrix();
 	}
 
 	private void chip(GuiGraphicsExtractor graphics, int left, int top, String label, boolean on,
