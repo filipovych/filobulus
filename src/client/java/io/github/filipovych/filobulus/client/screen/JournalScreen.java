@@ -3,17 +3,20 @@ package io.github.filipovych.filobulus.client.screen;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
+import io.github.filipovych.filobulus.client.hud.ShaftIcons;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.journal.JournalPeriod;
 import io.github.filipovych.filobulus.journal.JournalStats;
 import io.github.filipovych.filobulus.journal.JournalStats.Group;
 import io.github.filipovych.filobulus.journal.JournalText;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
+import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -30,9 +33,16 @@ public final class JournalScreen extends FlatScreen {
 	private static final int TILES_TOP = 28;
 	private static final int TILE_HEIGHT = 32;
 	private static final int BODY_TOP = TILES_TOP + TILE_HEIGHT + 10;
+	private static final int LIST_HEAD = 13;
 	private static final int FOOTER = 26;
+	private static final int GROUP_ROW = 20;
+	private static final int LOG_ROW = 13;
+	private static final int NUMBER_COLUMN = 38;
 	private static final float BIG = 1.5f;
 	// argb
+	private static final int SELECTED = 0x247FD4FF;
+	private static final int ROW_HOVER = 0x12FFFFFF;
+	private static final int TRACK = 0x16FFFFFF;
 	private static final int CHIP_ON = 0xFF2F86B3;
 
 	// one line of the log: a visit, or the day that the visits under it share
@@ -53,6 +63,7 @@ public final class JournalScreen extends FlatScreen {
 	private final Set<String> picked = new LinkedHashSet<>();
 	private int groupScroll;
 	private int logScroll;
+	private int logLeft;
 
 	// counted again only when something changed
 	private int countedVersion = -1;
@@ -97,6 +108,10 @@ public final class JournalScreen extends FlatScreen {
 			int middle = (bodyTop + bodyBottom) / 2;
 			graphics.centeredText(font, "No shafts yet.", width / 2, middle - 10, MUTED);
 			graphics.centeredText(font, "Every mineshaft you enter is written down here by itself.", width / 2, middle + 2, FAINT);
+		} else {
+			int groupsWidth = Math.min(215, (panelWidth - PAD * 3) * 9 / 20);
+			logLeft = left + PAD + groupsWidth + PAD;
+			drawGroups(graphics, left + PAD, bodyTop, groupsWidth, bodyBottom, mouseX, mouseY);
 		}
 
 		int y = bottom - BUTTON_HEIGHT - 6;
@@ -142,6 +157,76 @@ public final class JournalScreen extends FlatScreen {
 		}
 	}
 
+	// one row per shaft layout that was entered, a click narrows the log to it
+	private void drawGroups(GuiGraphicsExtractor graphics, int left, int top, int width, int bottom,
+			int mouseX, int mouseY) {
+		int right = left + width - 5;
+		graphics.text(font, "Shaft", left, top, FAINT, true);
+		rightText(graphics, "Shafts", right - NUMBER_COLUMN, top, FAINT);
+		rightText(graphics, "Avg", right, top, FAINT);
+		int listTop = top + LIST_HEAD;
+		List<Group> groups = stats.groups();
+		if (groups.isEmpty()) {
+			graphics.text(font, "Nothing in this period.", left, listTop + 4, FAINT, true);
+			return;
+		}
+		int content = groups.size() * GROUP_ROW;
+		groupScroll = Math.max(0, Math.min(groupScroll, content - (bottom - listTop)));
+		boolean inList = mouseX >= left && mouseX < left + width && mouseY >= listTop && mouseY < bottom;
+		int most = groups.get(0).shafts();
+		graphics.enableScissor(left, listTop, left + width, bottom);
+		for (int i = 0; i < groups.size(); i++) {
+			int y = listTop + i * GROUP_ROW - groupScroll;
+			if (y + GROUP_ROW <= listTop || y >= bottom) {
+				continue;
+			}
+			Group group = groups.get(i);
+			String key = group.key();
+			Optional<ShaftLayout> layout = ShaftLayout.byKey(key);
+			int color = layout.map(JournalScreen::color).orElse(MUTED);
+			boolean on = picked.contains(key);
+			boolean hovered = inList && mouseY >= y && mouseY < y + GROUP_ROW;
+			if (on) {
+				graphics.fill(left, y, right + 3, y + GROUP_ROW - 1, SELECTED);
+				graphics.fill(left, y, left + 2, y + GROUP_ROW - 1, ACCENT);
+			} else if (hovered) {
+				graphics.fill(left, y, right + 3, y + GROUP_ROW - 1, ROW_HOVER);
+			}
+			layout.ifPresent(known -> graphics.item(ShaftIcons.of(known), left + 4, y + 1));
+			String title = title(key);
+			graphics.text(font, clip(title, right - NUMBER_COLUMN - 34 - left - 24), left + 24, y + 4, color, true);
+			rightText(graphics, String.valueOf(group.shafts()), right - NUMBER_COLUMN, y + 4, TEXT);
+			rightText(graphics, group.timed() == 0 ? "-" : JournalText.duration(group.averageTime()), right, y + 4, MUTED);
+			// how it compares to the shaft entered the most
+			graphics.fill(left + 24, y + 15, right, y + 16, TRACK);
+			graphics.fill(left + 24, y + 15, left + 24 + Math.max(1, (right - left - 24) * group.shafts() / most), y + 16, color);
+			clickable(left, Math.max(y, listTop), width, Math.min(y + GROUP_ROW, bottom) - Math.max(y, listTop), () -> {
+				if (!picked.remove(key)) {
+					picked.add(key);
+				}
+				logScroll = 0;
+			}, null);
+			if (hovered) {
+				tooltip(graphics, groupHelp(title, group), mouseX, mouseY);
+			}
+		}
+		graphics.disableScissor();
+		scrollbar(graphics, left + width, listTop, bottom, content, groupScroll);
+	}
+
+	private String groupHelp(String title, Group group) {
+		String text = title + ": " + shafts(group.shafts()) + ", "
+				+ JournalText.percent((double) group.shafts() / Math.max(1, stats.shafts())) + " of this period.";
+		if (group.timed() > 0) {
+			text += " " + JournalText.duration(group.timeInside()) + " inside, "
+					+ JournalText.duration(group.averageTime()) + " on average.";
+		}
+		if (group.bestRun() > 0) {
+			text += " Fastest route " + JournalText.duration(group.bestRun()) + ".";
+		}
+		return text + (picked.contains(group.key()) ? " Click to show every shaft again." : " Click to show only these in the log.");
+	}
+
 	private void chip(GuiGraphicsExtractor graphics, int left, int top, String label, boolean on,
 			int mouseX, int mouseY, Runnable action) {
 		int chipWidth = buttonWidth(label);
@@ -151,6 +236,10 @@ public final class JournalScreen extends FlatScreen {
 		} else {
 			button(graphics, left, top, chipWidth, label, MUTED, mouseX, mouseY, action);
 		}
+	}
+
+	private void rightText(GuiGraphicsExtractor graphics, String text, int right, int y, int color) {
+		graphics.text(font, text, right - font.width(text), y, color, true);
 	}
 
 	// goes through the journal again when it, the period, the filter or the day could have changed
@@ -201,6 +290,24 @@ public final class JournalScreen extends FlatScreen {
 
 	private static String shafts(int count) {
 		return count == 1 ? "1 shaft" : count + " shafts";
+	}
+
+	private static String title(String key) {
+		return ShaftLayout.byKey(key).map(ShaftLayout::title).orElse("Unknown");
+	}
+
+	private static int color(ShaftLayout layout) {
+		return layout.material().map(ShaftColors::of).orElse(ACCENT);
+	}
+
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		if (mouseX < logLeft) {
+			groupScroll -= (int) Math.signum(scrollY) * GROUP_ROW * 2;
+		} else {
+			logScroll -= (int) Math.signum(scrollY) * LOG_ROW * 3;
+		}
+		return true;
 	}
 
 	@Override
