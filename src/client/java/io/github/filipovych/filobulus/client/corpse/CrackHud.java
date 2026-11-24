@@ -1,12 +1,18 @@
 package io.github.filipovych.filobulus.client.corpse;
 
+import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.hud.HudDrawable;
+import io.github.filipovych.filobulus.client.hud.HudWidget;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
+import io.github.filipovych.filobulus.corpse.CorpseType;
 import io.github.filipovych.filobulus.corpse.CorpseVerdict;
 import io.github.filipovych.filobulus.corpse.CrackTier;
 import io.github.filipovych.filobulus.corpse.CrackTimeline;
 import io.github.filipovych.filobulus.corpse.CrackTimeline.Frame;
+import io.github.filipovych.filobulus.hud.HudAnchor;
+import io.github.filipovych.filobulus.hud.HudPlacement;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
+import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -14,7 +20,7 @@ import net.minecraft.network.chat.Component;
 
 // the corpse reveal: a block of ice cracks, shatters and shows how the loot did against the key
 // what is drawn at which moment comes from CrackTimeline, here it is only put on screen with the game's own textures
-public final class CrackHud {
+public final class CrackHud implements HudWidget {
 	// fixed while it plays so the widget does not jump around, only a long caption makes it wider
 	private static final int WIDTH = 160;
 	private static final int HEIGHT = 92;
@@ -27,6 +33,9 @@ public final class CrackHud {
 	// rgb
 	private static final int CAPTION = 0xE0E0E0;
 	private static final int BROWN = 0xB9855A;
+	private static final double KEY_COST = 4_000_000;
+	// the editor shows the moment after the reveal has settled
+	private static final Scene SAMPLE = new Scene(example(CrackTier.JASPER), 3600);
 
 	// one reveal with its words made once, at is the moment it is frozen on or -1 while it plays
 	private record Scene(CorpseVerdict verdict, Component title, Component caption, int color, long at) implements HudDrawable {
@@ -59,7 +68,20 @@ public final class CrackHud {
 		}
 	}
 
+	private static Optional<HudDrawable> shown = Optional.empty();
 	private static long startedAt;
+
+	// made up numbers that land in the tier, for /filo crack and the hud editor
+	public static CorpseVerdict example(CrackTier tier) {
+		double roi = switch (tier) {
+			case DIRT -> 0.2;
+			case GLACITE -> 0.5;
+			case RUBY -> 0.85;
+			case AQUAMARINE -> 1.6;
+			case JASPER -> 3.2;
+		};
+		return new CorpseVerdict(CorpseType.UMBER, tier, roi * KEY_COST, KEY_COST, false, "", 0);
+	}
 
 	private static void draw(GuiGraphicsExtractor graphics, Font font, Scene scene, long elapsed) {
 		Frame frame = CrackTimeline.at(elapsed);
@@ -85,5 +107,36 @@ public final class CrackHud {
 			case AQUAMARINE -> ShaftColors.of(ShaftMaterial.AQUAMARINE);
 			case JASPER -> ShaftColors.of(ShaftMaterial.JASPER);
 		};
+	}
+
+	@Override
+	public Optional<HudDrawable> content() {
+		return shown;
+	}
+
+	@Override
+	public HudDrawable sample() {
+		return SAMPLE;
+	}
+
+	@Override
+	public HudPlacement placement() {
+		return new HudPlacement(HudConfig.crackAnchorX, HudConfig.crackX,
+				HudConfig.crackAnchorY, HudConfig.crackY, HudConfig.crackScale);
+	}
+
+	@Override
+	public void place(HudPlacement placement) {
+		HudConfig.crackAnchorX = placement.anchorX();
+		HudConfig.crackX = placement.x();
+		HudConfig.crackAnchorY = placement.anchorY();
+		HudConfig.crackY = placement.y();
+		HudConfig.crackScale = placement.scale();
+	}
+
+	@Override
+	public HudPlacement defaultPlacement() {
+		// top middle, clear of the crosshair and of the alerts under it
+		return new HudPlacement(HudAnchor.CENTRE, 0, HudAnchor.START, 4, 1f);
 	}
 }

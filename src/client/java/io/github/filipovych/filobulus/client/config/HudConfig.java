@@ -89,6 +89,27 @@ public final class HudConfig {
 	@ConfigOption.Hidden
 	public static float alertsScale = 1f;
 
+	// and for the corpse reveal
+	@ConfigEntry(id = "crackAnchorX")
+	@ConfigOption.Hidden
+	public static HudAnchor crackAnchorX = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "crackX")
+	@ConfigOption.Hidden
+	public static int crackX = 0;
+
+	@ConfigEntry(id = "crackAnchorY")
+	@ConfigOption.Hidden
+	public static HudAnchor crackAnchorY = HudAnchor.START;
+
+	@ConfigEntry(id = "crackY")
+	@ConfigOption.Hidden
+	public static int crackY = 4;
+
+	@ConfigEntry(id = "crackScale")
+	@ConfigOption.Hidden
+	public static float crackScale = 1f;
+
 	private HudConfig() {
 	}
 }
