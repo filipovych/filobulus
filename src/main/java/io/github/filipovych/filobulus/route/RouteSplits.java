@@ -6,6 +6,7 @@ public final class RouteSplits {
 	private final long[] times;
 	private int reached;
 	private long startedAt;
+	private boolean skipped;
 
 	public RouteSplits(int stops) {
 		times = new long[stops];
@@ -20,6 +21,19 @@ public final class RouteSplits {
 			startedAt = now;
 		}
 		times[reached++] = Math.max(0, now - startedAt);
+	}
+
+	// the route moved on by several stops at once, the ones that were passed over get the same time
+	public void reached(long now, int stops) {
+		skipped |= stops > 1;
+		for (int i = 0; i < stops; i++) {
+			reached(now);
+		}
+	}
+
+	// false once a stop was skipped, such a run is not one to keep as a best
+	public boolean clean() {
+		return !skipped;
 	}
 
 	public boolean started() {

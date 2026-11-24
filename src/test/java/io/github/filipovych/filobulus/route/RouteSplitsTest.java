@@ -63,6 +63,18 @@ class RouteSplitsTest {
 	}
 
 	@Test
+	void aRunWithSkippedStopsIsNotClean() {
+		RouteSplits run = new RouteSplits(4);
+		run.reached(1000, 1);
+		assertTrue(run.clean());
+		run.reached(5000, 2);
+		assertFalse(run.clean());
+		run.reached(9000, 1);
+		assertTrue(run.finished());
+		assertArrayEquals(new long[] {0, 4000, 4000, 8000}, run.times());
+	}
+
+	@Test
 	void aRouteWithoutStopsNeverStarts() {
 		RouteSplits run = new RouteSplits(0);
 		run.reached(1000);
