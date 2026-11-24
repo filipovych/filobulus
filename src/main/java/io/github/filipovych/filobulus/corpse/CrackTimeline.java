@@ -1,5 +1,8 @@
 package io.github.filipovych.filobulus.corpse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 // the corpse reveal as a function of time: the ice pops in, cracks, shatters and shows what was inside
 // the same time always gives the same frame, so the hud can ask every frame and nothing is stored
 public final class CrackTimeline {
@@ -8,14 +11,40 @@ public final class CrackTimeline {
 	public record Frame(float block, float shakeX, float shakeY, int cracks, float burst, float flash, float reveal, float text) {
 	}
 
+	public enum Cue {
+		CRACK,
+		SHATTER,
+		REVEAL
+	}
+
+	public record Sound(Cue cue, int step) {
+	}
+
 	private static final long POP = 250;
 	// one time per block breaking stage, the gaps get shorter
 	private static final long[] CRACKS = {450, 820, 1150, 1440, 1700, 1930, 2130, 2310, 2470, 2610};
 	private static final long SHATTER = 2700;
+	private static final long REVEAL = 2850;
 	private static final long SETTLED = 3050;
 	private static final long KICK = 120;
 
+	private static final long[] CUE_TIMES = new long[CRACKS.length + 2];
+	private static final List<Sound> SOUNDS = buildSounds();
+
 	private CrackTimeline() {
+	}
+
+	private static List<Sound> buildSounds() {
+		List<Sound> sounds = new ArrayList<>();
+		for (int step = 0; step < CRACKS.length; step++) {
+			CUE_TIMES[step] = CRACKS[step];
+			sounds.add(new Sound(Cue.CRACK, step));
+		}
+		CUE_TIMES[CRACKS.length] = SHATTER;
+		sounds.add(new Sound(Cue.SHATTER, 0));
+		CUE_TIMES[CRACKS.length + 1] = REVEAL;
+		sounds.add(new Sound(Cue.REVEAL, 0));
+		return List.copyOf(sounds);
 	}
 
 	public static Frame at(long elapsed) {
@@ -43,6 +72,19 @@ public final class CrackTimeline {
 				whole ? 0 : 1 - ramp(t, SHATTER, SHATTER + 180),
 				whole ? 0 : back(ramp(t, SHATTER, SETTLED), 3) * (1 - gone),
 				ramp(t, 2900, 3100) * (1 - ramp(t, TOTAL - 400, TOTAL)));
+	}
+
+	// the sounds with a time in (from, to], so a caller that passes its last and its current time gets each one once
+	public static List<Sound> cues(long from, long to) {
+		int first = 0;
+		while (first < CUE_TIMES.length && CUE_TIMES[first] <= from) {
+			first++;
+		}
+		int end = first;
+		while (end < CUE_TIMES.length && CUE_TIMES[end] <= to) {
+			end++;
+		}
+		return first == end ? List.of() : SOUNDS.subList(first, end);
 	}
 
 	// the last stage stays after the shatter, the block is gone by then anyway
