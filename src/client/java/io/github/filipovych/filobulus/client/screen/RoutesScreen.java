@@ -12,9 +12,11 @@ import io.github.filipovych.filobulus.route.RouteCollection;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteImport;
 import io.github.filipovych.filobulus.route.SharedRoute;
+import io.github.filipovych.filobulus.route.SplitText;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -42,6 +44,8 @@ public final class RoutesScreen extends FlatScreen {
 	private int statusColor = FAINT;
 	// id of the route whose delete button was clicked once, the second click deletes
 	private String confirmDelete = "";
+	// the same for forgetting the best run of a route
+	private String confirmReset = "";
 
 	public RoutesScreen(Screen parent) {
 		super(Component.literal("Filobulus routes"));
@@ -160,11 +164,24 @@ public final class RoutesScreen extends FlatScreen {
 			graphics.text(font, "no route yet", routeLeft, y + 6, FAINT, true);
 			return;
 		}
+		// the best run sits right after the route, room is kept for it
+		Optional<long[]> best = FilobulusClient.splits().bests().best(picked.id(), picked.stops().size());
+		boolean sureReset = confirmReset.equals(picked.id());
+		String bestText = best.map(times -> sureReset ? "Reset?" : SplitText.clock(times[times.length - 1])).orElse("");
+		int labelWidth = routeWidth - (bestText.isEmpty() ? 0 : font.width(bestText) + 6);
 		boolean several = routes.size() > 1;
 		// a long name is cut short, the stop count always stays
 		String count = " (" + picked.stops().size() + " stops)";
-		String label = clip(picked.name(), routeWidth - font.width(count) - (several ? font.width("<  >") : 0)) + count;
-		graphics.text(font, several ? "< " + label + " >" : label, routeLeft, y + 6, several ? TEXT : MUTED, true);
+		int nameWidth = labelWidth - (several ? font.width("<  >") : 0);
+		if (font.width(picked.name() + count) > nameWidth) {
+			// the word goes before the name gets cut
+			count = " (" + picked.stops().size() + ")";
+		}
+		String label = clip(picked.name(), nameWidth - font.width(count)) + count;
+		if (several) {
+			label = "< " + label + " >";
+		}
+		graphics.text(font, label, routeLeft, y + 6, several ? TEXT : MUTED, true);
 		boolean hovered = mouseX >= routeLeft && mouseX < routeLeft + routeWidth && mouseY >= y && mouseY < y + ROW;
 		if (several) {
 			int at = routes.indexOf(picked);
@@ -177,12 +194,33 @@ public final class RoutesScreen extends FlatScreen {
 			tooltip(graphics, credit + (several ? "Click for the next route of this shaft, right click for the one before." : ""),
 					mouseX, mouseY);
 		}
+		if (!bestText.isEmpty()) {
+			int bestLeft = routeLeft + font.width(label) + 6;
+			graphics.text(font, bestText, bestLeft, y + 6, sureReset ? BAD : ACCENT, true);
+			clickable(bestLeft - 2, y + 3, font.width(bestText) + 4, BUTTON_HEIGHT, () -> resetBest(picked, sureReset), null);
+			if (mouseX >= bestLeft - 2 && mouseX < bestLeft + font.width(bestText) + 2 && mouseY >= y + 3 && mouseY < y + 3 + BUTTON_HEIGHT) {
+				tooltip(graphics, "Your best run of this route. Click twice to forget it.", mouseX, mouseY);
+			}
+		}
+	}
+
+	private void resetBest(LibraryRoute route, boolean sure) {
+		confirmDelete = "";
+		if (!sure) {
+			confirmReset = route.id();
+			return;
+		}
+		confirmReset = "";
+		FilobulusClient.splits().bests().forget(route.id());
+		FilobulusClient.splits().save();
+		say("Forgot the best run of " + route.title() + ".", MUTED);
 	}
 
 	private void pick(LibraryRoute route) {
 		store.choices().pick(route.routeKey(), route.id());
 		store.save();
 		confirmDelete = "";
+		confirmReset = "";
 		FilobulusClient.routeChanged(route.routeKey());
 	}
 
@@ -192,6 +230,7 @@ public final class RoutesScreen extends FlatScreen {
 	}
 
 	private void delete(LibraryRoute route, boolean sure) {
+		confirmReset = "";
 		if (!sure) {
 			confirmDelete = route.id();
 			return;
