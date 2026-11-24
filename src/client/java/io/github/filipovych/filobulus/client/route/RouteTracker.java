@@ -147,7 +147,11 @@ public final class RouteTracker {
 			FilobulusClient.splits().save();
 		}
 		// a route of one stop has nothing to time
-		if (!HudConfig.splits || times.length < 2) {
+		if (times.length < 2) {
+			return;
+		}
+		FilobulusClient.shaftLog().ran(total);
+		if (!HudConfig.splits) {
 			return;
 		}
 		String text = "Route done in " + SplitText.clock(total);
