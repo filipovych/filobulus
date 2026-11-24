@@ -65,6 +65,7 @@ public final class JournalScreen extends FlatScreen {
 	private int groupScroll;
 	private int logScroll;
 	private int logLeft;
+	private String status = "";
 
 	// counted again only when something changed
 	private int countedVersion = -1;
@@ -120,7 +121,13 @@ public final class JournalScreen extends FlatScreen {
 		int y = bottom - BUTTON_HEIGHT - 6;
 		int doneWidth = buttonWidth("Done");
 		button(graphics, right - PAD - doneWidth, y, doneWidth, "Done", ACCENT, mouseX, mouseY, this::onClose);
-		graphics.text(font, clip(summary(now), right - PAD * 3 - doneWidth - left), left + PAD, y + 3, FAINT, true);
+		int copyWidth = buttonWidth("Copy CSV");
+		int copyLeft = right - PAD - doneWidth - GAP - copyWidth;
+		if (button(graphics, copyLeft, y, copyWidth, "Copy CSV", TEXT, mouseX, mouseY, this::copy)) {
+			tooltip(graphics, "Copy the log as it is shown here, for a spreadsheet.", mouseX, mouseY);
+		}
+		graphics.text(font, clip(status.isEmpty() ? summary(now) : status, copyLeft - left - PAD * 2),
+				left + PAD, y + 3, status.isEmpty() ? FAINT : GOOD, true);
 	}
 
 	private void drawTiles(GuiGraphicsExtractor graphics, int left, int top, int width, int mouseX, int mouseY) {
@@ -316,6 +323,7 @@ public final class JournalScreen extends FlatScreen {
 		if (period != countedPeriod) {
 			groupScroll = 0;
 			logScroll = 0;
+			status = "";
 		}
 		List<ShaftVisit> inPeriod = List.copyOf(store.journal().since(period.start(now, store.sessionStart(), zone)));
 		stats = JournalStats.of(inPeriod);
@@ -350,6 +358,11 @@ public final class JournalScreen extends FlatScreen {
 		}
 		String since = JournalText.day(all.get(0).enteredAt(), now, zone);
 		return shafts(all.size()) + " logged since " + Character.toLowerCase(since.charAt(0)) + since.substring(1);
+	}
+
+	private void copy() {
+		minecraft.keyboardHandler.setClipboard(JournalText.csv(shown, zone));
+		status = "Copied " + shafts(shown.size()) + " to the clipboard.";
 	}
 
 	private static String shafts(int count) {
