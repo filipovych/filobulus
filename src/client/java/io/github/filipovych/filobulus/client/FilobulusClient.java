@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client;
 
 import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
+import io.github.filipovych.filobulus.client.alert.ShaftAlert;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.hud.Hud;
@@ -64,9 +65,11 @@ public final class FilobulusClient implements ClientModInitializer {
 		tracker = new RouteTracker(selector);
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
+		ShaftAlert shaftAlert = new ShaftAlert();
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			tracker.tick(minecraft);
 			shaftLog.tick(minecraft);
+			shaftAlert.tick();
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> shaftLog.close());
 		LevelRenderEvents.BEFORE_GIZMOS.register(RouteRenderer::draw);
