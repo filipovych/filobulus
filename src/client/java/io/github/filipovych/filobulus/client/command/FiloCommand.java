@@ -6,7 +6,9 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.teamresourceful.resourcefulconfig.api.client.ResourcefulConfigScreen;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
+import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
@@ -50,6 +52,7 @@ public final class FiloCommand {
 				.then(ClientCommands.literal("routes").executes(FiloCommand::openRoutes))
 				.then(ClientCommands.literal("journal").executes(FiloCommand::openJournal))
 				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
+				.then(ClientCommands.literal("alert").executes(FiloCommand::tryAlert))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// /filo pretend JASP_1 acts like standing in that shaft, anything else switches it off
@@ -82,6 +85,12 @@ public final class FiloCommand {
 	private static int openJournal(CommandContext<FabricClientCommandSource> context) {
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new JournalScreen(null)));
+		return 1;
+	}
+
+	// shows the jasper alert with the sound picked in the settings, to hear it and to see where alerts sit
+	private static int tryAlert(CommandContext<FabricClientCommandSource> context) {
+		Alerts.show("shaft", "JASPER", "This is a test", 0xFF55FF, 1, Alerts.LONG, AlertsConfig.jasperSound.event());
 		return 1;
 	}
 
