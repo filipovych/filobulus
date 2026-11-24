@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.corpse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.filipovych.filobulus.corpse.CorpseLoot.Reward;
 import java.util.HashMap;
@@ -91,5 +92,56 @@ class CorpseVerdictTest {
 		assertEquals(2_000_000, CorpseVerdict.of(new CorpseLoot(CorpseType.UMBER, rewards), false, prices()).orElseThrow().keyCost());
 		assertEquals(40_000_000, CorpseVerdict.of(new CorpseLoot(CorpseType.VANGUARD, rewards), false, prices()).orElseThrow().keyCost());
 		assertEquals(Optional.empty(), CorpseType.LAPIS.keyId());
+	}
+
+	@Test
+	void aSavedKeyCountsAsLoot() {
+		CorpseVerdict verdict = jewels(40, true);
+		assertTrue(verdict.keySaved());
+		assertEquals(400_000, verdict.value());
+		assertEquals(400_000, verdict.profit());
+		assertEquals(1.4, verdict.roi());
+		assertEquals(CrackTier.AQUAMARINE, verdict.tier());
+		assertEquals(CrackTier.GLACITE, jewels(40, false).tier());
+		assertEquals(-600_000, jewels(40, false).profit());
+	}
+
+	@Test
+	void aRareRewardIsAlwaysTheTopTier() {
+		CorpseLoot loot = new CorpseLoot(CorpseType.VANGUARD, List.of(
+				new Reward("Glacite Jewel", 2),
+				new Reward("Shattered Locket", 1)));
+		CorpseVerdict verdict = CorpseVerdict.of(loot, false, prices()).orElseThrow();
+		assertEquals(CrackTier.JASPER, verdict.tier());
+		assertEquals("Shattered Locket", verdict.rare());
+		assertEquals(20_000, verdict.value());
+		assertEquals(0, verdict.unknown());
+		assertEquals("Shattered Locket", verdict.summary());
+		assertEquals("Shattered Locket  key saved", CorpseVerdict.of(loot, true, prices()).orElseThrow().summary());
+	}
+
+	@Test
+	void noVerdictForLapisOrWithoutAKeyPrice() {
+		List<Reward> rewards = List.of(new Reward("Glacite Jewel", 2));
+		assertEquals(Optional.empty(), CorpseVerdict.of(new CorpseLoot(CorpseType.LAPIS, rewards), false, prices()));
+		Prices noKey = new Prices().with("GLACITE_JEWEL", 10_000, 12_000);
+		assertEquals(Optional.empty(), CorpseVerdict.of(new CorpseLoot(CorpseType.TUNGSTEN, rewards), false, noKey));
+		assertEquals(Optional.empty(), CorpseVerdict.of(new CorpseLoot(CorpseType.TUNGSTEN, rewards), false, noKey.with("TUNGSTEN_KEY", 0, 0)));
+		assertTrue(CorpseVerdict.of(new CorpseLoot(CorpseType.VANGUARD, rewards), false, prices()).isPresent());
+	}
+
+	@Test
+	void countsWhatItCouldNotValue() {
+		CorpseLoot loot = new CorpseLoot(CorpseType.TUNGSTEN, List.of(
+				new Reward("Glacite Jewel", 34),
+				new Reward("Mystery Thing", 3),
+				new Reward("Umber Plate", 1),
+				new Reward("Onyx Crystal", 1),
+				new Reward("Dead Man's Chestplate", 1)));
+		CorpseVerdict verdict = CorpseVerdict.of(loot, false, prices()).orElseThrow();
+		assertEquals(2, verdict.unknown());
+		assertEquals(340_000, verdict.value());
+		assertEquals(CrackTier.DIRT, verdict.tier());
+		assertEquals("-660k?  0.34x key", verdict.summary());
 	}
 }
