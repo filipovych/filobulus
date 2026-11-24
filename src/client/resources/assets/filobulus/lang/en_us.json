@@ -6,5 +6,6 @@
 	"filobulus.config.hud.routeHud": "Route HUD",
 	"filobulus.config.hud.splits": "Route splits",
 	"filobulus.config.hud.panel": "Panel background",
+	"filobulus.config.hud.sessionHud": "Session HUD",
 	"filobulus.config.journal.journal": "Log shafts"
 }

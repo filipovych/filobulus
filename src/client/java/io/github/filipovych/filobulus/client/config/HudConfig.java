@@ -22,6 +22,10 @@ public final class HudConfig {
 	@Comment("Time your run of a shaft route against your best, from its first stop to its last.")
 	public static boolean splits = true;
 
+	@ConfigEntry(id = "sessionHud", translation = "filobulus.config.hud.sessionHud")
+	@Comment("In the Glacite Tunnels and in a mineshaft, show the shafts entered this session and since your last jasper one.")
+	public static boolean sessionHud = true;
+
 	// where the route hud sits, changed by dragging it in /filo hud and not shown in the settings
 	@ConfigEntry(id = "routeHudAnchorX")
 	@ConfigOption.Hidden
@@ -42,6 +46,27 @@ public final class HudConfig {
 	@ConfigEntry(id = "routeHudScale")
 	@ConfigOption.Hidden
 	public static float routeHudScale = 1f;
+
+	// the same for the session hud
+	@ConfigEntry(id = "sessionHudAnchorX")
+	@ConfigOption.Hidden
+	public static HudAnchor sessionHudAnchorX = HudAnchor.START;
+
+	@ConfigEntry(id = "sessionHudX")
+	@ConfigOption.Hidden
+	public static int sessionHudX = 4;
+
+	@ConfigEntry(id = "sessionHudAnchorY")
+	@ConfigOption.Hidden
+	public static HudAnchor sessionHudAnchorY = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "sessionHudY")
+	@ConfigOption.Hidden
+	public static int sessionHudY = -62;
+
+	@ConfigEntry(id = "sessionHudScale")
+	@ConfigOption.Hidden
+	public static float sessionHudScale = 1f;
 
 	private HudConfig() {
 	}
