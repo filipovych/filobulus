@@ -4,6 +4,7 @@ import com.teamresourceful.resourcefulconfig.api.annotations.Category;
 import com.teamresourceful.resourcefulconfig.api.annotations.Comment;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigEntry;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigInfo;
+import io.github.filipovych.filobulus.client.alert.AlertSound;
 
 @Category("alerts")
 @ConfigInfo(title = "Alerts", description = "Big text in the middle of the screen. Move it with /filo hud.", icon = "bell")
@@ -11,6 +12,10 @@ public final class AlertsConfig {
 	@ConfigEntry(id = "shaftType", translation = "filobulus.config.alerts.shaftType")
 	@Comment("When you enter a mineshaft, show its type in big letters. A jasper shaft, crystal or not, stays longer and has a sound.")
 	public static boolean shaftType = true;
+
+	@ConfigEntry(id = "jasperSound", translation = "filobulus.config.alerts.jasperSound")
+	@Comment("The sound of the alert for a jasper shaft. /filo alert plays it.")
+	public static AlertSound jasperSound = AlertSound.LEVEL_UP;
 
 	@ConfigEntry(id = "newBest", translation = "filobulus.config.alerts.newBest")
 	@Comment("Show a new best time on a shaft route in big letters.")
