@@ -9,6 +9,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class CrackTimelineTest {
+	private static final float CLOSE = 0.001f;
+
 	@Test
 	void startsAndEndsWithNothingToDraw() {
 		assertEquals(new Frame(0, 0, 0, -1, -1, 0, 0, 0), CrackTimeline.at(0));
@@ -57,5 +59,64 @@ class CrackTimelineTest {
 			assertTrue(Math.abs(frame.shakeX()) <= 5 && Math.abs(frame.shakeY()) <= 5, "at " + t);
 		}
 		assertEquals(CrackTimeline.at(1234), CrackTimeline.at(1234));
+	}
+
+	// the furthest the block is off its place in a stretch of time
+	private static float reach(long from, long to) {
+		float reach = 0;
+		for (long t = from; t < to; t++) {
+			Frame frame = CrackTimeline.at(t);
+			reach = Math.max(reach, Math.max(Math.abs(frame.shakeX()), Math.abs(frame.shakeY())));
+		}
+		return reach;
+	}
+
+	@Test
+	void theTrembleGrowsAndEveryCrackKicks() {
+		// 450 is the first crack and 2610 the last, the kick is over 120 ms later
+		float firstKick = reach(450, 570);
+		float firstTremble = reach(570, 820);
+		float lastKick = reach(2610, 2700);
+		assertTrue(firstTremble > 0);
+		assertTrue(firstKick > firstTremble * 2);
+		assertTrue(lastKick > firstKick);
+		assertTrue(reach(2400, 2470) > firstTremble * 2);
+	}
+
+	@Test
+	void theShatterFlashesAndThrowsShards() {
+		assertEquals(-1, CrackTimeline.at(2699).burst());
+		assertEquals(0, CrackTimeline.at(2699).flash());
+		assertEquals(0, CrackTimeline.at(2700).burst());
+		assertEquals(1, CrackTimeline.at(2700).flash());
+		assertEquals(0.5f, CrackTimeline.at(2790).flash(), CLOSE);
+		assertEquals(0, CrackTimeline.at(2880).flash());
+		assertEquals(0.5f, CrackTimeline.at(3050).burst(), CLOSE);
+		assertEquals(1, CrackTimeline.at(3400).burst());
+		assertEquals(1, CrackTimeline.at(4000).burst());
+	}
+
+	@Test
+	void theItemSwingsPastItsSizeAndSettles() {
+		assertEquals(0, CrackTimeline.at(2699).reveal());
+		assertEquals(0, CrackTimeline.at(2700).reveal());
+		assertEquals(1.25f, CrackTimeline.at(2875).reveal(), CLOSE);
+		assertEquals(1, CrackTimeline.at(3050).reveal());
+		assertEquals(1, CrackTimeline.at(4300).reveal());
+		assertEquals(0.5f, CrackTimeline.at(4450).reveal(), CLOSE);
+		assertEquals(0, CrackTimeline.at(4600).reveal());
+		for (long t = 2700; t <= CrackTimeline.TOTAL; t++) {
+			assertTrue(CrackTimeline.at(t).reveal() <= 1.26f, "at " + t);
+		}
+	}
+
+	@Test
+	void theWordsFadeInAfterTheShatterAndOutAtTheEnd() {
+		assertEquals(0, CrackTimeline.at(2900).text());
+		assertEquals(0.5f, CrackTimeline.at(3000).text(), CLOSE);
+		assertEquals(1, CrackTimeline.at(3100).text());
+		assertEquals(1, CrackTimeline.at(4200).text());
+		assertEquals(0.5f, CrackTimeline.at(4400).text(), CLOSE);
+		assertEquals(0, CrackTimeline.at(4600).text());
 	}
 }
