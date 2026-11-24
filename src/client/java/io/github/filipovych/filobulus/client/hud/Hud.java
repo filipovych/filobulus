@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.hud;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.alert.AlertHud;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.hud.HudPlacement;
 import java.util.List;
@@ -14,7 +15,7 @@ import net.minecraft.resources.Identifier;
 
 // every panel the mod puts on screen, drawn under the chat
 public final class Hud {
-	public static final List<HudWidget> WIDGETS = List.of(new RouteHud(), new SessionHud());
+	public static final List<HudWidget> WIDGETS = List.of(new RouteHud(), new SessionHud(), new AlertHud());
 
 	// the rectangle a widget covers on screen, scale applied
 	public record Box(int left, int top, int width, int height) {
