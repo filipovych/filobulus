@@ -14,6 +14,7 @@ public final class CorpseLootReader {
 	private static final Pattern ICON = Pattern.compile("^[^A-Za-z0-9+ ]+ +");
 	private static final Pattern AMOUNT = Pattern.compile("^(.*\\S) +x(\\d[\\d,]{0,14})$");
 	private static final Pattern BONUS = Pattern.compile("^\\+(\\d[\\d,]{0,14}) +(.+)$");
+	private static final String KEY_SAVED = "LUCKY! Your Resourceful perk saved your key";
 	private static final String INDENT = "    ";
 	private static final char BAR = '▬';
 	private static final int MIN_BAR = 10;
@@ -61,6 +62,10 @@ public final class CorpseLootReader {
 		type = null;
 		rewards.clear();
 		lines = 0;
+	}
+
+	public static boolean keySaved(String line) {
+		return line != null && line.strip().startsWith(KEY_SAVED);
 	}
 
 	private void reward(String text) {

@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.corpse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.filipovych.filobulus.corpse.CorpseLoot.Reward;
@@ -144,5 +145,14 @@ class CorpseLootReaderTest {
 				BAR);
 		assertEquals(List.of(new Reward("Box x", 1), new Reward("Boxx3", 1), new Reward("Onyx Crystal", 1)),
 				loot.orElseThrow().rewards());
+	}
+
+	@Test
+	void knowsTheKeySavedLine() {
+		assertTrue(CorpseLootReader.keySaved("LUCKY! Your Resourceful perk saved your key from being consumed!"));
+		assertTrue(CorpseLootReader.keySaved(" LUCKY! Your Resourceful perk saved your key from being consumed! "));
+		assertFalse(CorpseLootReader.keySaved("[MVP+] Someone: LUCKY! Your Resourceful perk saved your key from being consumed!"));
+		assertFalse(CorpseLootReader.keySaved("LUCKY! You found a Glacite Mineshaft portal"));
+		assertFalse(CorpseLootReader.keySaved(null));
 	}
 }
