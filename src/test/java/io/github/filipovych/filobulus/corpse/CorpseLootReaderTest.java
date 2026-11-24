@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.corpse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.filipovych.filobulus.corpse.CorpseLoot.Reward;
 import java.util.List;
@@ -91,5 +92,41 @@ class CorpseLootReaderTest {
 		assertEquals(Optional.empty(), feed(reader, BAR, "    Umber Plate", BAR, null));
 		assertEquals(Optional.empty(), feed(reader, " TUNGSTEN CORPSE LOOT!", "    Umber Plate", BAR));
 		assertEquals(Optional.empty(), feed(reader, "  TUNGSTEN CORPSE LOOT", "    Umber Plate", BAR));
+	}
+
+	@Test
+	void aBlockIsOnlyGivenOnce() {
+		CorpseLootReader reader = new CorpseLootReader();
+		assertTrue(feed(reader, "  UMBER CORPSE LOOT!", "    Umber Plate", BAR).isPresent());
+		assertEquals(Optional.empty(), reader.read(BAR));
+		assertEquals(Optional.empty(), feed(reader, "    Umber Plate", BAR));
+	}
+
+	@Test
+	void aShortRowOfBarsOrABlockWithoutRewardsGivesNothing() {
+		CorpseLootReader reader = new CorpseLootReader();
+		assertEquals(Optional.empty(), feed(reader, "  UMBER CORPSE LOOT!", "    Umber Plate", "▬▬▬", "▬".repeat(20) + " x"));
+		assertTrue(reader.read("▬".repeat(10)).isPresent());
+		assertEquals(Optional.empty(), feed(reader, "  UMBER CORPSE LOOT!", BAR));
+	}
+
+	@Test
+	void resetForgetsAHalfReadBlock() {
+		CorpseLootReader reader = new CorpseLootReader();
+		feed(reader, "  UMBER CORPSE LOOT!", "    Umber Plate");
+		reader.reset();
+		assertEquals(Optional.empty(), reader.read(BAR));
+	}
+
+	@Test
+	void anAmountNeedsItsOwnWord() {
+		Optional<CorpseLoot> loot = feed(new CorpseLootReader(),
+				"  UMBER CORPSE LOOT!",
+				"    Box x",
+				"    Boxx3",
+				"    Onyx Crystal  ",
+				BAR);
+		assertEquals(List.of(new Reward("Box x", 1), new Reward("Boxx3", 1), new Reward("Onyx Crystal", 1)),
+				loot.orElseThrow().rewards());
 	}
 }
