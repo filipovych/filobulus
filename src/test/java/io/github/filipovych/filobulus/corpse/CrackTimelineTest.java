@@ -3,7 +3,9 @@ package io.github.filipovych.filobulus.corpse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.filipovych.filobulus.corpse.CrackTimeline.Cue;
 import io.github.filipovych.filobulus.corpse.CrackTimeline.Frame;
+import io.github.filipovych.filobulus.corpse.CrackTimeline.Sound;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -118,5 +120,46 @@ class CrackTimelineTest {
 		assertEquals(1, CrackTimeline.at(4200).text());
 		assertEquals(0.5f, CrackTimeline.at(4400).text(), CLOSE);
 		assertEquals(0, CrackTimeline.at(4600).text());
+	}
+
+	@Test
+	void everySoundComesOnceAndInOrder() {
+		List<Sound> all = CrackTimeline.cues(0, CrackTimeline.TOTAL);
+		assertEquals(12, all.size());
+		for (int step = 0; step < 10; step++) {
+			assertEquals(new Sound(Cue.CRACK, step), all.get(step));
+		}
+		assertEquals(new Sound(Cue.SHATTER, 0), all.get(10));
+		assertEquals(new Sound(Cue.REVEAL, 0), all.get(11));
+
+		List<Sound> ticked = new ArrayList<>();
+		for (long t = 0; t < CrackTimeline.TOTAL; t += 17) {
+			ticked.addAll(CrackTimeline.cues(t, t + 17));
+		}
+		assertEquals(all, ticked);
+	}
+
+	@Test
+	void aWindowTakesItsEndAndNotItsStart() {
+		assertEquals(List.of(), CrackTimeline.cues(-1, 0));
+		assertEquals(List.of(), CrackTimeline.cues(0, 449));
+		assertEquals(List.of(new Sound(Cue.CRACK, 0)), CrackTimeline.cues(449, 450));
+		assertEquals(List.of(), CrackTimeline.cues(450, 460));
+		assertEquals(List.of(new Sound(Cue.SHATTER, 0)), CrackTimeline.cues(2699, 2700));
+		assertEquals(List.of(new Sound(Cue.REVEAL, 0)), CrackTimeline.cues(2700, 2850));
+		assertEquals(List.of(new Sound(Cue.CRACK, 9), new Sound(Cue.SHATTER, 0), new Sound(Cue.REVEAL, 0)),
+				CrackTimeline.cues(2600, 2850));
+		assertEquals(List.of(), CrackTimeline.cues(2850, 9000));
+		assertEquals(List.of(), CrackTimeline.cues(500, 400));
+	}
+
+	@Test
+	void theCrackSoundsComeWithTheCracks() {
+		for (long t = 1; t < 2700; t++) {
+			int before = CrackTimeline.at(t - 1).cracks();
+			int now = CrackTimeline.at(t).cracks();
+			List<Sound> sounds = CrackTimeline.cues(t - 1, t);
+			assertEquals(now == before ? List.of() : List.of(new Sound(Cue.CRACK, now)), sounds, "at " + t);
+		}
 	}
 }
