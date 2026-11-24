@@ -5,6 +5,7 @@ import io.github.filipovych.filobulus.client.alert.ShaftAlert;
 import io.github.filipovych.filobulus.client.alert.WispWatch;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.corpse.CorpseWatch;
 import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.client.journal.ShaftLog;
@@ -70,11 +71,14 @@ public final class FilobulusClient implements ClientModInitializer {
 		ShaftAlert shaftAlert = new ShaftAlert();
 		wisp = new WispWatch();
 		wisp.register();
+		CorpseWatch corpses = new CorpseWatch();
+		corpses.register();
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			tracker.tick(minecraft);
 			shaftLog.tick(minecraft);
 			shaftAlert.tick();
 			wisp.tick(minecraft);
+			corpses.tick(minecraft);
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> shaftLog.close());
 		LevelRenderEvents.BEFORE_GIZMOS.register(RouteRenderer::draw);
