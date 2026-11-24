@@ -1,7 +1,9 @@
 package io.github.filipovych.filobulus.client.route;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
+import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.config.RoutesConfig;
@@ -20,11 +22,14 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.sounds.SoundEvents;
 
 // runs every client tick: works out where we are, keeps the selector up to date and walks the active route
 public final class RouteTracker {
 	// tab list and sidebar only change now and then, twice a second is plenty
 	private static final int LOCATION_INTERVAL = 10;
+	// rgb of the alert for a new best run
+	private static final int NEW_BEST = 0xFFD75E;
 
 	private final RouteSelector selector;
 	private final SteadyLocation location = new SteadyLocation();
@@ -160,6 +165,10 @@ public final class RouteTracker {
 			text += behind < 0
 					? ", new best (" + SplitText.delta(behind) + ")"
 					: " (" + SplitText.delta(behind) + " on your best)";
+			if (behind < 0 && AlertsConfig.newBest) {
+				Alerts.show("best", "NEW BEST", SplitText.clock(total) + " (" + SplitText.delta(behind) + ")",
+						NEW_BEST, 2, Alerts.LONG, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
+			}
 		}
 		GameCompat.say(minecraft, FilobulusClient.chatLine(text));
 	}
