@@ -30,6 +30,8 @@ public final class CrackHud implements HudWidget {
 	private static final int CX = WIDTH / 2;
 	private static final int CY = 32;
 	private static final int BLOCK = 48;
+	private static final int PIECE = BLOCK / 4;
+	private static final int FLASH = 28;
 	private static final int TITLE_Y = 64;
 	private static final int CAPTION_Y = 82;
 	private static final float TITLE_SCALE = 2f;
@@ -38,12 +40,21 @@ public final class CrackHud implements HudWidget {
 	// rgb
 	private static final int CAPTION = 0xE0E0E0;
 	private static final int BROWN = 0xB9855A;
+	private static final int WHITE = 0xFFFFFF;
 	// a dark edge, pale ice on a pale wall is hard to see without one
 	private static final int EDGE = 0xFF1E2C52;
 	// the crack textures are grey, this makes them a dark blue
 	private static final int CRACK_TINT = 0xFF5078D8;
 	private static final Identifier ICE = Identifier.withDefaultNamespace("textures/block/packed_ice.png");
 	private static final Identifier[] CRACKS = new Identifier[10];
+	// the block breaks into 4 by 4 pieces, this is how far each one flies, x then y, gravity comes on top
+	private static final float[] SHARDS = {
+			-46, -40, -18, -52, 14, -56, 50, -36,
+			-58, -18, -22, -30, 26, -34, 54, -12,
+			-52, -4, -12, -20, 16, -14, 58, -8,
+			-40, 6, -20, -6, 10, 2, 44, 10};
+	private static final float GRAVITY = 60;
+	private static final float SPIN = 0.04f;
 	private static final double KEY_COST = 4_000_000;
 	// the editor shows the moment after the reveal has settled
 	private static final Scene SAMPLE = new Scene(example(CrackTier.JASPER), 3600);
@@ -118,6 +129,13 @@ public final class CrackHud implements HudWidget {
 				graphics.pose().popMatrix();
 			}
 		}
+		if (frame.burst() >= 0 && frame.burst() < 1) {
+			drawShards(graphics, frame.burst());
+		}
+		int flash = Math.round(frame.flash() * 255);
+		if (flash >= MIN_ALPHA) {
+			graphics.fill(CX - FLASH, CY - FLASH, CX + FLASH, CY + FLASH, flash << 24 | WHITE);
+		}
 		int alpha = Math.round(frame.text() * 255);
 		if (alpha >= MIN_ALPHA) {
 			graphics.pose().pushMatrix();
@@ -129,6 +147,31 @@ public final class CrackHud implements HudWidget {
 				graphics.pose().popMatrix();
 			}
 			graphics.text(font, scene.caption(), CX - font.width(scene.caption()) / 2, CAPTION_Y, alpha << 24 | CAPTION, true);
+		}
+	}
+
+	// every piece keeps its own bit of the ice texture, flies off, turns and shrinks
+	private static void drawShards(GuiGraphicsExtractor graphics, float burst) {
+		// fast at first, slower at the end
+		float out = 1 - (1 - burst) * (1 - burst);
+		float size = 1 - burst * burst;
+		for (int shard = 0; shard < 16; shard++) {
+			int column = shard % 4;
+			int row = shard / 4;
+			float flyX = SHARDS[shard * 2];
+			float flyY = SHARDS[shard * 2 + 1];
+			graphics.pose().pushMatrix();
+			try {
+				graphics.pose().translate(CX + (column - 1.5f) * PIECE + flyX * out,
+						CY + (row - 1.5f) * PIECE + flyY * out + GRAVITY * burst * burst);
+				graphics.pose().rotate(flyX * SPIN * burst);
+				graphics.pose().scale(size, size);
+				graphics.fill(-PIECE / 2 - 1, -PIECE / 2 - 1, PIECE / 2 + 1, PIECE / 2 + 1, EDGE);
+				graphics.blit(RenderPipelines.GUI_TEXTURED, ICE, -PIECE / 2, -PIECE / 2, column * 4f, row * 4f,
+						PIECE, PIECE, 4, 4, 16, 16, -1);
+			} finally {
+				graphics.pose().popMatrix();
+			}
 		}
 	}
 
