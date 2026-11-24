@@ -4,6 +4,8 @@ import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.hud.Hud;
+import io.github.filipovych.filobulus.client.journal.JournalStore;
+import io.github.filipovych.filobulus.client.journal.ShaftLog;
 import io.github.filipovych.filobulus.client.render.RouteRenderer;
 import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
@@ -17,6 +19,7 @@ import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.ChatFormatting;
@@ -32,6 +35,8 @@ public final class FilobulusClient implements ClientModInitializer {
 	private static final Configurator CONFIGURATOR = new Configurator(MOD_ID);
 	private static RouteStore store;
 	private static SplitStore splits;
+	private static JournalStore journal;
+	private static ShaftLog shaftLog;
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -52,11 +57,18 @@ public final class FilobulusClient implements ClientModInitializer {
 		store.load();
 		splits = new SplitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("splits.json"));
 		splits.load();
+		journal = new JournalStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("journal.jsonl"));
+		journal.load();
+		shaftLog = new ShaftLog(journal);
 		selector = new RouteSelector(routes, store.choices());
 		tracker = new RouteTracker(selector);
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
-		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> tracker.tick(minecraft));
+		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
+			tracker.tick(minecraft);
+			shaftLog.tick(minecraft);
+		});
+		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> shaftLog.close());
 		LevelRenderEvents.BEFORE_GIZMOS.register(RouteRenderer::draw);
 		Hud.register();
 
@@ -77,6 +89,14 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static SplitStore splits() {
 		return splits;
+	}
+
+	public static JournalStore journal() {
+		return journal;
+	}
+
+	public static ShaftLog shaftLog() {
+		return shaftLog;
 	}
 
 	// the routes screen changed what a shaft uses, show that at once when we are standing in such a shaft
