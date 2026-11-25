@@ -33,6 +33,17 @@ public final class LocationParser {
 		return Location.elsewhere();
 	}
 
+	// the island as the tab list names it, empty outside of skyblock
+	public static String areaName(List<String> tabLines) {
+		for (String line : tabLines) {
+			String text = line.strip();
+			if (text.startsWith(TAB_AREA)) {
+				return text.substring(TAB_AREA.length()).strip();
+			}
+		}
+		return "";
+	}
+
 	public static String stripColor(String text) {
 		return text.replaceAll("§.", "");
 	}

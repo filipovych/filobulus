@@ -45,4 +45,10 @@ class LocationParserTest {
 		assertEquals(" ⏣ Glacite Tunnels", LocationParser.stripColor(" §7⏣ §bGlacite Tunnels"));
 		assertEquals("Area: Mineshaft", LocationParser.stripColor("§b§lArea: §r§7Mineshaft"));
 	}
+
+	@Test
+	void theIslandIsReadFromTheTabList() {
+		assertEquals("Crystal Hollows", LocationParser.areaName(List.of("Players (12)", " Area: Crystal Hollows ", "Server: mini1A")));
+		assertEquals("", LocationParser.areaName(List.of("Players (12)")));
+	}
 }
