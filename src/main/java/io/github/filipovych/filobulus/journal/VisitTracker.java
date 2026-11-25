@@ -1,5 +1,7 @@
 package io.github.filipovych.filobulus.journal;
 
+import io.github.filipovych.filobulus.corpse.CorpseTally;
+import io.github.filipovych.filobulus.corpse.CorpseType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +51,37 @@ public final class VisitTracker {
 			return List.of();
 		}
 		open = open.withRun(runMillis);
+		return List.of(open);
+	}
+
+	// the corpses the tab list shows right now, written when it tells us something new
+	public List<ShaftVisit> corpses(CorpseTally shown) {
+		if (open == null) {
+			return List.of();
+		}
+		CorpseTally known = open.corpses().merge(shown);
+		if (known.equals(open.corpses())) {
+			return List.of();
+		}
+		open = open.withCorpses(known, open.corpseCoins());
+		return List.of(open);
+	}
+
+	// a corpse was opened, coins is what its loot was worth with the key taken off
+	public List<ShaftVisit> looted(CorpseType type, long coins) {
+		if (open == null) {
+			return List.of();
+		}
+		open = open.withCorpses(open.corpses().withLooted(type), open.corpseCoins() + coins);
+		return List.of(open);
+	}
+
+	// what the shaft paid in mined items so far
+	public List<ShaftVisit> mined(long coins) {
+		if (open == null || coins == open.minedCoins()) {
+			return List.of();
+		}
+		open = open.withMined(coins);
 		return List.of(open);
 	}
 

@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.filipovych.filobulus.corpse.CorpseTally;
+import io.github.filipovych.filobulus.corpse.CorpseType;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -81,5 +83,32 @@ class VisitTrackerTest {
 		tracker.update(true, "JASP_1", SHAFT, 1000);
 		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 4000, 0), ShaftVisit.entered(5000, "RUBY_1")),
 				tracker.update(true, "RUBY_1", SHAFT, 5000));
+	}
+
+	@Test
+	void corpsesAreWrittenWhenTheTabListSaysSomethingNew() {
+		VisitTracker tracker = new VisitTracker();
+		assertTrue(tracker.corpses(new CorpseTally("LT", "")).isEmpty());
+		tracker.update(true, "JASP_1", SHAFT, 1000);
+		assertTrue(tracker.corpses(CorpseTally.NONE).isEmpty());
+		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 0, 0, new CorpseTally("LT", ""), 0, 0)),
+				tracker.corpses(new CorpseTally("LT", "")));
+		assertTrue(tracker.corpses(new CorpseTally("LT", "")).isEmpty());
+	}
+
+	@Test
+	void anOpenedCorpseAddsItsCoinsAndStaysAfterLeaving() {
+		VisitTracker tracker = new VisitTracker();
+		assertTrue(tracker.looted(CorpseType.UMBER, 5).isEmpty());
+		tracker.update(true, "JASP_1", SHAFT, 1000);
+		tracker.corpses(new CorpseTally("LTU", ""));
+		tracker.looted(CorpseType.TUNGSTEN, 1_200_000);
+		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 0, 0, new CorpseTally("LTU", "TU"), 700_000, 0)),
+				tracker.looted(CorpseType.UMBER, -500_000));
+		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 0, 0, new CorpseTally("LTU", "TU"), 700_000, 3_000_000)),
+				tracker.mined(3_000_000));
+		assertTrue(tracker.mined(3_000_000).isEmpty());
+		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 59_000, 0, new CorpseTally("LTU", "TU"), 700_000, 3_000_000)),
+				tracker.update(false, "", TUNNELS, 60_000));
 	}
 }
