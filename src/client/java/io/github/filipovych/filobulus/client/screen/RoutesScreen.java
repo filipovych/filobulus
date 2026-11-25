@@ -1,10 +1,8 @@
 package io.github.filipovych.filobulus.client.screen;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
-import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
-import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.route.CollectionCodec;
 import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.route.RouteCodec;
@@ -17,77 +15,44 @@ import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
 
 // /filo routes: one row per shaft layout with its auto-load switch and the route it uses, and the way routes get in and out
-public final class RoutesScreen extends FlatScreen {
-	private static final int MAX_WIDTH = 440;
-	private static final int MARGIN = 8;
-	private static final int ROW = 20;
-	private static final int LIST_TOP = 46;
-	private static final int FOOTER = 38;
-	private static final int AUTO_COLUMN = 140;
+public final class RoutesScreen extends RoutesFrame {
+	private static final int AUTO_COLUMN = 138;
 	private static final int ROUTE_COLUMN = 194;
-	private static final int PILL_WIDTH = 30;
-	private static final int GAP = 3;
-	private static final int ROW_HOVER = 0x12FFFFFF;
-	private static final int PILL_ON = 0xFF2F86B3;
-	private static final int SCROLL_STEP = ROW * 2;
 
-	private final Screen parent;
-	private final RouteStore store = FilobulusClient.store();
-	private int scroll;
-	private String status = "Routes copied from Coleweight, SkyHanni or Skyblocker can be imported.";
-	private int statusColor = FAINT;
-	// id of the route whose delete button was clicked once, the second click deletes
-	private String confirmDelete = "";
-	// the same for forgetting the best run of a route
+	// the same for forgetting the best run of a route: the first click asks, the second does it
 	private String confirmReset = "";
 
 	public RoutesScreen(Screen parent) {
-		super(Component.literal("Filobulus routes"));
-		this.parent = parent;
+		super(parent, "Routes copied from Coleweight, SkyHanni or Skyblocker can be imported.");
+	}
+
+	@Override
+	protected boolean shafts() {
+		return true;
 	}
 
 	@Override
 	protected void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-		int panelWidth = Math.min(width - MARGIN * 2, MAX_WIDTH);
-		int left = (width - panelWidth) / 2;
-		int top = MARGIN;
-		int bottom = height - MARGIN;
-		int listTop = top + LIST_TOP;
-		int listBottom = bottom - FOOTER;
-		panel(graphics, left, top, panelWidth, bottom - top);
-
-		graphics.text(font, Component.literal("Routes").withStyle(ChatFormatting.BOLD), left + 8, top + 7, ACCENT, true);
-		graphics.text(font, clip("The bundled routes are only a starting point. Import better ones.",
-				panelWidth - 16), left + 8, top + 19, MUTED, true);
+		List<ShaftLayout> layouts = ShaftLayout.all();
+		begin(graphics, mouseX, mouseY, "The bundled routes are only a starting point. Import better ones.", layouts.size());
 		graphics.text(font, "Shaft", left + 8, top + 34, FAINT, true);
 		graphics.text(font, "Auto-load", left + AUTO_COLUMN, top + 34, FAINT, true);
 		graphics.text(font, "Route", left + ROUTE_COLUMN, top + 34, FAINT, true);
 
-		List<ShaftLayout> layouts = ShaftLayout.all();
-		int maxScroll = Math.max(0, layouts.size() * ROW - (listBottom - listTop));
-		scroll = Math.max(0, Math.min(scroll, maxScroll));
 		graphics.enableScissor(left + 1, listTop, left + panelWidth - 1, listBottom);
-		boolean inList = mouseY >= listTop && mouseY < listBottom;
 		for (int i = 0; i < layouts.size(); i++) {
 			int y = listTop + i * ROW - scroll;
 			if (y + ROW > listTop && y < listBottom) {
-				drawRow(graphics, layouts.get(i), left, y, panelWidth, inList ? mouseX : -1, mouseY);
+				drawRow(graphics, layouts.get(i), y, mouseX, mouseY);
 			}
 		}
 		graphics.disableScissor();
-		scrollbar(graphics, left + panelWidth - 1, listTop, listBottom, layouts.size() * ROW, scroll);
-		// clicks in the header and footer must not reach a row that is scrolled under them
-		clickable(left, top, panelWidth, LIST_TOP, null, null);
-		clickable(left, listBottom, panelWidth, FOOTER, null, null);
 
-		graphics.text(font, clip(status, panelWidth - 16), left + 8, listBottom + 5, statusColor, true);
-		int y = bottom - BUTTON_HEIGHT - 6;
+		int y = end(graphics, mouseX, mouseY, layouts.size());
 		int x = left + 8;
 		if (button(graphics, x, y, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(null))) {
 			tooltip(graphics, "Import what is on your clipboard: a route collection, or a route for the shaft you are in.",
@@ -98,16 +63,11 @@ public final class RoutesScreen extends FlatScreen {
 			tooltip(graphics, "Copy every route you changed as one string that other Filobulus players can import.",
 					mouseX, mouseY);
 		}
-		int doneWidth = buttonWidth("Done");
-		button(graphics, left + panelWidth - 8 - doneWidth, y, doneWidth, "Done", ACCENT, mouseX, mouseY, this::onClose);
 	}
 
-	private void drawRow(GuiGraphicsExtractor graphics, ShaftLayout layout, int left, int y, int panelWidth,
-			int mouseX, int mouseY) {
+	private void drawRow(GuiGraphicsExtractor graphics, ShaftLayout layout, int y, int mouseX, int mouseY) {
 		String key = layout.key();
-		if (mouseX >= left && mouseX < left + panelWidth && mouseY >= y && mouseY < y + ROW) {
-			graphics.fill(left + 1, y, left + panelWidth - 1, y + ROW, ROW_HOVER);
-		}
+		rowHovered(graphics, y, mouseX, mouseY);
 		graphics.item(ShaftIcons.of(layout), left + 6, y + 2);
 		int titleColor = layout.material().map(ShaftColors::of).orElse(ACCENT);
 		graphics.text(font, layout.title(), left + 26, y + 6, titleColor, true);
@@ -119,47 +79,33 @@ public final class RoutesScreen extends FlatScreen {
 		}
 
 		boolean auto = store.choices().autoLoad(key);
-		int pillLeft = left + AUTO_COLUMN + 8;
-		if (auto) {
-			graphics.fill(pillLeft, y + 4, pillLeft + PILL_WIDTH, y + 16, PILL_ON);
-		} else {
-			graphics.outline(pillLeft, y + 4, PILL_WIDTH, 12, FAINT);
-		}
-		graphics.centeredText(font, auto ? "ON" : "OFF", pillLeft + PILL_WIDTH / 2, y + 6, auto ? TEXT : FAINT);
-		clickable(pillLeft, y + 4, PILL_WIDTH, 12, () -> {
+		pill(graphics, left + AUTO_COLUMN + 8, y + 4, auto, () -> {
 			store.choices().setAutoLoad(key, !auto);
 			store.save();
-		}, null);
+		});
 
 		List<LibraryRoute> routes = store.library().routesFor(key);
 		LibraryRoute picked = store.library().routeFor(key, store.choices().preferredRouteId(key)).orElse(null);
 
-		// buttons from the right edge inwards
+		// every button has its own column, a row without one leaves that spot empty so the others do not move
 		int by = y + 3;
-		int x = left + panelWidth - 8;
-		if (picked != null && !picked.bundled()) {
-			boolean sure = confirmDelete.equals(picked.id());
-			String label = sure ? "Sure?" : "x";
-			x -= buttonWidth(label);
-			if (button(graphics, x, by, buttonWidth(label), label, BAD, mouseX, mouseY, () -> delete(picked, sure))) {
-				tooltip(graphics, "Delete this imported route.", mouseX, mouseY);
-			}
-			x -= GAP;
+		int editLeft = left + panelWidth - 8 - buttonWidth("Edit");
+		int copyLeft = editLeft - GAP - buttonWidth("Copy");
+		int importLeft = copyLeft - GAP - buttonWidth("Import");
+		if (picked != null && !picked.bundled()
+				&& button(graphics, editLeft, by, buttonWidth("Edit"), "Edit", MUTED, mouseX, mouseY, () -> edit(picked))) {
+			tooltip(graphics, "Rename this imported route, or delete it.", mouseX, mouseY);
 		}
-		if (picked != null) {
-			x -= buttonWidth("Copy");
-			if (button(graphics, x, by, buttonWidth("Copy"), "Copy", MUTED, mouseX, mouseY, () -> copy(picked))) {
-				tooltip(graphics, "Copy this route in the Coleweight format, which every waypoint mod reads.", mouseX, mouseY);
-			}
-			x -= GAP;
+		if (picked != null
+				&& button(graphics, copyLeft, by, buttonWidth("Copy"), "Copy", MUTED, mouseX, mouseY, () -> copy(picked))) {
+			tooltip(graphics, "Copy this route in the Coleweight format, which every waypoint mod reads.", mouseX, mouseY);
 		}
-		x -= buttonWidth("Import");
-		if (button(graphics, x, by, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(layout))) {
+		if (button(graphics, importLeft, by, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(layout))) {
 			tooltip(graphics, "Use the route on your clipboard for " + layout.title() + " shafts.", mouseX, mouseY);
 		}
 
 		int routeLeft = left + ROUTE_COLUMN;
-		int routeWidth = x - GAP - routeLeft;
+		int routeWidth = importLeft - GAP - routeLeft;
 		if (picked == null) {
 			graphics.text(font, "no route yet", routeLeft, y + 6, FAINT, true);
 			return;
@@ -205,7 +151,6 @@ public final class RoutesScreen extends FlatScreen {
 	}
 
 	private void resetBest(LibraryRoute route, boolean sure) {
-		confirmDelete = "";
 		if (!sure) {
 			confirmReset = route.id();
 			return;
@@ -219,7 +164,6 @@ public final class RoutesScreen extends FlatScreen {
 	private void pick(LibraryRoute route) {
 		store.choices().pick(route.routeKey(), route.id());
 		store.save();
-		confirmDelete = "";
 		confirmReset = "";
 		FilobulusClient.routeChanged(route.routeKey());
 	}
@@ -229,24 +173,30 @@ public final class RoutesScreen extends FlatScreen {
 		say("Copied " + route.title() + " (" + route.stops().size() + " stops) to the clipboard.", GOOD);
 	}
 
-	private void delete(LibraryRoute route, boolean sure) {
-		confirmReset = "";
-		if (!sure) {
-			confirmDelete = route.id();
-			return;
-		}
+	// a new name or author for an imported route, its delete button is in there too
+	private void edit(LibraryRoute route) {
+		String shaft = ShaftLayout.byKey(route.routeKey()).map(ShaftLayout::title).orElse(route.routeKey());
+		open(new RouteNameScreen(this, "Edit route", route.stops().size() + " stops for " + shaft + " shafts",
+				route.name(), route.author(), null, answer -> {
+					store.library().renameUser(route.id(), answer.name(), answer.author()).ifPresent(renamed -> {
+						store.save();
+						FilobulusClient.routeChanged(renamed.routeKey());
+						say("Now called " + renamed.title() + ".", GOOD);
+					});
+				}, () -> delete(route)));
+	}
+
+	private void delete(LibraryRoute route) {
 		store.delete(route);
 		FilobulusClient.splits().bests().forget(route.id());
 		FilobulusClient.splits().save();
 		store.save();
-		confirmDelete = "";
 		FilobulusClient.routeChanged(route.routeKey());
 		say("Deleted " + route.title() + ".", MUTED);
 	}
 
 	// target is the row that was clicked, null for the button at the bottom
 	private void importInto(ShaftLayout target) {
-		confirmDelete = "";
 		try {
 			ShaftLayout where = target != null ? target : FilobulusClient.tracker().location().shaft()
 					.map(ShaftLayout::of).orElse(null);
@@ -256,8 +206,8 @@ public final class RoutesScreen extends FlatScreen {
 			if (routes.size() == 1 && routes.get(0).name().isEmpty()) {
 				SharedRoute route = routes.get(0);
 				String shaft = ShaftLayout.byKey(route.shaft()).map(ShaftLayout::title).orElse(route.shaft());
-				GameCompat.setScreen(minecraft, new RouteNameScreen(this, "Name this route",
-						route.stops().size() + " stops for " + shaft + " shafts", "", "", null,
+				open(new RouteNameScreen(this, "Name this route", route.stops().size() + " stops for " + shaft + " shafts",
+						"", "", null,
 						answer -> add(List.of(new SharedRoute(route.shaft(), answer.name(), answer.author(), route.stops()))),
 						null));
 			} else {
@@ -282,7 +232,6 @@ public final class RoutesScreen extends FlatScreen {
 	}
 
 	private void exportAll() {
-		confirmDelete = "";
 		RouteCollection collection = store.picked(minecraft.getUser().getName() + "'s routes");
 		if (collection.routes().isEmpty()) {
 			say("Nothing to export yet, every shaft uses its bundled route.", MUTED);
@@ -290,21 +239,5 @@ public final class RoutesScreen extends FlatScreen {
 		}
 		minecraft.keyboardHandler.setClipboard(CollectionCodec.export(collection));
 		say("Copied " + collection.routes().size() + " routes as one string. Paste it to someone, they press Import.", GOOD);
-	}
-
-	private void say(String text, int color) {
-		status = text;
-		statusColor = color;
-	}
-
-	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		scroll -= (int) Math.signum(scrollY) * SCROLL_STEP;
-		return true;
-	}
-
-	@Override
-	public void onClose() {
-		GameCompat.setScreen(minecraft, parent);
 	}
 }
