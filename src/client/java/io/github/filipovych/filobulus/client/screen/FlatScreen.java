@@ -26,6 +26,8 @@ public abstract class FlatScreen extends Screen {
 	protected static final int HOVER = 0x28FFFFFF;
 	protected static final int BUTTON = 0x18FFFFFF;
 	protected static final int BUTTON_HEIGHT = 14;
+	protected static final int PILL_WIDTH = 30;
+	protected static final int PILL_ON = 0xFF2F86B3;
 	private static final int TOOLTIP_WIDTH = 210;
 
 	private record Hit(int left, int top, int width, int height, Runnable onLeft, Runnable onRight) {
@@ -75,6 +77,31 @@ public abstract class FlatScreen extends Screen {
 		graphics.centeredText(font, label, left + width / 2, top + 3, color);
 		clickable(left, top, width, BUTTON_HEIGHT, action, null);
 		return hovered;
+	}
+
+	// a tab in a title row: the one that is open is underlined, the others are clickable
+	protected int tab(GuiGraphicsExtractor graphics, int left, int top, String label, boolean open,
+			int mouseX, int mouseY, Runnable action) {
+		int tabWidth = font.width(label) + 8;
+		boolean hovered = mouseX >= left && mouseX < left + tabWidth && mouseY >= top && mouseY < top + BUTTON_HEIGHT;
+		graphics.centeredText(font, label, left + tabWidth / 2, top + 3, open ? TEXT : hovered ? MUTED : FAINT);
+		if (open) {
+			graphics.fill(left + 2, top + BUTTON_HEIGHT - 1, left + tabWidth - 2, top + BUTTON_HEIGHT, ACCENT);
+		} else {
+			clickable(left, top, tabWidth, BUTTON_HEIGHT, action, null);
+		}
+		return tabWidth;
+	}
+
+	// an on/off switch, 30 by 12
+	protected void pill(GuiGraphicsExtractor graphics, int left, int top, boolean on, Runnable action) {
+		if (on) {
+			graphics.fill(left, top, left + PILL_WIDTH, top + 12, PILL_ON);
+		} else {
+			graphics.outline(left, top, PILL_WIDTH, 12, FAINT);
+		}
+		graphics.centeredText(font, on ? "ON" : "OFF", left + PILL_WIDTH / 2, top + 2, on ? TEXT : FAINT);
+		clickable(left, top, PILL_WIDTH, 12, action, null);
 	}
 
 	protected int buttonWidth(String label) {
