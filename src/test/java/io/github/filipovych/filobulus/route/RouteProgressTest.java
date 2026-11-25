@@ -81,4 +81,21 @@ class RouteProgressTest {
 		assertEquals(Optional.empty(), progress.next());
 		assertFalse(progress.update(40.5, 10.5, 0.5, REACH));
 	}
+
+	@Test
+	void aRouteCanStartAtAnyStop() {
+		List<Waypoint> stops = List.of(new Waypoint(0, 0, 0, "1"), new Waypoint(10, 0, 0, "2"), new Waypoint(20, 0, 0, "3"));
+		RouteProgress progress = new RouteProgress(stops, 2);
+		assertEquals(2, progress.reached());
+		assertEquals("3", progress.next().orElseThrow().label());
+		assertEquals(3, new RouteProgress(stops, 9).reached());
+	}
+
+	@Test
+	void theNearestStopIsFoundInAllThreeDirections() {
+		List<Waypoint> stops = List.of(new Waypoint(0, 0, 0, "1"), new Waypoint(10, 0, 0, "2"), new Waypoint(10, 30, 0, "3"));
+		assertEquals(0, RouteProgress.nearest(stops, 1, 1, 1));
+		assertEquals(1, RouteProgress.nearest(stops, 9, 4, 0));
+		assertEquals(2, RouteProgress.nearest(stops, 9, 26, 0));
+	}
 }

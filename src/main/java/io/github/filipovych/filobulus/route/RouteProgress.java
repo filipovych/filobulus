@@ -9,7 +9,31 @@ public final class RouteProgress {
 	private int index;
 
 	public RouteProgress(List<Waypoint> stops) {
+		this(stops, 0);
+	}
+
+	// start is the stop the line points at first
+	public RouteProgress(List<Waypoint> stops, int start) {
 		this.stops = List.copyOf(stops);
+		this.index = Math.max(0, Math.min(start, stops.size()));
+	}
+
+	// the stop closest to a point, for picking a loop up where the player stands
+	public static int nearest(List<Waypoint> stops, double x, double y, double z) {
+		int best = 0;
+		double bestDistance = Double.MAX_VALUE;
+		for (int i = 0; i < stops.size(); i++) {
+			Waypoint stop = stops.get(i);
+			double dx = stop.x() + 0.5 - x;
+			double dy = stop.y() + 0.5 - y;
+			double dz = stop.z() + 0.5 - z;
+			double distance = dx * dx + dy * dy + dz * dz;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = i;
+			}
+		}
+		return best;
 	}
 
 	// empty once the last stop was reached, the route is done then
