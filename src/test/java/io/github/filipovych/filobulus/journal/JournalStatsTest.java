@@ -90,4 +90,46 @@ class JournalStatsTest {
 						new ShaftVisit(at(24, 15, 30), "JASP_1", 183_000, 171_000, new CorpseTally("LTU", "LT"), -250_000, 9_000_000),
 						ShaftVisit.entered(at(24, 15, 40), "")), LISBON));
 	}
+
+	@Test
+	void corpsesAddUpPerTypeAndOnlyForShaftsThatWereRead() {
+		JournalStats stats = JournalStats.of(List.of(
+				new ShaftVisit(1, "RUBY_1", 60_000, 0, new CorpseTally("LLT", "LT"), 1_500_000, 0),
+				new ShaftVisit(2, "RUBY_1", 60_000, 0, new CorpseTally("TUV", ""), 0, 0),
+				new ShaftVisit(3, "JASP_1", 60_000, 0, new CorpseTally("V", "V"), -2_000_000, 12_000_000),
+				new ShaftVisit(4, "ONYX_1", 60_000, 0)));
+		JournalStats.Corpses corpses = stats.corpses();
+		assertEquals(7, corpses.seen());
+		assertEquals(3, corpses.looted());
+		assertEquals(2, corpses.keys());
+		assertEquals(3, corpses.counted());
+		assertEquals(2, corpses.paid());
+		assertEquals(-500_000, corpses.coins());
+		assertEquals(-250_000, corpses.coinsPerShaft());
+		assertEquals(12_000_000, corpses.mined());
+		assertEquals(10_000_000, corpses.best());
+		assertEquals(2, corpses.seenByType()[0]);
+		assertEquals(1, corpses.lootedByType()[1]);
+		JournalStats.Group ruby = stats.groups().get(0);
+		assertEquals("RUBY_1", ruby.key());
+		assertEquals(6, ruby.corpses());
+		assertEquals(2, ruby.looted());
+		assertEquals(1_500_000, ruby.coins());
+	}
+
+	@Test
+	void shaftsPerHourLeavesTheBreaksOut() {
+		long minute = 60_000;
+		// three shafts ten minutes apart, a three hour break, then two more
+		JournalStats stats = JournalStats.of(List.of(
+				new ShaftVisit(0, "RUBY_1", 2 * minute, 0),
+				new ShaftVisit(10 * minute, "RUBY_1", 2 * minute, 0),
+				new ShaftVisit(20 * minute, "RUBY_1", 4 * minute, 0),
+				new ShaftVisit(200 * minute, "RUBY_1", 2 * minute, 0),
+				new ShaftVisit(210 * minute, "RUBY_1", 6 * minute, 0)));
+		// 10 + 10 + 4 + 10 + 6 minutes of shafting
+		assertEquals(40 * minute, stats.activeMillis());
+		assertEquals(7.5, stats.perHour(), 0.001);
+		assertEquals(0, JournalStats.of(List.of(ShaftVisit.entered(5, "RUBY_1"))).perHour());
+	}
 }
