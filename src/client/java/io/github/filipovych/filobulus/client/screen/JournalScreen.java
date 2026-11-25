@@ -5,6 +5,9 @@ import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
+import io.github.filipovych.filobulus.corpse.CoinText;
+import io.github.filipovych.filobulus.corpse.CorpseTally;
+import io.github.filipovych.filobulus.corpse.CorpseType;
 import io.github.filipovych.filobulus.journal.JournalPeriod;
 import io.github.filipovych.filobulus.journal.JournalStats;
 import io.github.filipovych.filobulus.journal.JournalStats.Group;
@@ -17,6 +20,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
@@ -25,6 +29,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 // /filo journal: what the logged shafts add up to, a count per shaft layout that also filters, and the log itself
+// the corpses tab shows the same shafts by what their corpses were and what they paid
 public final class JournalScreen extends FlatScreen {
 	private static final int MAX_WIDTH = 560;
 	private static final int MAX_HEIGHT = 420;
@@ -45,6 +50,13 @@ public final class JournalScreen extends FlatScreen {
 	private static final int ROW_HOVER = 0x12FFFFFF;
 	private static final int TRACK = 0x16FFFFFF;
 	private static final int CHIP_ON = 0xFF2F86B3;
+	// one colour per corpse type, in the order lapis, tungsten, umber, vanguard
+	private static final int[] CORPSE_COLORS = {0xFF4A7BFF, 0xFF8C9AA6, 0xFFC8743A, 0xFFFFD75E};
+	private static final int DOT = 4;
+
+	private enum View {
+		SHAFTS, CORPSES
+	}
 
 	// one line of the log: a visit, or the day that the visits under it share
 	private record Entry(ShaftVisit visit, String day, int shafts) {
@@ -54,14 +66,17 @@ public final class JournalScreen extends FlatScreen {
 	private record Tile(String value, int color, String note, String label, String brief, String help) {
 	}
 
-	// the period stays as it was left while the game runs
+	// the period and the tab stay as they were left while the game runs
 	private static JournalPeriod period = JournalPeriod.ALL;
+	private static View view = View.SHAFTS;
 
 	private final Screen parent;
 	private final JournalStore store = FilobulusClient.journal();
 	private final ZoneId zone = ZoneId.systemDefault();
 	// layout keys the log is narrowed to, empty shows every shaft
 	private final Set<String> picked = new LinkedHashSet<>();
+	// the same for the corpses tab, letters of the corpse types
+	private final Set<Character> pickedCorpses = new LinkedHashSet<>();
 	private int groupScroll;
 	private int logScroll;
 	private int logLeft;
@@ -71,6 +86,8 @@ public final class JournalScreen extends FlatScreen {
 	private int countedVersion = -1;
 	private JournalPeriod countedPeriod;
 	private Set<String> countedPicked = Set.of();
+	private Set<Character> countedCorpses = Set.of();
+	private View countedView;
 	private long countedMinute;
 	private JournalStats stats = JournalStats.of(List.of());
 	private List<ShaftVisit> shown = List.of();
@@ -93,7 +110,11 @@ public final class JournalScreen extends FlatScreen {
 		int bottom = top + panelHeight;
 		panel(graphics, left, top, panelWidth, panelHeight);
 
-		graphics.text(font, Component.literal("Shaft journal").withStyle(ChatFormatting.BOLD), left + PAD, top + 9, ACCENT, true);
+		Component title = Component.literal("Journal").withStyle(ChatFormatting.BOLD);
+		graphics.text(font, title, left + PAD, top + 9, ACCENT, true);
+		int tabLeft = left + PAD + font.width(title) + 8;
+		tabLeft += tab(graphics, tabLeft, top + 6, "Shafts", view == View.SHAFTS, mouseX, mouseY, () -> view = View.SHAFTS);
+		tab(graphics, tabLeft, top + 6, "Corpses", view == View.CORPSES, mouseX, mouseY, () -> view = View.CORPSES);
 		int x = right - PAD;
 		JournalPeriod[] periods = JournalPeriod.values();
 		for (int i = periods.length - 1; i >= 0; i--) {
@@ -113,7 +134,9 @@ public final class JournalScreen extends FlatScreen {
 		} else {
 			int groupsWidth = Math.min(215, (panelWidth - PAD * 3) * 9 / 20);
 			logLeft = left + PAD + groupsWidth + PAD;
-			drawGroups(graphics, left + PAD, bodyTop, groupsWidth, bodyBottom, mouseX, mouseY);
+			if (view == View.SHAFTS) {
+				drawGroups(graphics, left + PAD, bodyTop, groupsWidth, bodyBottom, mouseX, mouseY);
+			}
 			graphics.fill(logLeft - PAD / 2, bodyTop, logLeft - PAD / 2 + 1, bodyBottom, TRACK);
 			drawLog(graphics, logLeft, bodyTop, right - PAD - logLeft, bodyBottom, mouseX, mouseY, now);
 		}
@@ -131,21 +154,7 @@ public final class JournalScreen extends FlatScreen {
 	}
 
 	private void drawTiles(GuiGraphicsExtractor graphics, int left, int top, int width, int mouseX, int mouseY) {
-		String average = stats.timed() == 0 ? "-" : JournalText.duration(stats.averageTime());
-		List<Tile> tiles = List.of(
-				new Tile(String.valueOf(stats.shafts()), TEXT, "", "Shafts", "Shafts",
-						"Mineshafts you entered in this period."),
-				new Tile(String.valueOf(stats.jasper()), ShaftColors.of(ShaftMaterial.JASPER),
-						stats.shafts() == 0 ? "" : JournalText.percent(stats.jasperRate()), "Jasper", "Jasper",
-						"Jasper shafts in this period, jasper crystal ones included, and their share of all shafts. "
-								+ "The wiki's spawn weights put it at about 4.3%, or 5.9% when the last block you mined has no shaft type of its own."),
-				new Tile(String.valueOf(store.journal().sinceJasper()), TEXT, "", "Since jasper", "Dry streak",
-						"Shafts entered since your last jasper shaft. This one always counts up to now, whatever the period."),
-				new Tile(String.valueOf(stats.longestDry()), TEXT, "", "Longest dry", "Max dry",
-						"The most shafts in a row without a jasper one in this period."),
-				new Tile(JournalText.duration(stats.timeInside()), TEXT, "", "Time inside", "Inside",
-						"Time spent inside shafts in this period."),
-				new Tile(average, TEXT, "", "Avg time", "Avg", "Average time inside one shaft."));
+		List<Tile> tiles = view == View.SHAFTS ? shaftTiles() : corpseTiles();
 		int tileWidth = (width - GAP * (tiles.size() - 1)) / tiles.size();
 		for (int i = 0; i < tiles.size(); i++) {
 			Tile tile = tiles.get(i);
@@ -166,6 +175,95 @@ public final class JournalScreen extends FlatScreen {
 				tooltip(graphics, tile.help(), mouseX, mouseY);
 			}
 		}
+	}
+
+	private List<Tile> shaftTiles() {
+		String average = stats.timed() == 0 ? "-" : JournalText.duration(stats.averageTime());
+		String perHour = stats.perHour() == 0 ? "" : Math.round(stats.perHour()) + "/h";
+		return List.of(
+				new Tile(String.valueOf(stats.shafts()), TEXT, perHour, "Shafts", "Shafts",
+						"Mineshafts you entered in this period, and how many that is per hour of shafting. "
+								+ "A gap of more than 20 minutes between two shafts counts as a break and not as shafting."),
+				new Tile(String.valueOf(stats.jasper()), ShaftColors.of(ShaftMaterial.JASPER),
+						stats.shafts() == 0 ? "" : JournalText.percent(stats.jasperRate()), "Jasper", "Jasper",
+						"Jasper shafts in this period, jasper crystal ones included, and their share of all shafts. "
+								+ "The wiki's spawn weights put it at about 4.3%, or 5.9% when the last block you mined has no shaft type of its own."),
+				new Tile(String.valueOf(store.journal().sinceJasper()), TEXT, "", "Since jasper", "Dry streak",
+						"Shafts entered since your last jasper shaft. This one always counts up to now, whatever the period."),
+				new Tile(String.valueOf(stats.longestDry()), TEXT, "", "Longest dry", "Max dry",
+						"The most shafts in a row without a jasper one in this period."),
+				new Tile(JournalText.duration(stats.timeInside()), TEXT, "", "Time inside", "Inside",
+						"Time spent inside shafts in this period."),
+				new Tile(average, TEXT, "", "Avg time", "Avg", "Average time inside one shaft."));
+	}
+
+	private List<Tile> corpseTiles() {
+		JournalStats.Corpses corpses = stats.corpses();
+		int seen = corpses.seen();
+		int looted = corpses.looted();
+		String each = corpses.counted() == 0 ? "" : String.format(Locale.ROOT, "%.1f", corpses.perShaft());
+		long coins = corpses.coins();
+		return List.of(
+				new Tile(String.valueOf(seen), TEXT, each, "Corpses", "Corpses",
+						"Corpses in the shafts of this period, and how many a shaft has on average. Read from the corpse lines "
+								+ "of the tab list, so only shafts entered since the journal reads them count: "
+								+ shafts(corpses.counted()) + " of this period."),
+				new Tile(String.valueOf(looted), GOOD, seen == 0 ? "" : JournalText.percent((double) looted / seen), "Looted", "Looted",
+						"Corpses you opened, and their share of the ones that were there."),
+				new Tile(String.valueOf(Math.max(0, seen - looted)), seen > looted ? BAD : TEXT, "", "Left behind", "Left",
+						"Corpses you walked out on: " + left(corpses) + "."),
+				new Tile(String.valueOf(corpses.keys()), TEXT, "", "Keys used", "Keys",
+						"Tungsten, umber and vanguard corpses you opened, each took a key unless the Resourceful perk saved it: "
+								+ corpses.lootedByType()[1] + " tungsten, " + corpses.lootedByType()[2] + " umber, " + corpses.lootedByType()[3] + " vanguard."),
+				new Tile(CoinText.signed(coins), coins < 0 ? BAD : GOOD, "", "Corpse profit", "Profit",
+						"What the loot of your corpses sold for at the time, with the price of the keys taken off."),
+				new Tile(corpses.paid() == 0 ? "-" : CoinText.signed(corpses.coinsPerShaft()), TEXT, "", "Per shaft", "Each",
+						"Corpse profit per shaft in which you opened at least one corpse."));
+	}
+
+	private static String left(JournalStats.Corpses corpses) {
+		List<String> parts = new ArrayList<>();
+		for (int i = 0; i < 4; i++) {
+			parts.add(corpses.seenByType()[i] - corpses.lootedByType()[i] + " " + CorpseType.values()[i].displayName().toLowerCase(Locale.ROOT));
+		}
+		return String.join(", ", parts);
+	}
+
+	// a small square per corpse of the shaft, filled once it was opened, drawn leftwards from right
+	private int dots(GuiGraphicsExtractor graphics, CorpseTally corpses, int right, int y) {
+		int x = right;
+		for (int i = corpses.seen().length() - 1; i >= 0; i--) {
+			char letter = corpses.seen().charAt(i);
+			int color = CORPSE_COLORS[CorpseTally.ORDER.indexOf(letter)];
+			// the first ones of a type are the opened ones
+			int before = i - corpses.seen().indexOf(letter);
+			x -= DOT + 1;
+			if (before < corpses.looted(letter)) {
+				graphics.fill(x, y, x + DOT, y + DOT, color);
+			} else {
+				graphics.outline(x, y, DOT, DOT, color);
+			}
+		}
+		return right - x;
+	}
+
+	private static String corpseHelp(ShaftVisit visit) {
+		CorpseTally corpses = visit.corpses();
+		List<String> parts = new ArrayList<>();
+		for (int i = 0; i < 4; i++) {
+			char letter = CorpseTally.ORDER.charAt(i);
+			if (corpses.seen(letter) > 0) {
+				parts.add(CorpseType.values()[i].displayName() + " " + corpses.looted(letter) + "/" + corpses.seen(letter));
+			}
+		}
+		String text = parts.isEmpty() ? "" : "Corpses opened: " + String.join(", ", parts) + ".";
+		if (visit.corpseCoins() != 0) {
+			text += " Corpse profit " + CoinText.signed(visit.corpseCoins()) + ".";
+		}
+		if (visit.minedCoins() != 0) {
+			text += " Mined " + CoinText.signed(visit.minedCoins()) + ".";
+		}
+		return text.strip();
 	}
 
 	// one row per shaft layout that was entered, a click narrows the log to it
@@ -243,16 +341,21 @@ public final class JournalScreen extends FlatScreen {
 		int right = left + width - 5;
 		int insideRight = right - NUMBER_COLUMN;
 		int atRight = insideRight - NUMBER_COLUMN;
-		String head = picked.isEmpty() ? "Log" : "Log: " + String.join(", ", picked.stream().map(JournalScreen::title).toList());
-		int headRoom = atRight - 30 - left - (picked.isEmpty() ? 0 : buttonWidth("Clear") + GAP);
+		boolean corpseView = view == View.CORPSES;
+		List<String> names = corpseView
+				? pickedCorpses.stream().map(letter -> CorpseTally.type(letter).displayName()).toList()
+				: picked.stream().map(JournalScreen::title).toList();
+		String head = names.isEmpty() ? "Log" : "Log: " + String.join(", ", names);
+		int headRoom = atRight - 30 - left - (names.isEmpty() ? 0 : buttonWidth("Clear") + GAP);
 		graphics.text(font, clip(head, headRoom), left, top, FAINT, true);
-		if (!picked.isEmpty()) {
+		if (!names.isEmpty()) {
 			int clearLeft = left + Math.min(font.width(head), headRoom) + GAP;
-			button(graphics, clearLeft, top - 3, buttonWidth("Clear"), "Clear", MUTED, mouseX, mouseY, picked::clear);
+			button(graphics, clearLeft, top - 3, buttonWidth("Clear"), "Clear", MUTED, mouseX, mouseY,
+					corpseView ? pickedCorpses::clear : picked::clear);
 		}
 		rightText(graphics, "At", atRight, top, FAINT);
-		rightText(graphics, "Inside", insideRight, top, FAINT);
-		rightText(graphics, "Route", right, top, FAINT);
+		rightText(graphics, corpseView ? "Open" : "Inside", insideRight, top, FAINT);
+		rightText(graphics, corpseView ? "Coins" : "Route", right, top, FAINT);
 		int listTop = top + LIST_HEAD;
 		if (log.isEmpty()) {
 			graphics.text(font, "Nothing in this period.", left, listTop + 4, FAINT, true);
@@ -277,12 +380,26 @@ public final class JournalScreen extends FlatScreen {
 			Optional<ShaftType> type = visit.type();
 			if (mouseX >= left && mouseX < left + width && mouseY >= Math.max(y, listTop) && mouseY < Math.min(y + LOG_ROW, bottom)) {
 				graphics.fill(left, y, right + 3, y + LOG_ROW, ROW_HOVER);
+				String help = corpseHelp(visit);
+				if (!help.isEmpty()) {
+					tooltip(graphics, help, mouseX, mouseY);
+				}
 			}
 			type.ifPresent(known -> smallItem(graphics, known, left + 2, y + 1));
-			graphics.text(font, clip(type.map(ShaftType::displayName).orElse("Unknown"), atRight - 34 - left - 15),
+			// the corpses sit between the name and the time, the name gives way to them
+			int dotsWidth = dots(graphics, visit.corpses(), atRight - 32, y + 4);
+			graphics.text(font, clip(type.map(ShaftType::displayName).orElse("Unknown"), atRight - 36 - dotsWidth - left - 15),
 					left + 15, y + 3, type.map(known -> ShaftColors.of(known.material())).orElse(MUTED), true);
 			rightText(graphics, JournalText.clock(visit.enteredAt(), zone), atRight, y + 3, MUTED);
 			boolean inside = open != null && open.enteredAt() == visit.enteredAt();
+			if (corpseView) {
+				CorpseTally corpses = visit.corpses();
+				rightText(graphics, corpses.looted().length() + "/" + corpses.seen().length(), insideRight, y + 3,
+						inside ? GOOD : TEXT);
+				long coins = visit.corpseCoins();
+				rightText(graphics, coins == 0 ? "" : CoinText.signed(coins), right, y + 3, coins < 0 ? BAD : GOOD);
+				continue;
+			}
 			String spent = inside ? "inside" : visit.spentMillis() > 0 ? JournalText.duration(visit.spentMillis()) : "-";
 			rightText(graphics, spent, insideRight, y + 3, inside ? GOOD : TEXT);
 			rightText(graphics, visit.runMillis() > 0 ? JournalText.duration(visit.runMillis()) : "", right, y + 3, ACCENT);
@@ -318,10 +435,10 @@ public final class JournalScreen extends FlatScreen {
 	private void count(long now) {
 		int version = store.journal().version();
 		if (version == countedVersion && period == countedPeriod && picked.equals(countedPicked)
-				&& now / 60_000 == countedMinute) {
+				&& pickedCorpses.equals(countedCorpses) && view == countedView && now / 60_000 == countedMinute) {
 			return;
 		}
-		if (period != countedPeriod) {
+		if (period != countedPeriod || view != countedView) {
 			groupScroll = 0;
 			logScroll = 0;
 			status = "";
@@ -330,7 +447,10 @@ public final class JournalScreen extends FlatScreen {
 		stats = JournalStats.of(inPeriod);
 		// a shaft that is not in this period can not stay picked, the log would be empty with no row to click
 		picked.retainAll(stats.groups().stream().map(Group::key).toList());
-		shown = inPeriod.stream().filter(visit -> picked.isEmpty() || picked.contains(visit.key())).toList();
+		shown = view == View.SHAFTS
+				? inPeriod.stream().filter(visit -> picked.isEmpty() || picked.contains(visit.key())).toList()
+				: inPeriod.stream().filter(visit -> !visit.corpses().isEmpty() && (pickedCorpses.isEmpty()
+						|| pickedCorpses.stream().anyMatch(letter -> visit.corpses().seen(letter) > 0))).toList();
 		List<Entry> entries = new ArrayList<>();
 		int header = -1;
 		String day = "";
@@ -349,6 +469,8 @@ public final class JournalScreen extends FlatScreen {
 		countedVersion = version;
 		countedPeriod = period;
 		countedPicked = Set.copyOf(picked);
+		countedCorpses = Set.copyOf(pickedCorpses);
+		countedView = view;
 		countedMinute = now / 60_000;
 	}
 
