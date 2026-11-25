@@ -7,6 +7,7 @@ import io.github.filipovych.filobulus.client.hud.HudPanel.Row;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.hud.HudAnchor;
 import io.github.filipovych.filobulus.hud.HudPlacement;
+import io.github.filipovych.filobulus.route.CustomRoute;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.route.RouteSplits;
@@ -28,8 +29,11 @@ public final class RouteHud implements HudWidget {
 	public Optional<HudDrawable> content() {
 		RouteTracker tracker = FilobulusClient.tracker();
 		Location location = tracker.location();
-		if (!HudConfig.routeHud || location.area() != Area.MINESHAFT) {
+		if (!HudConfig.routeHud) {
 			return Optional.empty();
+		}
+		if (location.area() != Area.MINESHAFT) {
+			return tracker.custom().map(route -> own(tracker, route));
 		}
 		List<Row> rows = new ArrayList<>();
 		// the stop row goes away once the route is done or when none is loaded
@@ -45,6 +49,17 @@ public final class RouteHud implements HudWidget {
 		int color = location.shaft().map(type -> ShaftColors.of(type.material())).orElse(ShaftColors.GLACITE);
 		ItemStack icon = ShaftIcons.of(location.shaft().map(ShaftType::material).orElse(ShaftMaterial.LITTLEFOOT));
 		return Optional.of(new Content(icon, title, color, rows));
+	}
+
+	// one of the player's own routes, outside of a shaft: its name, the stop and the lap against the best one
+	private static HudDrawable own(RouteTracker tracker, CustomRoute route) {
+		List<Row> rows = new ArrayList<>();
+		tracker.progress().filter(progress -> !progress.finished()).ifPresent(progress ->
+				rows.add(new Row("Stop", (progress.reached() + 1) + "/" + progress.total())));
+		if (HudConfig.splits) {
+			tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), System.currentTimeMillis()));
+		}
+		return new Content(RouteIcons.of(route.icon()), route.name(), ShaftColors.GLACITE, rows);
 	}
 
 	@Override
