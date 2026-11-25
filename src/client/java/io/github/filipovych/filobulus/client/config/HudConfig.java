@@ -110,6 +110,27 @@ public final class HudConfig {
 	@ConfigOption.Hidden
 	public static float crackScale = 1f;
 
+	// and for the profit tracker
+	@ConfigEntry(id = "profitAnchorX")
+	@ConfigOption.Hidden
+	public static HudAnchor profitAnchorX = HudAnchor.END;
+
+	@ConfigEntry(id = "profitX")
+	@ConfigOption.Hidden
+	public static int profitX = -4;
+
+	@ConfigEntry(id = "profitAnchorY")
+	@ConfigOption.Hidden
+	public static HudAnchor profitAnchorY = HudAnchor.START;
+
+	@ConfigEntry(id = "profitY")
+	@ConfigOption.Hidden
+	public static int profitY = 40;
+
+	@ConfigEntry(id = "profitScale")
+	@ConfigOption.Hidden
+	public static float profitScale = 1f;
+
 	private HudConfig() {
 	}
 }

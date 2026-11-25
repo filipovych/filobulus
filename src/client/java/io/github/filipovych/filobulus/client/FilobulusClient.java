@@ -10,6 +10,8 @@ import io.github.filipovych.filobulus.client.corpse.CorpseWatch;
 import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.client.journal.ShaftLog;
+import io.github.filipovych.filobulus.client.profit.ProfitStore;
+import io.github.filipovych.filobulus.client.profit.ProfitWatch;
 import io.github.filipovych.filobulus.client.render.RouteRenderer;
 import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
@@ -44,6 +46,7 @@ public final class FilobulusClient implements ClientModInitializer {
 	private static WispWatch wisp;
 	// one price list for everything that needs prices
 	private static final BazaarPrices PRICES = new BazaarPrices();
+	private static ProfitWatch profit;
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -76,14 +79,21 @@ public final class FilobulusClient implements ClientModInitializer {
 		wisp.register();
 		CorpseWatch corpses = new CorpseWatch();
 		corpses.register();
+		profit = new ProfitWatch(
+				new ProfitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("profit.json")), PRICES);
+		profit.register();
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			tracker.tick(minecraft);
 			shaftLog.tick(minecraft);
 			shaftAlert.tick();
 			wisp.tick(minecraft);
 			corpses.tick(minecraft);
+			profit.tick(minecraft);
 		});
-		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> shaftLog.close());
+		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
+			shaftLog.close();
+			profit.close();
+		});
 		LevelRenderEvents.BEFORE_GIZMOS.register(RouteRenderer::draw);
 		Hud.register();
 
@@ -120,6 +130,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static BazaarPrices prices() {
 		return PRICES;
+	}
+
+	public static ProfitWatch profit() {
+		return profit;
 	}
 
 	// the routes screen changed what a shaft uses, show that at once when we are standing in such a shaft
