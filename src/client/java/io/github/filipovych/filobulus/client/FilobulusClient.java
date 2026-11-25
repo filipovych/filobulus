@@ -5,6 +5,7 @@ import io.github.filipovych.filobulus.client.alert.ShaftAlert;
 import io.github.filipovych.filobulus.client.alert.WispWatch;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.corpse.BazaarPrices;
 import io.github.filipovych.filobulus.client.corpse.CorpseWatch;
 import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
@@ -41,6 +42,8 @@ public final class FilobulusClient implements ClientModInitializer {
 	private static JournalStore journal;
 	private static ShaftLog shaftLog;
 	private static WispWatch wisp;
+	// one price list for everything that needs prices
+	private static final BazaarPrices PRICES = new BazaarPrices();
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -113,6 +116,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static WispWatch wisp() {
 		return wisp;
+	}
+
+	public static BazaarPrices prices() {
+		return PRICES;
 	}
 
 	// the routes screen changed what a shaft uses, show that at once when we are standing in such a shaft

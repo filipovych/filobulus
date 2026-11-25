@@ -23,7 +23,7 @@ public final class CorpseWatch {
 	private static final long KEY_SAVED_MILLIS = 3000;
 
 	private final CorpseLootReader reader = new CorpseLootReader();
-	private final BazaarPrices prices = new BazaarPrices();
+	private final BazaarPrices prices = FilobulusClient.prices();
 	private CorpseLoot loot;
 	private int wait;
 	private long keySavedAt;
