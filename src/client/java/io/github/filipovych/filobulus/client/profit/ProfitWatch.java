@@ -10,17 +10,23 @@ import io.github.filipovych.filobulus.profit.MiningItems;
 import io.github.filipovych.filobulus.profit.ProfitLedger;
 import io.github.filipovych.filobulus.profit.ProfitTotals;
 import io.github.filipovych.filobulus.profit.ProfitValue;
+import io.github.filipovych.filobulus.profit.SackReader;
 import io.github.filipovych.filobulus.route.Location.Area;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -30,6 +36,7 @@ import net.minecraft.world.item.component.CustomData;
 public final class ProfitWatch {
 	private static final Set<String> MINING_ISLANDS = Set.of(
 			"Dwarven Mines", "Crystal Hollows", "Mineshaft", "Gold Mine", "Deep Caverns");
+	private static final List<String> BOUGHT = List.of("[Bazaar]", "[Auction]");
 	// the inventory is compared a few times a second, that is plenty to see an item arrive
 	private static final int INVENTORY_INTERVAL = 4;
 	private static final int SLOW_INTERVAL = 100;
@@ -62,6 +69,15 @@ public final class ProfitWatch {
 		allTime = store.load(names);
 		savedVersion = allTime.version();
 		ledger = new ProfitLedger(List.of(session, allTime));
+	}
+
+	public void register() {
+		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+			// overlay is the action bar
+			if (!overlay && active) {
+				chat(message);
+			}
+		});
 	}
 
 	public ProfitTotals totals() {
@@ -160,6 +176,41 @@ public final class ProfitWatch {
 
 	private static boolean tracked(String id) {
 		return TrackerConfig.items == TrackerConfig.Items.EVERYTHING || MiningItems.isMining(id);
+	}
+
+	private void chat(Component message) {
+		String text = LocationParser.stripColor(message.getString()).strip();
+		long now = System.currentTimeMillis();
+		if (BOUGHT.stream().anyMatch(text::startsWith)) {
+			ledger.quiet(now);
+			return;
+		}
+		if (!SackReader.isSackLine(text)) {
+			return;
+		}
+		Set<String> hovers = new LinkedHashSet<>();
+		collectHovers(message, hovers, 0);
+		for (String hover : hovers) {
+			for (SackReader.Change change : SackReader.read(hover)) {
+				Optional<String> id = MiningItems.id(change.name()).or(() -> catalog.id(change.name()));
+				if (id.isPresent() && tracked(id.get())) {
+					names.putIfAbsent(id.get(), change.name());
+					ledger.sack(id.get(), change.amount(), now);
+				}
+			}
+		}
+	}
+
+	// the list of items is not in the line itself, it is the text that shows when a part of it is hovered
+	private static void collectHovers(Component part, Set<String> hovers, int depth) {
+		if (part.getStyle().getHoverEvent() instanceof HoverEvent.ShowText shown) {
+			hovers.add(LocationParser.stripColor(shown.value().getString()));
+		}
+		if (depth < 8) {
+			for (Component sibling : part.getSiblings()) {
+				collectHovers(sibling, hovers, depth + 1);
+			}
+		}
 	}
 
 	private void lookAtInventory(Player player, long now) {
