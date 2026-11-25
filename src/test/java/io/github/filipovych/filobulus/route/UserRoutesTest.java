@@ -74,4 +74,24 @@ class UserRoutesTest {
 		assertSame(added, library.find("tungsten").orElseThrow());
 		assertSame(added, library.find("TUNG_1").orElseThrow());
 	}
+
+	@Test
+	void aRenamedRouteKeepsItsIdAndItsPlace() {
+		library.addUser(JASPER, "One", "", STOPS, null);
+		LibraryRoute second = library.addUser(JASPER, "Two", "", OTHER, null);
+		LibraryRoute renamed = library.renameUser("jasper_one", "Fast", "Friend").orElseThrow();
+		assertEquals("jasper_one", renamed.id());
+		assertEquals("Jasper (Fast)", renamed.title());
+		assertEquals("Friend", renamed.author());
+		assertEquals(List.of("jasper", "jasper_failsayfe", "jasper_one", "jasper_two"),
+				library.routesFor("JASP_1").stream().map(LibraryRoute::id).toList());
+		assertSame(renamed, library.byId("jasper_one").orElseThrow());
+		assertSame(second, library.byId("jasper_two").orElseThrow());
+	}
+
+	@Test
+	void aBundledRouteCanNotBeRenamed() {
+		assertTrue(library.renameUser("jasper", "Mine", "").isEmpty());
+		assertTrue(library.renameUser("nope", "Mine", "").isEmpty());
+	}
 }

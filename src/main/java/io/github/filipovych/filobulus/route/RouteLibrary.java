@@ -136,6 +136,22 @@ public final class RouteLibrary {
 		return route;
 	}
 
+	// a new name for a route the player added, the id stays so its pick and its best run are kept
+	public Optional<LibraryRoute> renameUser(String id, String name, String author) {
+		LibraryRoute route = byId.get(id);
+		Optional<ShaftLayout> layout = route == null ? Optional.empty() : ShaftLayout.byKey(route.routeKey());
+		if (route == null || route.bundled() || layout.isEmpty()) {
+			return Optional.empty();
+		}
+		String shown = name == null || name.isBlank() ? route.name() : name.strip();
+		LibraryRoute renamed = new LibraryRoute(
+				id, layout.get().title() + " (" + shown + ")", route.routeKey(), route.stops(), shown, author, false);
+		byId.put(id, renamed);
+		List<LibraryRoute> siblings = byRouteKey.get(route.routeKey());
+		siblings.set(siblings.indexOf(route), renamed);
+		return Optional.of(renamed);
+	}
+
 	// only routes the player added can go, the bundled ones stay
 	public boolean removeUser(String id) {
 		LibraryRoute route = byId.get(id);
