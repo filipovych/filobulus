@@ -49,6 +49,9 @@ abstract class RoutesFrame extends FlatScreen {
 		panel(graphics, left, top, panelWidth, height - MARGIN * 2);
 		Component title = Component.literal("Routes").withStyle(ChatFormatting.BOLD);
 		graphics.text(font, title, left + 8, top + 7, ACCENT, true);
+		int x = left + 16 + font.width(title);
+		x += tab(graphics, x, top + 4, "Shafts", shafts(), mouseX, mouseY, () -> open(new RoutesScreen(parent)));
+		tab(graphics, x, top + 4, "My routes", !shafts(), mouseX, mouseY, () -> open(new CustomRoutesScreen(parent)));
 		graphics.text(font, clip(about, panelWidth - 16), left + 8, top + 21, MUTED, true);
 		scroll = Math.max(0, Math.min(scroll, rows * ROW - (listBottom - listTop)));
 	}
