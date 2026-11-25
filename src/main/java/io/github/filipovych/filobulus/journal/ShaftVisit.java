@@ -1,12 +1,20 @@
 package io.github.filipovych.filobulus.journal;
 
+import io.github.filipovych.filobulus.corpse.CorpseTally;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.Optional;
 
 // one shaft the player was in, enteredAt is wall clock milliseconds and also what tells two visits apart
 // code is empty when the type was never read, spent and run are 0 while they are not known
-public record ShaftVisit(long enteredAt, String code, long spentMillis, long runMillis) {
+// corpses are the ones the shaft had and the ones that were opened, corpseCoins what their loot was worth with the keys taken off
+// minedCoins is what was mined and picked up inside, as the profit tracker counted it
+public record ShaftVisit(long enteredAt, String code, long spentMillis, long runMillis, CorpseTally corpses,
+		long corpseCoins, long minedCoins) {
+	public ShaftVisit(long enteredAt, String code, long spentMillis, long runMillis) {
+		this(enteredAt, code, spentMillis, runMillis, CorpseTally.NONE, 0, 0);
+	}
+
 	public static ShaftVisit entered(long at, String code) {
 		return new ShaftVisit(at, code, 0, 0);
 	}
@@ -25,15 +33,28 @@ public record ShaftVisit(long enteredAt, String code, long spentMillis, long run
 		return type().filter(type -> type.material() == ShaftMaterial.JASPER).isPresent();
 	}
 
+	// everything the shaft paid that we know of
+	public long coins() {
+		return corpseCoins + minedCoins;
+	}
+
 	public ShaftVisit withCode(String code) {
-		return new ShaftVisit(enteredAt, code, spentMillis, runMillis);
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
 	}
 
 	public ShaftVisit withSpent(long spentMillis) {
-		return new ShaftVisit(enteredAt, code, Math.max(0, spentMillis), runMillis);
+		return new ShaftVisit(enteredAt, code, Math.max(0, spentMillis), runMillis, corpses, corpseCoins, minedCoins);
 	}
 
 	public ShaftVisit withRun(long runMillis) {
-		return new ShaftVisit(enteredAt, code, spentMillis, runMillis);
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
+	}
+
+	public ShaftVisit withCorpses(CorpseTally corpses, long corpseCoins) {
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
+	}
+
+	public ShaftVisit withMined(long minedCoins) {
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
 	}
 }

@@ -55,12 +55,17 @@ public final class JournalText {
 
 	// for a spreadsheet, oldest first as they come
 	public static String csv(List<ShaftVisit> visits, ZoneId zone) {
-		StringBuilder text = new StringBuilder("entered,type,seconds_inside,route_seconds\n");
+		StringBuilder text = new StringBuilder(
+				"entered,type,seconds_inside,route_seconds,corpses,corpses_looted,corpse_coins,mined_coins\n");
 		for (ShaftVisit visit : visits) {
 			text.append(STAMP.format(Instant.ofEpochMilli(visit.enteredAt()).atZone(zone))).append(',')
 					.append(visit.code()).append(',')
 					.append(visit.spentMillis() > 0 ? String.valueOf(visit.spentMillis() / 1000) : "").append(',')
-					.append(visit.runMillis() > 0 ? String.valueOf(visit.runMillis() / 1000) : "").append('\n');
+					.append(visit.runMillis() > 0 ? String.valueOf(visit.runMillis() / 1000) : "").append(',')
+					.append(visit.corpses().seen()).append(',')
+					.append(visit.corpses().looted()).append(',')
+					.append(visit.corpseCoins() != 0 ? String.valueOf(visit.corpseCoins()) : "").append(',')
+					.append(visit.minedCoins() != 0 ? String.valueOf(visit.minedCoins()) : "").append('\n');
 		}
 		return text.toString();
 	}

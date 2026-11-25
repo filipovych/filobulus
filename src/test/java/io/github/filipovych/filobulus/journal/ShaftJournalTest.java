@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.filipovych.filobulus.corpse.CorpseTally;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class ShaftJournalTest {
@@ -71,5 +73,14 @@ class ShaftJournalTest {
 		assertEquals("CRYSTAL", ShaftVisit.entered(1, "RUBY_C").key());
 		assertEquals("RUBY_2", ShaftVisit.entered(1, "RUBY_2").key());
 		assertEquals("", ShaftVisit.entered(1, "NOPE_9").key());
+	}
+
+	@Test
+	void corpsesAndCoinsSurviveTheFile() {
+		ShaftVisit visit = new ShaftVisit(1000, "JASP_1", 183_000, 171_000, new CorpseTally("LTU", "LT"), -250_000, 9_000_000);
+		assertEquals(Optional.of(visit), JournalCodec.read(JournalCodec.write(visit)));
+		// a line from before corpses were written still reads
+		assertEquals(Optional.of(new ShaftVisit(1000, "JASP_1", 183_000, 0)),
+				JournalCodec.read("{\"at\":1000,\"type\":\"JASP_1\",\"spent\":183000}"));
 	}
 }
