@@ -1,0 +1,121 @@
+package io.github.filipovych.filobulus.profit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+// what counts as a gain and what is only items being moved around
+class ProfitLedgerTest {
+	private static final String JASPER = "FLAWED_JASPER_GEM";
+	private static final String GLACITE = "GLACITE";
+	private static final long SECOND = 1000;
+
+	private ProfitTotals session;
+	private ProfitTotals allTime;
+	private ProfitLedger ledger;
+
+	@BeforeEach
+	void setUp() {
+		session = new ProfitTotals();
+		allTime = new ProfitTotals(Map.of(JASPER, 1000L), 0);
+		ledger = new ProfitLedger(List.of(session, allTime));
+	}
+
+	@Test
+	void whatLandsInTheSacksOrTheInventoryIsAGainForEveryTotal() {
+		ledger.sack(JASPER, 64, SECOND);
+		ledger.inventory(GLACITE, 3, 2 * SECOND, true);
+		assertEquals(Map.of(JASPER, 64L, GLACITE, 3L), session.items());
+		assertEquals(Map.of(JASPER, 1064L, GLACITE, 3L), allTime.items());
+	}
+
+	@Test
+	void whatComesInWhileAMenuIsOpenIsNoLoot() {
+		ledger.inventory(JASPER, 64, SECOND, false);
+		assertTrue(session.isEmpty());
+	}
+
+	@Test
+	void losingItemsIsNeverALoss() {
+		ledger.sack(JASPER, 64, SECOND);
+		ledger.sack(JASPER, -64, 200 * SECOND);
+		ledger.inventory(GLACITE, 5, 300 * SECOND, true);
+		ledger.inventory(GLACITE, -5, 400 * SECOND, true);
+		assertEquals(Map.of(JASPER, 64L, GLACITE, 5L), session.items());
+	}
+
+	@Test
+	void takingItemsOutOfTheSackIsNoGainWhicheverSideIsSeenFirst() {
+		ledger.sack(JASPER, 100, SECOND);
+		// the sack line first, then the items show in the inventory
+		ledger.sack(JASPER, -40, 10 * SECOND);
+		ledger.inventory(JASPER, 40, 11 * SECOND, true);
+		assertEquals(Map.of(JASPER, 100L), session.items());
+		// the items first, the sack line a while after
+		ledger.inventory(JASPER, 30, 20 * SECOND, true);
+		assertEquals(Map.of(JASPER, 130L), session.items());
+		ledger.sack(JASPER, -30, 45 * SECOND);
+		assertEquals(Map.of(JASPER, 100L), session.items());
+	}
+
+	@Test
+	void takingItemsOutThroughTheSackMenuDoesNotEatALaterGain() {
+		// not counted on the way in, so the sack line has nothing to take back
+		ledger.inventory(JASPER, 40, SECOND, false);
+		ledger.sack(JASPER, -40, 5 * SECOND);
+		ledger.inventory(JASPER, 7, 6 * SECOND, true);
+		assertEquals(Map.of(JASPER, 7L), session.items());
+	}
+
+	@Test
+	void puttingItemsIntoTheSackIsNoGain() {
+		ledger.inventory(JASPER, -64, SECOND, false);
+		ledger.sack(JASPER, 70, 20 * SECOND);
+		assertEquals(Map.of(JASPER, 6L), session.items());
+	}
+
+	@Test
+	void aMoveIsOnlyHeldAgainstTheOtherSideForAMinute() {
+		ledger.sack(JASPER, -40, SECOND);
+		ledger.inventory(JASPER, 40, 90 * SECOND, true);
+		assertEquals(Map.of(JASPER, 40L), session.items());
+	}
+
+	@Test
+	void whatLandsInTheSacksRightAfterBuyingIsNoLoot() {
+		ledger.quiet(SECOND);
+		ledger.sack(JASPER, 64, 30 * SECOND);
+		assertTrue(session.isEmpty());
+		ledger.sack(JASPER, 64, 62 * SECOND);
+		assertEquals(Map.of(JASPER, 64L), session.items());
+	}
+
+	@Test
+	void theClockOnlyRunsWhileGainsKeepComing() {
+		ledger.idle(60 * SECOND);
+		ledger.sack(JASPER, 1, 0);
+		ledger.sack(JASPER, 1, 30 * SECOND);
+		ledger.sack(JASPER, 1, 50 * SECOND);
+		assertEquals(50 * SECOND, session.activeMillis(50 * SECOND, 60 * SECOND));
+		// the time since the last gain counts for now
+		assertEquals(80 * SECOND, session.activeMillis(80 * SECOND, 60 * SECOND));
+		// and is dropped again once it turns out to be a break
+		assertEquals(50 * SECOND, session.activeMillis(500 * SECOND, 60 * SECOND));
+		ledger.sack(JASPER, 1, 600 * SECOND);
+		ledger.sack(JASPER, 1, 610 * SECOND);
+		assertEquals(60 * SECOND, session.activeMillis(610 * SECOND, 60 * SECOND));
+	}
+
+	@Test
+	void clearingATotalLeavesTheOtherOneAlone() {
+		ledger.sack(JASPER, 64, SECOND);
+		session.clear();
+		assertTrue(session.isEmpty());
+		assertEquals(0, session.activeMillis(2 * SECOND, 60 * SECOND));
+		assertEquals(Map.of(JASPER, 1064L), allTime.items());
+	}
+}
