@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client;
 
 import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
+import io.github.filipovych.filobulus.client.achievement.AchievementWatch;
 import io.github.filipovych.filobulus.client.alert.ColdWatch;
 import io.github.filipovych.filobulus.client.alert.PortalWatch;
 import io.github.filipovych.filobulus.client.alert.ShaftAlert;
@@ -52,6 +53,7 @@ public final class FilobulusClient implements ClientModInitializer {
 	private static ProfitWatch profit;
 	private static SoundBoard sounds;
 	private static ColdWatch cold;
+	private static AchievementWatch achievements;
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -81,6 +83,8 @@ public final class FilobulusClient implements ClientModInitializer {
 		sounds = new SoundBoard(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds.json"),
 				FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds"));
 		sounds.load();
+		achievements = new AchievementWatch(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("achievements.json"));
+		achievements.load();
 		cold = new ColdWatch();
 		PortalWatch portal = new PortalWatch();
 		portal.register();
@@ -103,6 +107,7 @@ public final class FilobulusClient implements ClientModInitializer {
 			profit.tick(minecraft);
 			cold.tick(minecraft);
 			portal.tick(minecraft);
+			achievements.tick(minecraft);
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			shaftLog.close();
@@ -152,6 +157,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static ColdWatch cold() {
 		return cold;
+	}
+
+	public static AchievementWatch achievements() {
+		return achievements;
 	}
 
 	public static ProfitWatch profit() {

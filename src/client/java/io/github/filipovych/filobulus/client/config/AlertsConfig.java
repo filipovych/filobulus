@@ -32,6 +32,10 @@ public final class AlertsConfig {
 	@Comment("When you spawn a mineshaft, warn 5 seconds before its portal closes. The portal stays 30 seconds.")
 	public static boolean portal = true;
 
+	@ConfigEntry(id = "achievements", translation = "filobulus.config.alerts.achievements")
+	@Comment("Show an achievement in big letters when you earn it. /filo achievements lists them.")
+	public static boolean achievements = true;
+
 	private AlertsConfig() {
 	}
 }
