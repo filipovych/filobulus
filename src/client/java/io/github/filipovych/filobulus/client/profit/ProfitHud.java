@@ -27,6 +27,21 @@ public final class ProfitHud implements HudWidget {
 	private static final int UNPRICED = 0xFF6B7782;
 
 	@Override
+	public String name() {
+		return "Profit tracker";
+	}
+
+	@Override
+	public boolean enabled() {
+		return TrackerConfig.profit;
+	}
+
+	@Override
+	public void setEnabled(boolean on) {
+		TrackerConfig.profit = on;
+	}
+
+	@Override
 	public Optional<HudDrawable> content() {
 		ProfitWatch watch = FilobulusClient.profit();
 		if (!watch.active() || TrackerConfig.hideEmpty && watch.totals().isEmpty()) {

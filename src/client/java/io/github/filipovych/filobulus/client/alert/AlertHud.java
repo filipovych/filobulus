@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client.alert;
 
 import io.github.filipovych.filobulus.alert.AlertQueue.Alert;
 import io.github.filipovych.filobulus.alert.AlertQueue.Shown;
+import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.hud.HudDrawable;
 import io.github.filipovych.filobulus.client.hud.HudWidget;
@@ -72,9 +73,24 @@ public final class AlertHud implements HudWidget {
 	}
 
 	@Override
+	public String name() {
+		return "Alerts";
+	}
+
+	@Override
+	public boolean enabled() {
+		return AlertsConfig.alerts;
+	}
+
+	@Override
+	public void setEnabled(boolean on) {
+		AlertsConfig.alerts = on;
+	}
+
+	@Override
 	public Optional<HudDrawable> content() {
 		List<Shown> shown = Alerts.QUEUE.shown(System.currentTimeMillis());
-		return shown.isEmpty() ? Optional.empty() : Optional.of(new Banner(shown));
+		return shown.isEmpty() || !AlertsConfig.alerts ? Optional.empty() : Optional.of(new Banner(shown));
 	}
 
 	@Override

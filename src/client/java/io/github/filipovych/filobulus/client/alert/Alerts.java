@@ -18,6 +18,9 @@ public final class Alerts {
 
 	// sound may be null, color is rgb
 	public static void show(String id, String title, String subtitle, int color, int priority, long millis, SoundEvent sound) {
+		if (!AlertsConfig.alerts) {
+			return;
+		}
 		QUEUE.show(new Alert(id, title, subtitle, color & 0xFFFFFF, priority, millis), System.currentTimeMillis());
 		if (sound != null && AlertsConfig.sounds) {
 			Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, 1f, 1f));

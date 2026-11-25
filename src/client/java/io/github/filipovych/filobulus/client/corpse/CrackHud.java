@@ -295,6 +295,21 @@ public final class CrackHud implements HudWidget {
 	}
 
 	@Override
+	public String name() {
+		return "Corpse reveal";
+	}
+
+	@Override
+	public boolean enabled() {
+		return CorpsesConfig.reveal;
+	}
+
+	@Override
+	public void setEnabled(boolean on) {
+		CorpsesConfig.reveal = on;
+	}
+
+	@Override
 	public Optional<HudDrawable> content() {
 		return shown;
 	}

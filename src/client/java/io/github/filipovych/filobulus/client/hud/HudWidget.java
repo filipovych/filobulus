@@ -5,6 +5,14 @@ import java.util.Optional;
 
 // one panel on screen that the player can move around
 public interface HudWidget {
+	// what /filo hud calls it
+	String name();
+
+	// the switch that turns this panel on and off, the same one the settings screen has
+	boolean enabled();
+
+	void setEnabled(boolean on);
+
 	// what to show right now, empty hides the panel
 	Optional<HudDrawable> content();
 

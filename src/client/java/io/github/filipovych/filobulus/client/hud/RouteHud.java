@@ -26,6 +26,21 @@ public final class RouteHud implements HudWidget {
 	private static final int BEHIND = 0xFFFF5555;
 
 	@Override
+	public String name() {
+		return "Route HUD";
+	}
+
+	@Override
+	public boolean enabled() {
+		return HudConfig.routeHud;
+	}
+
+	@Override
+	public void setEnabled(boolean on) {
+		HudConfig.routeHud = on;
+	}
+
+	@Override
 	public Optional<HudDrawable> content() {
 		RouteTracker tracker = FilobulusClient.tracker();
 		Location location = tracker.location();

@@ -26,6 +26,21 @@ public final class SessionHud implements HudWidget {
 	private static final long LOW_MILLIS = 30_000;
 
 	@Override
+	public String name() {
+		return "Session";
+	}
+
+	@Override
+	public boolean enabled() {
+		return HudConfig.sessionHud;
+	}
+
+	@Override
+	public void setEnabled(boolean on) {
+		HudConfig.sessionHud = on;
+	}
+
+	@Override
 	public Optional<HudDrawable> content() {
 		Area area = FilobulusClient.tracker().location().area();
 		if (!HudConfig.sessionHud || !JournalConfig.journal || area == Area.ELSEWHERE) {

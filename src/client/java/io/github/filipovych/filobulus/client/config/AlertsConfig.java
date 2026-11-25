@@ -9,6 +9,10 @@ import io.github.filipovych.filobulus.client.alert.AlertSound;
 @Category("alerts")
 @ConfigInfo(title = "Alerts", description = "Big text in the middle of the screen. Move it with /filo hud.", icon = "bell")
 public final class AlertsConfig {
+	@ConfigEntry(id = "alerts", translation = "filobulus.config.alerts.alerts")
+	@Comment("Show alerts at all. Off silences every alert below.")
+	public static boolean alerts = true;
+
 	@ConfigEntry(id = "shaftType", translation = "filobulus.config.alerts.shaftType")
 	@Comment("When you enter a mineshaft, show its type in big letters. A jasper shaft, crystal or not, stays longer and has a sound.")
 	public static boolean shaftType = true;

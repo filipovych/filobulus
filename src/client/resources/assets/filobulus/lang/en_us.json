@@ -16,6 +16,7 @@
 	"filobulus.config.tracker.lines": "Items listed",
 	"filobulus.config.tracker.idle": "Idle after",
 	"filobulus.config.tracker.hideEmpty": "Hide while empty",
+	"filobulus.config.alerts.alerts": "Alerts",
 	"filobulus.config.alerts.shaftType": "Shaft type alert",
 	"filobulus.config.alerts.jasperSound": "Jasper sound",
 	"filobulus.config.alerts.wisp": "Will-o'-wisp alert",
