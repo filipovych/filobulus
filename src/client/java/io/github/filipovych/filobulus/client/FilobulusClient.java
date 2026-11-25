@@ -64,7 +64,7 @@ public final class FilobulusClient implements ClientModInitializer {
 		journal = new JournalStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("journal.jsonl"));
 		journal.load();
 		shaftLog = new ShaftLog(journal);
-		selector = new RouteSelector(routes, store.choices());
+		selector = new RouteSelector(routes, store.settings());
 		tracker = new RouteTracker(selector);
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));

@@ -11,14 +11,18 @@ import io.github.filipovych.filobulus.route.RouteChoices;
 import io.github.filipovych.filobulus.route.RouteCollection;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
+import io.github.filipovych.filobulus.route.RouteProfiles;
+import io.github.filipovych.filobulus.route.RouteSettings;
 import io.github.filipovych.filobulus.route.SharedRoute;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
+import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +31,25 @@ import java.util.Optional;
 public final class RouteStore {
 	private final Path file;
 	private final RouteLibrary library;
-	private final RouteChoices choices = new RouteChoices();
+	private final RouteProfiles profiles = new RouteProfiles();
+
+	// what the selector asks, always answered by the profile in use
+	private final RouteSettings settings = new RouteSettings() {
+		@Override
+		public boolean autoLoad(ShaftType type) {
+			return choices().autoLoad(type);
+		}
+
+		@Override
+		public String preferredRouteId(String routeKey) {
+			return choices().preferredRouteId(routeKey);
+		}
+
+		@Override
+		public Optional<String> tunnelsRouteId() {
+			return Optional.empty();
+		}
+	};
 
 	public RouteStore(Path file, RouteLibrary library) {
 		this.file = file;
@@ -38,8 +60,17 @@ public final class RouteStore {
 		return library;
 	}
 
+	public RouteProfiles profiles() {
+		return profiles;
+	}
+
+	// the switches and picks of the profile in use
 	public RouteChoices choices() {
-		return choices;
+		return profiles.choices();
+	}
+
+	public RouteSettings settings() {
+		return settings;
 	}
 
 	public void load() {
@@ -48,11 +79,6 @@ public final class RouteStore {
 		}
 		try {
 			JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
-			List<String> autoLoad = new ArrayList<>();
-			for (JsonElement key : root.getAsJsonArray("autoLoad")) {
-				autoLoad.add(key.getAsString());
-			}
-			choices.replaceAutoLoad(autoLoad);
 			for (JsonElement element : root.getAsJsonArray("routes")) {
 				JsonObject entry = element.getAsJsonObject();
 				Optional<SharedRoute> route = CollectionCodec.routeFromJson(entry);
@@ -62,9 +88,17 @@ public final class RouteStore {
 							entry.get("id").getAsString());
 				}
 			}
-			for (Map.Entry<String, JsonElement> pick : root.getAsJsonObject("picked").entrySet()) {
-				choices.pick(pick.getKey(), pick.getValue().getAsString());
+			Map<String, RouteChoices> saved = new LinkedHashMap<>();
+			if (root.has("profiles")) {
+				for (JsonElement element : root.getAsJsonArray("profiles")) {
+					JsonObject profile = element.getAsJsonObject();
+					saved.put(profile.get("name").getAsString(), choices(profile));
+				}
+			} else {
+				// a file from before there were profiles
+				saved.put(RouteProfiles.FIRST, choices(root));
 			}
+			profiles.restore(saved, root.has("profile") ? root.get("profile").getAsString() : RouteProfiles.FIRST);
 		} catch (IOException | RuntimeException | RouteFormatException e) {
 			// the bad file is kept under another name so the next save does not wipe what was in it
 			FilobulusClient.LOGGER.error("Could not read {}, it is kept as routes.json.broken", file, e);
@@ -76,20 +110,40 @@ public final class RouteStore {
 		}
 	}
 
-	public void save() {
-		JsonArray autoLoad = new JsonArray();
-		// written in screen order so the file does not shuffle between saves
-		for (ShaftLayout layout : ShaftLayout.all()) {
-			if (choices.autoLoad(layout.key())) {
-				autoLoad.add(layout.key());
-			}
+	private static RouteChoices choices(JsonObject json) {
+		RouteChoices choices = new RouteChoices();
+		List<String> autoLoad = new ArrayList<>();
+		for (JsonElement key : json.getAsJsonArray("autoLoad")) {
+			autoLoad.add(key.getAsString());
 		}
-		JsonObject picked = new JsonObject();
-		for (ShaftLayout layout : ShaftLayout.all()) {
-			String id = choices.preferredRouteId(layout.key());
-			if (!id.isEmpty()) {
-				picked.addProperty(layout.key(), id);
+		choices.replaceAutoLoad(autoLoad);
+		for (Map.Entry<String, JsonElement> pick : json.getAsJsonObject("picked").entrySet()) {
+			choices.pick(pick.getKey(), pick.getValue().getAsString());
+		}
+		return choices;
+	}
+
+	public void save() {
+		List<String> saved = new ArrayList<>();
+		for (String name : profiles.names()) {
+			RouteChoices choices = profiles.choices(name).orElseThrow();
+			JsonArray autoLoad = new JsonArray();
+			JsonObject picked = new JsonObject();
+			// written in screen order so the file does not shuffle between saves
+			for (ShaftLayout layout : ShaftLayout.all()) {
+				if (choices.autoLoad(layout.key())) {
+					autoLoad.add(layout.key());
+				}
+				String id = choices.preferredRouteId(layout.key());
+				if (!id.isEmpty()) {
+					picked.addProperty(layout.key(), id);
+				}
 			}
+			JsonObject profile = new JsonObject();
+			profile.addProperty("name", name);
+			profile.add("autoLoad", autoLoad);
+			profile.add("picked", picked);
+			saved.add(profile.toString());
 		}
 		List<String> routes = new ArrayList<>();
 		for (LibraryRoute route : library.userRoutes()) {
@@ -97,9 +151,12 @@ public final class RouteStore {
 			entry.addProperty("id", route.id());
 			routes.add(entry.toString());
 		}
-		// one route per line, so the file can still be read and edited by hand
-		String text = "{\n\"version\": 1,\n\"autoLoad\": " + autoLoad + ",\n\"picked\": " + picked
-				+ ",\n\"routes\": [\n" + String.join(",\n", routes) + "\n]\n}\n";
+		JsonObject active = new JsonObject();
+		active.addProperty("profile", profiles.active());
+		// one profile and one route per line, so the file can still be read and edited by hand
+		String text = "{\n\"version\": 2,\n\"profile\": " + active.get("profile")
+				+ ",\n\"profiles\": [\n" + String.join(",\n", saved)
+				+ "\n],\n\"routes\": [\n" + String.join(",\n", routes) + "\n]\n}\n";
 		try {
 			Files.createDirectories(file.getParent());
 			Path temp = file.resolveSibling("routes.json.tmp");
@@ -114,13 +171,14 @@ public final class RouteStore {
 	public LibraryRoute add(SharedRoute route) {
 		ShaftLayout layout = ShaftLayout.byKey(route.shaft()).orElseThrow();
 		LibraryRoute added = library.addUser(layout, route.name(), route.author(), route.stops(), null);
-		choices.pick(layout.key(), added.id());
+		choices().pick(layout.key(), added.id());
 		return added;
 	}
 
+	// the route goes from every profile, the ones that used it fall back to the default
 	public void delete(LibraryRoute route) {
-		if (library.removeUser(route.id()) && choices.preferredRouteId(route.routeKey()).equals(route.id())) {
-			choices.pick(route.routeKey(), "");
+		if (library.removeUser(route.id())) {
+			profiles.unpick(route.routeKey(), route.id());
 		}
 	}
 
@@ -128,7 +186,7 @@ public final class RouteStore {
 	public RouteCollection picked(String name) {
 		List<SharedRoute> routes = new ArrayList<>();
 		for (ShaftLayout layout : ShaftLayout.all()) {
-			library.routeFor(layout.key(), choices.preferredRouteId(layout.key()))
+			library.routeFor(layout.key(), choices().preferredRouteId(layout.key()))
 					.filter(route -> !route.bundled() || !route.name().equals(LibraryRoute.DEFAULT_NAME))
 					.ifPresent(route -> routes.add(shared(route)));
 		}
