@@ -29,7 +29,12 @@ public final class ShaftLog {
 		Location location = FilobulusClient.tracker().location();
 		boolean inside = JournalConfig.journal && location.area() == Area.MINESHAFT;
 		String code = location.shaft().map(ShaftType::code).orElse("");
+		ShaftVisit before = visits.open();
 		write(visits.update(inside, code, minecraft.level, System.currentTimeMillis()));
+		if (before != null && visits.open() == null) {
+			// we are out, the card says how it went
+			RecapHud.show(before.enteredAt());
+		}
 		// the corpse lines of the tab list say how many the shaft has and which ones we opened
 		if (inside && ticks++ % CORPSE_INTERVAL == 0) {
 			write(visits.corpses(CorpseTabReader.read(GameText.tabLines(minecraft))));
