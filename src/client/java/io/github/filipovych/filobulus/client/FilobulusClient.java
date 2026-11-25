@@ -16,6 +16,7 @@ import io.github.filipovych.filobulus.client.render.RouteRenderer;
 import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.client.route.SplitStore;
+import io.github.filipovych.filobulus.client.sound.SoundBoard;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteSelector;
@@ -47,6 +48,7 @@ public final class FilobulusClient implements ClientModInitializer {
 	// one price list for everything that needs prices
 	private static final BazaarPrices PRICES = new BazaarPrices();
 	private static ProfitWatch profit;
+	private static SoundBoard sounds;
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -72,6 +74,10 @@ public final class FilobulusClient implements ClientModInitializer {
 		shaftLog = new ShaftLog(journal);
 		selector = new RouteSelector(routes, store.settings());
 		tracker = new RouteTracker(selector);
+
+		sounds = new SoundBoard(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds.json"),
+				FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds"));
+		sounds.load();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
 		ShaftAlert shaftAlert = new ShaftAlert();
@@ -130,6 +136,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static BazaarPrices prices() {
 		return PRICES;
+	}
+
+	public static SoundBoard sounds() {
+		return sounds;
 	}
 
 	public static ProfitWatch profit() {
