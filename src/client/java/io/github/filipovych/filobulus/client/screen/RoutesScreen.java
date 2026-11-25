@@ -254,7 +254,12 @@ public final class RoutesScreen extends FlatScreen {
 					RouteImport.read(minecraft.keyboardHandler.getClipboard()), where);
 			// a lone route without a name gets one from the player first
 			if (routes.size() == 1 && routes.get(0).name().isEmpty()) {
-				GameCompat.setScreen(minecraft, new RouteNameScreen(this, routes.get(0), named -> add(List.of(named))));
+				SharedRoute route = routes.get(0);
+				String shaft = ShaftLayout.byKey(route.shaft()).map(ShaftLayout::title).orElse(route.shaft());
+				GameCompat.setScreen(minecraft, new RouteNameScreen(this, "Name this route",
+						route.stops().size() + " stops for " + shaft + " shafts", "", "", null,
+						answer -> add(List.of(new SharedRoute(route.shaft(), answer.name(), answer.author(), route.stops()))),
+						null));
 			} else {
 				add(routes);
 			}
