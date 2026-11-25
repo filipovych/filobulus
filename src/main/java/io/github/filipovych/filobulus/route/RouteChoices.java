@@ -55,6 +55,14 @@ public final class RouteChoices implements RouteSettings {
 		return Map.copyOf(picked);
 	}
 
+	// for a new profile that starts out like this one
+	public RouteChoices copy() {
+		RouteChoices copy = new RouteChoices();
+		copy.replaceAutoLoad(autoLoad);
+		copy.picked.putAll(picked);
+		return copy;
+	}
+
 	@Override
 	public Optional<String> tunnelsRouteId() {
 		// no tunnels routes yet
