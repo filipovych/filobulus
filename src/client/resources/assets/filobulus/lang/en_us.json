@@ -21,6 +21,7 @@
 	"filobulus.config.alerts.wisp": "Will-o'-wisp alert",
 	"filobulus.config.alerts.newBest": "New best alert",
 	"filobulus.config.alerts.coldPotion": "Cold potion alert",
+	"filobulus.config.alerts.portal": "Portal closing alert",
 	"filobulus.config.sounds.sounds": "Play sounds",
 	"filobulus.config.corpses.reveal": "Corpse reveal",
 	"filobulus.config.corpses.revealSounds": "Reveal sounds",

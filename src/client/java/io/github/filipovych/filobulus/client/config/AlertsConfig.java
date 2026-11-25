@@ -28,6 +28,10 @@ public final class AlertsConfig {
 	@Comment("In a jasper shaft, warn when Cold Resistance is not active and when it has 30 seconds left. Read from the Active Effects widget of your tab list (switch it on in /widgets), your sidebar, or the /effects menu after you opened it. When none of these shows your effects the mod can not know and stays quiet.")
 	public static boolean coldPotion = true;
 
+	@ConfigEntry(id = "portal", translation = "filobulus.config.alerts.portal")
+	@Comment("When you spawn a mineshaft, warn 5 seconds before its portal closes. The portal stays 30 seconds.")
+	public static boolean portal = true;
+
 	private AlertsConfig() {
 	}
 }

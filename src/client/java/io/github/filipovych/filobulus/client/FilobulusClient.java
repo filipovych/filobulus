@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client;
 
 import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
 import io.github.filipovych.filobulus.client.alert.ColdWatch;
+import io.github.filipovych.filobulus.client.alert.PortalWatch;
 import io.github.filipovych.filobulus.client.alert.ShaftAlert;
 import io.github.filipovych.filobulus.client.alert.WispWatch;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
@@ -81,6 +82,8 @@ public final class FilobulusClient implements ClientModInitializer {
 				FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds"));
 		sounds.load();
 		cold = new ColdWatch();
+		PortalWatch portal = new PortalWatch();
+		portal.register();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
 		ShaftAlert shaftAlert = new ShaftAlert();
@@ -99,6 +102,7 @@ public final class FilobulusClient implements ClientModInitializer {
 			corpses.tick(minecraft);
 			profit.tick(minecraft);
 			cold.tick(minecraft);
+			portal.tick(minecraft);
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			shaftLog.close();
