@@ -4,12 +4,12 @@ import io.github.filipovych.filobulus.alert.WispTimer;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.route.Location.Area;
+import io.github.filipovych.filobulus.sound.SoundSlot;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -57,8 +57,7 @@ public final class WispWatch {
 		}
 		switch (timer.poll(System.currentTimeMillis(), LEAD)) {
 			case SOON -> Alerts.show("wisp", "WISP", "10 seconds left", COLOR, 4, Alerts.SHORT, null);
-			case GONE -> Alerts.show("wisp", "WISP GONE", "Place a new one", COLOR, 5, Alerts.LONG,
-					SoundEvents.NOTE_BLOCK_PLING.value());
+			case GONE -> Alerts.show("wisp", "WISP GONE", "Place a new one", COLOR, 5, Alerts.LONG, SoundSlot.WISP_GONE);
 			case NONE -> {
 			}
 		}

@@ -3,9 +3,8 @@ package io.github.filipovych.filobulus.client.alert;
 import io.github.filipovych.filobulus.alert.AlertQueue;
 import io.github.filipovych.filobulus.alert.AlertQueue.Alert;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.sounds.SoundEvent;
+import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.sound.SoundSlot;
 
 // the one way to put a big alert on screen, AlertHud draws what is in the queue
 public final class Alerts {
@@ -16,14 +15,14 @@ public final class Alerts {
 	private Alerts() {
 	}
 
-	// sound may be null, color is rgb
-	public static void show(String id, String title, String subtitle, int color, int priority, long millis, SoundEvent sound) {
+	// sound may be null, color is rgb, what the sound is comes from the sounds screen
+	public static void show(String id, String title, String subtitle, int color, int priority, long millis, SoundSlot sound) {
 		if (!AlertsConfig.alerts) {
 			return;
 		}
 		QUEUE.show(new Alert(id, title, subtitle, color & 0xFFFFFF, priority, millis), System.currentTimeMillis());
-		if (sound != null && AlertsConfig.sounds) {
-			Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, 1f, 1f));
+		if (sound != null) {
+			FilobulusClient.sounds().play(sound);
 		}
 	}
 }

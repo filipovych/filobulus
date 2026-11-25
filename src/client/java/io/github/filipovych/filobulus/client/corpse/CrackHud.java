@@ -1,5 +1,6 @@
 package io.github.filipovych.filobulus.client.corpse;
 
+import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.CorpsesConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.hud.HudDrawable;
@@ -15,6 +16,7 @@ import io.github.filipovych.filobulus.corpse.CrackTimeline.Sound;
 import io.github.filipovych.filobulus.hud.HudAnchor;
 import io.github.filipovych.filobulus.hud.HudPlacement;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
+import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -161,16 +163,21 @@ public final class CrackHud implements HudWidget {
 	}
 
 	private static void sound(Sound sound, CrackTier tier) {
+		if (sound.cue() == CrackTimeline.Cue.REVEAL) {
+			// the tier's sound is the player's pick on the sounds screen
+			FilobulusClient.sounds().play(switch (tier) {
+				case DIRT -> SoundSlot.CORPSE_DIRT;
+				case GLACITE -> SoundSlot.CORPSE_GLACITE;
+				case RUBY -> SoundSlot.CORPSE_RUBY;
+				case AQUAMARINE -> SoundSlot.CORPSE_AQUAMARINE;
+				case JASPER -> SoundSlot.CORPSE_JASPER;
+			});
+			return;
+		}
 		Minecraft.getInstance().getSoundManager().play(switch (sound.cue()) {
 			case CRACK -> SimpleSoundInstance.forUI(SoundEvents.GLASS_HIT, 0.8f + 0.1f * sound.step(), 0.7f);
 			case SHATTER -> SimpleSoundInstance.forUI(SoundEvents.GLASS_BREAK, 1f, 1f);
-			case REVEAL -> switch (tier) {
-				case DIRT -> SimpleSoundInstance.forUI(SoundEvents.VILLAGER_NO, 0.7f, 1f);
-				case GLACITE -> SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_BASS.value(), 0.5f, 1f);
-				case RUBY -> SimpleSoundInstance.forUI(SoundEvents.EXPERIENCE_ORB_PICKUP, 1f, 1f);
-				case AQUAMARINE -> SimpleSoundInstance.forUI(SoundEvents.PLAYER_LEVELUP, 1f, 1f);
-				case JASPER -> SimpleSoundInstance.forUI(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
-			};
+			case REVEAL -> null;
 		});
 	}
 

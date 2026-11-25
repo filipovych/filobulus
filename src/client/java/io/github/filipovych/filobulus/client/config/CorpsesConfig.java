@@ -13,7 +13,7 @@ public final class CorpsesConfig {
 	public static boolean reveal = true;
 
 	@ConfigEntry(id = "revealSounds", translation = "filobulus.config.corpses.revealSounds")
-	@Comment("Play the cracking sounds and the sound of the reveal.")
+	@Comment("Play the cracking sounds and the sound of the reveal. Which sound each tier plays is picked on the Sounds page.")
 	public static boolean revealSounds = true;
 
 	private CorpsesConfig() {

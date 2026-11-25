@@ -8,7 +8,6 @@ import com.teamresourceful.resourcefulconfig.api.client.ResourcefulConfigScreen;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
-import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.client.corpse.CrackHud;
@@ -22,6 +21,7 @@ import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
 import io.github.filipovych.filobulus.shaft.ShaftType;
+import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -106,7 +106,7 @@ public final class FiloCommand {
 
 	// shows the jasper alert with the sound picked in the settings, to hear it and to see where alerts sit
 	private static int tryAlert(CommandContext<FabricClientCommandSource> context) {
-		Alerts.show("shaft", "JASPER", "This is a test", 0xFF55FF, 1, Alerts.LONG, AlertsConfig.jasperSound.event());
+		Alerts.show("shaft", "JASPER", "This is a test", 0xFF55FF, 1, Alerts.LONG, SoundSlot.JASPER_SHAFT);
 		return 1;
 	}
 

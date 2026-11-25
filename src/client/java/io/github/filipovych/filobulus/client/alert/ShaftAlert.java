@@ -7,6 +7,7 @@ import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import io.github.filipovych.filobulus.shaft.ShaftType;
+import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.util.Locale;
 
 // says which shaft this is the moment its type is read, once per shaft
@@ -29,6 +30,6 @@ public final class ShaftAlert {
 		}
 		boolean jasper = type.material() == ShaftMaterial.JASPER;
 		Alerts.show("shaft", type.displayName().toUpperCase(Locale.ROOT), type.code(), ShaftColors.of(type.material()),
-				jasper ? 1 : 0, jasper ? Alerts.LONG : Alerts.SHORT, jasper ? AlertsConfig.jasperSound.event() : null);
+				jasper ? 1 : 0, jasper ? Alerts.LONG : Alerts.SHORT, jasper ? SoundSlot.JASPER_SHAFT : null);
 	}
 }

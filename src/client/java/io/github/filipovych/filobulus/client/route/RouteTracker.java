@@ -19,11 +19,11 @@ import io.github.filipovych.filobulus.route.RouteSelector;
 import io.github.filipovych.filobulus.route.RouteSplits;
 import io.github.filipovych.filobulus.route.SplitText;
 import io.github.filipovych.filobulus.route.Waypoint;
+import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.sounds.SoundEvents;
 
 // runs every client tick: works out where we are, keeps the selector up to date and walks the active route
 public final class RouteTracker {
@@ -210,7 +210,7 @@ public final class RouteTracker {
 						: " (" + SplitText.delta(behind) + " on your best)";
 				if (behind < 0 && HudConfig.splits && AlertsConfig.newBest) {
 					Alerts.show("best", "NEW BEST", SplitText.clock(total) + " (" + SplitText.delta(behind) + ")",
-							NEW_BEST, 2, Alerts.LONG, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
+							NEW_BEST, 2, Alerts.LONG, SoundSlot.NEW_BEST);
 				}
 			}
 		}
