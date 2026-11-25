@@ -25,6 +25,8 @@ public final class RouteSelector {
 	private final RouteSettings settings;
 
 	private Location location = Location.elsewhere();
+	// the island as the tab list names it, for the player's own routes
+	private String areaName = "";
 	private LibraryRoute shaftRoute;
 	// true once this shaft was handled, by auto-load or by the player
 	private boolean decided;
@@ -37,9 +39,14 @@ public final class RouteSelector {
 	public Optional<LibraryRoute> active() {
 		return switch (location.area()) {
 			case MINESHAFT -> Optional.ofNullable(shaftRoute);
-			case GLACITE_TUNNELS -> settings.tunnelsRouteId().flatMap(library::byId);
-			case ELSEWHERE -> Optional.empty();
+			case GLACITE_TUNNELS -> settings.tunnelsRouteId().flatMap(library::byId)
+					.or(() -> settings.customRoute(areaName));
+			case ELSEWHERE -> settings.customRoute(areaName);
 		};
+	}
+
+	public void onArea(String name) {
+		areaName = name == null ? "" : name;
 	}
 
 	// returns the route it just auto-loaded so the caller can announce it

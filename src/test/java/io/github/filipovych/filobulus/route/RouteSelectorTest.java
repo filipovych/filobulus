@@ -19,7 +19,7 @@ class RouteSelectorTest {
 	private static final ShaftType RUBY = ShaftType.parse("RUBY_1").orElseThrow();
 	private static final ShaftType TUNGSTEN = ShaftType.parse("TUNG_1").orElseThrow();
 
-	private static final class FakeSettings implements RouteSettings {
+	private static class FakeSettings implements RouteSettings {
 		Set<ShaftMaterial> autoLoad = EnumSet.of(ShaftMaterial.JASPER, ShaftMaterial.TUNGSTEN);
 		String preferred = "";
 		Optional<String> tunnels = Optional.empty();
@@ -193,5 +193,24 @@ class RouteSelectorTest {
 		selector.load("ruby_1");
 		selector.onLocation(Location.mineshaft(JASPER_CRYSTAL));
 		assertEquals("crystal", activeId());
+	}
+
+	@Test
+	void aRouteOfThePlayersOwnShowsOutsideAShaftAndNeverInside() {
+		LibraryRoute own = new LibraryRoute("custom_ruby", "Ruby", CustomRoute.KEY, List.of(new Waypoint(0, 100, 0, "1")));
+		RouteSettings settings = new FakeSettings() {
+			@Override
+			public Optional<LibraryRoute> customRoute(String area) {
+				return area.equals("Crystal Hollows") ? Optional.of(own) : Optional.empty();
+			}
+		};
+		RouteSelector selector = new RouteSelector(new RouteLibrary(List.of()), settings);
+		selector.onArea("Crystal Hollows");
+		assertEquals(Optional.of(own), selector.active());
+		selector.onLocation(Location.mineshaft(TUNGSTEN));
+		assertEquals(Optional.empty(), selector.active());
+		selector.onLocation(Location.elsewhere());
+		selector.onArea("Hub");
+		assertEquals(Optional.empty(), selector.active());
 	}
 }

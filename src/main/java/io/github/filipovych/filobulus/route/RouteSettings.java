@@ -10,4 +10,9 @@ public interface RouteSettings {
 	String preferredRouteId(String routeKey);
 
 	Optional<String> tunnelsRouteId();
+
+	// the player's own route for an island, area is its name in the tab list or empty when that is not known
+	default Optional<LibraryRoute> customRoute(String area) {
+		return Optional.empty();
+	}
 }
