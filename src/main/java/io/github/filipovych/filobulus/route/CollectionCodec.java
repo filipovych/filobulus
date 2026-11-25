@@ -83,9 +83,14 @@ public final class CollectionCodec {
 		if (!route.author().isEmpty()) {
 			entry.addProperty("author", route.author());
 		}
+		entry.add("stops", stopsToJson(route.stops()));
+		return entry;
+	}
+
+	public static JsonArray stopsToJson(List<Waypoint> route) {
 		JsonArray stops = new JsonArray();
-		for (int i = 0; i < route.stops().size(); i++) {
-			Waypoint stop = route.stops().get(i);
+		for (int i = 0; i < route.size(); i++) {
+			Waypoint stop = route.get(i);
 			JsonArray point = new JsonArray();
 			point.add(stop.x());
 			point.add(stop.y());
@@ -96,8 +101,7 @@ public final class CollectionCodec {
 			}
 			stops.add(point);
 		}
-		entry.add("stops", stops);
-		return entry;
+		return stops;
 	}
 
 	private static RouteCollection fromJson(String json) throws RouteFormatException {
@@ -135,6 +139,15 @@ public final class CollectionCodec {
 		if (layout.isEmpty() || points == null || !points.isJsonArray() || points.getAsJsonArray().isEmpty()) {
 			return Optional.empty();
 		}
+		return Optional.of(new SharedRoute(
+				layout.get().key(), text(entry.get("name")), text(entry.get("author")), stopsFromJson(points)));
+	}
+
+	// empty when there is nothing to read
+	public static List<Waypoint> stopsFromJson(JsonElement points) throws RouteFormatException {
+		if (points == null || !points.isJsonArray()) {
+			return List.of();
+		}
 		JsonArray array = points.getAsJsonArray();
 		if (array.size() > MAX_STOPS) {
 			throw new RouteFormatException("A route in the collection has too many stops.");
@@ -149,8 +162,7 @@ public final class CollectionCodec {
 			String label = xyz.size() > 3 ? text(xyz.get(3)) : Integer.toString(i + 1);
 			stops.add(new Waypoint(whole(xyz.get(0)), whole(xyz.get(1)), whole(xyz.get(2)), label));
 		}
-		return Optional.of(new SharedRoute(
-				layout.get().key(), text(entry.get("name")), text(entry.get("author")), stops));
+		return stops;
 	}
 
 	private static int whole(JsonElement value) throws RouteFormatException {
