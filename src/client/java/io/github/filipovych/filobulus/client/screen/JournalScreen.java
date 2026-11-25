@@ -4,6 +4,7 @@ import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
+import io.github.filipovych.filobulus.client.hud.RouteIcons;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.corpse.CoinText;
 import io.github.filipovych.filobulus.corpse.CorpseTally;
@@ -27,6 +28,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 // /filo journal: what the logged shafts add up to, a count per shaft layout that also filters, and the log itself
 // the corpses tab shows the same shafts by what their corpses were and what they paid
@@ -136,6 +138,8 @@ public final class JournalScreen extends FlatScreen {
 			logLeft = left + PAD + groupsWidth + PAD;
 			if (view == View.SHAFTS) {
 				drawGroups(graphics, left + PAD, bodyTop, groupsWidth, bodyBottom, mouseX, mouseY);
+			} else {
+				drawCorpseTypes(graphics, left + PAD, bodyTop, groupsWidth, mouseX, mouseY);
 			}
 			graphics.fill(logLeft - PAD / 2, bodyTop, logLeft - PAD / 2 + 1, bodyBottom, TRACK);
 			drawLog(graphics, logLeft, bodyTop, right - PAD - logLeft, bodyBottom, mouseX, mouseY, now);
@@ -227,6 +231,58 @@ public final class JournalScreen extends FlatScreen {
 			parts.add(corpses.seenByType()[i] - corpses.lootedByType()[i] + " " + CorpseType.values()[i].displayName().toLowerCase(Locale.ROOT));
 		}
 		return String.join(", ", parts);
+	}
+
+	// one row per corpse type, a click narrows the log to the shafts that had one
+	private void drawCorpseTypes(GuiGraphicsExtractor graphics, int left, int top, int width, int mouseX, int mouseY) {
+		int right = left + width - 5;
+		graphics.text(font, "Corpse", left, top, FAINT, true);
+		rightText(graphics, "Looted", right, top, FAINT);
+		JournalStats.Corpses corpses = stats.corpses();
+		if (corpses.counted() == 0) {
+			graphics.text(font, "No corpses in this period.", left, top + LIST_HEAD + 4, FAINT, true);
+			return;
+		}
+		for (int i = 0; i < 4; i++) {
+			int y = top + LIST_HEAD + i * GROUP_ROW;
+			char letter = CorpseTally.ORDER.charAt(i);
+			boolean on = pickedCorpses.contains(letter);
+			boolean hovered = mouseX >= left && mouseX < left + width && mouseY >= y && mouseY < y + GROUP_ROW;
+			if (on) {
+				graphics.fill(left, y, right + 3, y + GROUP_ROW - 1, SELECTED);
+				graphics.fill(left, y, left + 2, y + GROUP_ROW - 1, ACCENT);
+			} else if (hovered) {
+				graphics.fill(left, y, right + 3, y + GROUP_ROW - 1, ROW_HOVER);
+			}
+			int seen = corpses.seenByType()[i];
+			int looted = corpses.lootedByType()[i];
+			graphics.item(corpseIcon(i), left + 4, y + 1);
+			graphics.text(font, CorpseType.values()[i].displayName(), left + 24, y + 4, CORPSE_COLORS[i], true);
+			rightText(graphics, looted + "/" + seen, right, y + 4, seen == 0 ? FAINT : TEXT);
+			graphics.fill(left + 24, y + 15, right, y + 16, TRACK);
+			if (seen > 0) {
+				graphics.fill(left + 24, y + 15, left + 24 + Math.max(1, (right - left - 24) * looted / seen), y + 16, CORPSE_COLORS[i]);
+			}
+			clickable(left, y, width, GROUP_ROW, () -> {
+				if (!pickedCorpses.remove(letter)) {
+					pickedCorpses.add(letter);
+				}
+				logScroll = 0;
+			}, null);
+			if (hovered) {
+				tooltip(graphics, CorpseType.values()[i].displayName() + ": " + looted + " of " + seen + " opened. "
+						+ (on ? "Click to show every shaft again." : "Click to show only the shafts that had one."), mouseX, mouseY);
+			}
+		}
+	}
+
+	private static ItemStack corpseIcon(int type) {
+		return switch (type) {
+			case 0 -> RouteIcons.of("lapis_lazuli");
+			case 1 -> ShaftIcons.of(ShaftMaterial.TUNGSTEN);
+			case 2 -> ShaftIcons.of(ShaftMaterial.UMBER);
+			default -> ShaftIcons.of(ShaftMaterial.VANGUARD);
+		};
 	}
 
 	// a small square per corpse of the shaft, filled once it was opened, drawn leftwards from right
