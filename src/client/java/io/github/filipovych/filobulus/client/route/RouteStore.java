@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.route.CollectionCodec;
+import io.github.filipovych.filobulus.route.CustomRoute;
+import io.github.filipovych.filobulus.route.CustomRoutes;
 import io.github.filipovych.filobulus.route.LibraryRoute;
 import io.github.filipovych.filobulus.route.RouteChoices;
 import io.github.filipovych.filobulus.route.RouteCollection;
@@ -14,6 +16,7 @@ import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteProfiles;
 import io.github.filipovych.filobulus.route.RouteSettings;
 import io.github.filipovych.filobulus.route.SharedRoute;
+import io.github.filipovych.filobulus.route.Waypoint;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.io.IOException;
@@ -32,6 +35,7 @@ public final class RouteStore {
 	private final Path file;
 	private final RouteLibrary library;
 	private final RouteProfiles profiles = new RouteProfiles();
+	private final CustomRoutes custom = new CustomRoutes();
 
 	// what the selector asks, always answered by the profile in use
 	private final RouteSettings settings = new RouteSettings() {
@@ -48,6 +52,11 @@ public final class RouteStore {
 		@Override
 		public Optional<String> tunnelsRouteId() {
 			return Optional.empty();
+		}
+
+		@Override
+		public Optional<LibraryRoute> customRoute(String area) {
+			return custom.activeIn(area).map(CustomRoute::route);
 		}
 	};
 
@@ -67,6 +76,10 @@ public final class RouteStore {
 	// the switches and picks of the profile in use
 	public RouteChoices choices() {
 		return profiles.choices();
+	}
+
+	public CustomRoutes custom() {
+		return custom;
 	}
 
 	public RouteSettings settings() {
@@ -99,6 +112,11 @@ public final class RouteStore {
 				saved.put(RouteProfiles.FIRST, choices(root));
 			}
 			profiles.restore(saved, root.has("profile") ? root.get("profile").getAsString() : RouteProfiles.FIRST);
+			if (root.has("custom")) {
+				for (JsonElement element : root.getAsJsonArray("custom")) {
+					readCustom(element.getAsJsonObject());
+				}
+			}
 		} catch (IOException | RuntimeException | RouteFormatException e) {
 			// the bad file is kept under another name so the next save does not wipe what was in it
 			FilobulusClient.LOGGER.error("Could not read {}, it is kept as routes.json.broken", file, e);
@@ -121,6 +139,22 @@ public final class RouteStore {
 			choices.pick(pick.getKey(), pick.getValue().getAsString());
 		}
 		return choices;
+	}
+
+	private void readCustom(JsonObject entry) throws RouteFormatException {
+		List<Waypoint> stops = CollectionCodec.stopsFromJson(entry.get("stops"));
+		if (stops.isEmpty()) {
+			return;
+		}
+		CustomRoute route = custom.add(text(entry, "name"), text(entry, "author"), text(entry, "icon"),
+				text(entry, "area"), !entry.has("loop") || entry.get("loop").getAsBoolean(), stops, text(entry, "id"));
+		if (entry.has("on") && entry.get("on").getAsBoolean()) {
+			custom.use(route.id(), true);
+		}
+	}
+
+	private static String text(JsonObject entry, String key) {
+		return entry.has(key) && entry.get(key).isJsonPrimitive() ? entry.get(key).getAsString() : "";
 	}
 
 	public void save() {
@@ -151,12 +185,26 @@ public final class RouteStore {
 			entry.addProperty("id", route.id());
 			routes.add(entry.toString());
 		}
+		List<String> own = new ArrayList<>();
+		for (CustomRoute route : custom.all()) {
+			JsonObject entry = new JsonObject();
+			entry.addProperty("id", route.id());
+			entry.addProperty("name", route.name());
+			entry.addProperty("author", route.route().author());
+			entry.addProperty("icon", route.icon());
+			entry.addProperty("area", route.area());
+			entry.addProperty("loop", route.loop());
+			entry.addProperty("on", route.on());
+			entry.add("stops", CollectionCodec.stopsToJson(route.stops()));
+			own.add(entry.toString());
+		}
 		JsonObject active = new JsonObject();
 		active.addProperty("profile", profiles.active());
 		// one profile and one route per line, so the file can still be read and edited by hand
 		String text = "{\n\"version\": 2,\n\"profile\": " + active.get("profile")
 				+ ",\n\"profiles\": [\n" + String.join(",\n", saved)
-				+ "\n],\n\"routes\": [\n" + String.join(",\n", routes) + "\n]\n}\n";
+				+ "\n],\n\"routes\": [\n" + String.join(",\n", routes)
+				+ "\n],\n\"custom\": [\n" + String.join(",\n", own) + "\n]\n}\n";
 		try {
 			Files.createDirectories(file.getParent());
 			Path temp = file.resolveSibling("routes.json.tmp");
