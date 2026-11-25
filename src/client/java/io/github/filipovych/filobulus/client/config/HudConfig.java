@@ -131,6 +131,27 @@ public final class HudConfig {
 	@ConfigOption.Hidden
 	public static float profitScale = 1f;
 
+	// and for the shaft recap
+	@ConfigEntry(id = "recapAnchorX")
+	@ConfigOption.Hidden
+	public static HudAnchor recapAnchorX = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "recapX")
+	@ConfigOption.Hidden
+	public static int recapX = 0;
+
+	@ConfigEntry(id = "recapAnchorY")
+	@ConfigOption.Hidden
+	public static HudAnchor recapAnchorY = HudAnchor.START;
+
+	@ConfigEntry(id = "recapY")
+	@ConfigOption.Hidden
+	public static int recapY = 4;
+
+	@ConfigEntry(id = "recapScale")
+	@ConfigOption.Hidden
+	public static float recapScale = 1f;
+
 	private HudConfig() {
 	}
 }
