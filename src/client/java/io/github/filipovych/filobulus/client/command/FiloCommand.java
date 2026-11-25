@@ -10,6 +10,7 @@ import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
@@ -63,6 +64,8 @@ public final class FiloCommand {
 								.suggests((context, builder) -> SharedSuggestionProvider.suggest(
 										Arrays.stream(CrackTier.values()).map(tier -> tier.name().toLowerCase(Locale.ROOT)), builder))
 								.executes(context -> crack(context, StringArgumentType.getString(context, "tier")))))
+				.then(ClientCommands.literal("profit")
+						.then(ClientCommands.literal("reset").executes(FiloCommand::resetProfit)))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// /filo pretend JASP_1 acts like standing in that shaft, anything else switches it off
@@ -119,6 +122,13 @@ public final class FiloCommand {
 			}
 		}
 		fail(context, "No tier called \"" + name + "\". Try dirt, glacite, ruby, aquamarine or jasper.");
+		return 1;
+	}
+
+	// starts the profit tracker over, for the period it shows
+	private static int resetProfit(CommandContext<FabricClientCommandSource> context) {
+		FilobulusClient.profit().reset();
+		say(context, "Profit tracker reset (" + TrackerConfig.period + ").");
 		return 1;
 	}
 
