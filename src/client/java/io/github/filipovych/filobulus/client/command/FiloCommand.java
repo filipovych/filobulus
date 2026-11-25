@@ -17,6 +17,7 @@ import io.github.filipovych.filobulus.client.hud.HudEditScreen;
 import io.github.filipovych.filobulus.client.journal.RecapHud;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RoutesScreen;
+import io.github.filipovych.filobulus.client.screen.SoundsScreen;
 import io.github.filipovych.filobulus.corpse.CrackTier;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.route.Location;
@@ -69,6 +70,7 @@ public final class FiloCommand {
 										Arrays.stream(CrackTier.values()).map(tier -> tier.name().toLowerCase(Locale.ROOT)), builder))
 								.executes(context -> crack(context, StringArgumentType.getString(context, "tier")))))
 				.then(ClientCommands.literal("recap").executes(FiloCommand::recap))
+				.then(ClientCommands.literal("sounds").executes(FiloCommand::openSounds))
 				.then(ClientCommands.literal("achievements").executes(FiloCommand::achievements))
 				.then(ClientCommands.literal("profit")
 						.then(ClientCommands.literal("reset").executes(FiloCommand::resetProfit)))
@@ -128,6 +130,12 @@ public final class FiloCommand {
 			}
 		}
 		fail(context, "No tier called \"" + name + "\". Try dirt, glacite, ruby, aquamarine or jasper.");
+		return 1;
+	}
+
+	private static int openSounds(CommandContext<FabricClientCommandSource> context) {
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new SoundsScreen(null)));
 		return 1;
 	}
 
