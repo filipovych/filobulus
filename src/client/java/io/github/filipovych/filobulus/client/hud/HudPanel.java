@@ -12,7 +12,12 @@ import net.minecraft.world.item.ItemStack;
 // only shadowed text over the game unless the dark panel is switched on
 // always drawn at 0,0, the caller moves and scales it
 public final class HudPanel {
-	public record Row(String label, String value, int color) {
+	// icon may be empty, note is small faint text right behind the label, like an amount
+	public record Row(ItemStack icon, String label, String note, String value, int color) {
+		public Row(String label, String value, int color) {
+			this(ItemStack.EMPTY, label, "", value, color);
+		}
+
 		public Row(String label, String value) {
 			this(label, value, VALUE);
 		}
@@ -51,6 +56,8 @@ public final class HudPanel {
 	private static final int BACKGROUND = 0xB0101010;
 	private static final int OUTLINE = 0x80808080;
 	private static final int LABEL = 0xFFA9B6C2;
+	private static final int NOTE = 0xFF6B7782;
+	private static final int NOTE_GAP = 4;
 	private static final int VALUE = 0xFFFFFFFF;
 
 	private HudPanel() {
@@ -60,7 +67,7 @@ public final class HudPanel {
 		int labels = 0;
 		int values = 0;
 		for (Row row : content.rows()) {
-			labels = Math.max(labels, font.width(row.label()));
+			labels = Math.max(labels, labelWidth(font, row));
 			values = Math.max(values, font.width(row.value()));
 		}
 		int rows = content.rows().isEmpty() ? 0 : labels + COLUMN_GAP + values;
@@ -85,10 +92,25 @@ public final class HudPanel {
 		graphics.text(font, title(content), PADDING + ICON_SIZE + ICON_GAP, PADDING, content.titleColor(), true);
 		int y = PADDING + ROW_HEIGHT;
 		for (Row row : content.rows()) {
-			graphics.text(font, row.label(), PADDING, y, LABEL, true);
+			int x = PADDING;
+			if (!row.icon().isEmpty()) {
+				graphics.pose().pushMatrix();
+				graphics.pose().translate(x, y - 1);
+				graphics.pose().scale(ICON_SIZE / 16f, ICON_SIZE / 16f);
+				graphics.item(row.icon(), 0, 0);
+				graphics.pose().popMatrix();
+				x += ICON_SIZE + ICON_GAP;
+			}
+			graphics.text(font, row.label(), x, y, row.icon().isEmpty() ? LABEL : VALUE, true);
+			graphics.text(font, row.note(), x + font.width(row.label()) + NOTE_GAP, y, NOTE, true);
 			graphics.text(font, row.value(), width - PADDING - font.width(row.value()), y, row.color(), true);
 			y += ROW_HEIGHT;
 		}
+	}
+
+	private static int labelWidth(Font font, Row row) {
+		return (row.icon().isEmpty() ? 0 : ICON_SIZE + ICON_GAP) + font.width(row.label())
+				+ (row.note().isEmpty() ? 0 : NOTE_GAP + font.width(row.note()));
 	}
 
 	private static Component title(Content content) {
