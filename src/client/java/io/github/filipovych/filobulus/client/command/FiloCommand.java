@@ -14,9 +14,11 @@ import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
+import io.github.filipovych.filobulus.client.journal.RecapHud;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RoutesScreen;
 import io.github.filipovych.filobulus.corpse.CrackTier;
+import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
 import io.github.filipovych.filobulus.shaft.ShaftType;
@@ -64,6 +66,7 @@ public final class FiloCommand {
 								.suggests((context, builder) -> SharedSuggestionProvider.suggest(
 										Arrays.stream(CrackTier.values()).map(tier -> tier.name().toLowerCase(Locale.ROOT)), builder))
 								.executes(context -> crack(context, StringArgumentType.getString(context, "tier")))))
+				.then(ClientCommands.literal("recap").executes(FiloCommand::recap))
 				.then(ClientCommands.literal("profit")
 						.then(ClientCommands.literal("reset").executes(FiloCommand::resetProfit)))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
@@ -122,6 +125,18 @@ public final class FiloCommand {
 			}
 		}
 		fail(context, "No tier called \"" + name + "\". Try dirt, glacite, ruby, aquamarine or jasper.");
+		return 1;
+	}
+
+	// shows the card of the last shaft again
+	private static int recap(CommandContext<FabricClientCommandSource> context) {
+		ShaftVisit last = FilobulusClient.shaftLog().last();
+		List<ShaftVisit> journal = FilobulusClient.journal().journal().visits();
+		if (last == null && journal.isEmpty()) {
+			fail(context, "No shaft to show yet.");
+			return 1;
+		}
+		RecapHud.show(last != null ? last.enteredAt() : journal.get(journal.size() - 1).enteredAt());
 		return 1;
 	}
 
