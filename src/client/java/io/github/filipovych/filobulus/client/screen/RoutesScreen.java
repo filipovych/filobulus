@@ -9,6 +9,7 @@ import io.github.filipovych.filobulus.route.RouteCodec;
 import io.github.filipovych.filobulus.route.RouteCollection;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteImport;
+import io.github.filipovych.filobulus.route.RouteProfiles;
 import io.github.filipovych.filobulus.route.SharedRoute;
 import io.github.filipovych.filobulus.route.SplitText;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
@@ -19,12 +20,17 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 // /filo routes: one row per shaft layout with its auto-load switch and the route it uses, and the way routes get in and out
+// the switches and picks belong to a profile, the list at the top right swaps between them
 public final class RoutesScreen extends RoutesFrame {
 	private static final int AUTO_COLUMN = 138;
 	private static final int ROUTE_COLUMN = 194;
+	private static final int PROFILE_WIDTH = 78;
+	private static final int LIST_BACK = 0xF0141618;
 
 	// the same for forgetting the best run of a route: the first click asks, the second does it
 	private String confirmReset = "";
+	private boolean confirmRemove;
+	private boolean profilesOpen;
 
 	public RoutesScreen(Screen parent) {
 		super(parent, "Routes copied from Coleweight, SkyHanni or Skyblocker can be imported.");
@@ -44,10 +50,12 @@ public final class RoutesScreen extends RoutesFrame {
 		graphics.text(font, "Route", left + ROUTE_COLUMN, top + 34, FAINT, true);
 
 		graphics.enableScissor(left + 1, listTop, left + panelWidth - 1, listBottom);
+		// an open profile list covers the rows, they must not light up under it
+		int rowMouseY = profilesOpen ? -1 : mouseY;
 		for (int i = 0; i < layouts.size(); i++) {
 			int y = listTop + i * ROW - scroll;
 			if (y + ROW > listTop && y < listBottom) {
-				drawRow(graphics, layouts.get(i), y, mouseX, mouseY);
+				drawRow(graphics, layouts.get(i), y, mouseX, rowMouseY);
 			}
 		}
 		graphics.disableScissor();
@@ -60,9 +68,97 @@ public final class RoutesScreen extends RoutesFrame {
 		}
 		x += buttonWidth("Import") + GAP;
 		if (button(graphics, x, y, buttonWidth("Export all"), "Export all", TEXT, mouseX, mouseY, this::exportAll)) {
-			tooltip(graphics, "Copy every route you changed as one string that other Filobulus players can import.",
+			tooltip(graphics, "Copy every route this profile changed as one string that other Filobulus players can import.",
 					mouseX, mouseY);
 		}
+		drawProfiles(graphics, mouseX, mouseY);
+	}
+
+	// the name of the profile in use, a click lists the others, plus makes a new one and minus removes this one
+	private void drawProfiles(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+		RouteProfiles profiles = store.profiles();
+		int y = top + 4;
+		int small = buttonWidth("+");
+		int minusLeft = left + panelWidth - 8 - small;
+		int plusLeft = minusLeft - GAP - small;
+		int nameLeft = plusLeft - GAP - PROFILE_WIDTH;
+		String minus = confirmRemove ? "?" : "-";
+		if (button(graphics, minusLeft, y, small, minus, BAD, mouseX, mouseY, this::removeProfile)) {
+			tooltip(graphics, "Remove the profile " + profiles.active() + ". Click twice.", mouseX, mouseY);
+		}
+		if (button(graphics, plusLeft, y, small, "+", GOOD, mouseX, mouseY, this::newProfile)) {
+			tooltip(graphics, "A new profile, starting as a copy of this one.", mouseX, mouseY);
+		}
+		boolean hovered = button(graphics, nameLeft, y, PROFILE_WIDTH, "", TEXT, mouseX, mouseY,
+				() -> profilesOpen = !profilesOpen);
+		graphics.text(font, clip(profiles.active(), PROFILE_WIDTH - 16), nameLeft + 4, y + 3, TEXT, true);
+		graphics.text(font, profilesOpen ? "^" : "v", nameLeft + PROFILE_WIDTH - 9, y + 3, MUTED, true);
+		if (hovered && !profilesOpen) {
+			tooltip(graphics, "Profiles each keep their own auto-load switches and route picks, like one for you and one to try "
+					+ "a friend's routes. Imported routes are shared by all of them.", mouseX, mouseY);
+		}
+		if (!profilesOpen) {
+			return;
+		}
+		// a click anywhere else closes the list
+		clickable(0, 0, width, height, () -> profilesOpen = false, null);
+		List<String> names = profiles.names();
+		int listTop = y + BUTTON_HEIGHT + 1;
+		graphics.fill(nameLeft, listTop, nameLeft + PROFILE_WIDTH, listTop + names.size() * BUTTON_HEIGHT, LIST_BACK);
+		graphics.outline(nameLeft - 1, listTop - 1, PROFILE_WIDTH + 2, names.size() * BUTTON_HEIGHT + 2, OUTLINE);
+		for (int i = 0; i < names.size(); i++) {
+			String name = names.get(i);
+			int rowTop = listTop + i * BUTTON_HEIGHT;
+			boolean on = name.equals(profiles.active());
+			if (mouseX >= nameLeft && mouseX < nameLeft + PROFILE_WIDTH && mouseY >= rowTop && mouseY < rowTop + BUTTON_HEIGHT) {
+				graphics.fill(nameLeft, rowTop, nameLeft + PROFILE_WIDTH, rowTop + BUTTON_HEIGHT, HOVER);
+			}
+			graphics.text(font, clip(name, PROFILE_WIDTH - 8), nameLeft + 4, rowTop + 3, on ? ACCENT : TEXT, true);
+			clickable(nameLeft, rowTop, PROFILE_WIDTH, BUTTON_HEIGHT, () -> useProfile(name), null);
+		}
+	}
+
+	private void useProfile(String name) {
+		profilesOpen = false;
+		confirmRemove = false;
+		if (store.profiles().select(name)) {
+			store.save();
+			FilobulusClient.profileChanged();
+			say("Using the profile " + name + ".", GOOD);
+		}
+	}
+
+	private void newProfile() {
+		profilesOpen = false;
+		confirmRemove = false;
+		String from = store.profiles().active();
+		open(new RouteNameScreen(this, "New profile", "Starts as a copy of " + from + ".", "", null, null, answer -> {
+			Optional<String> made = store.profiles().add(answer.name());
+			if (made.isEmpty()) {
+				say(answer.name().isEmpty() ? "A profile needs a name." : "There is already a profile called " + answer.name() + ".", BAD);
+				return;
+			}
+			store.save();
+			say("Made " + made.get() + " from " + from + ". What you change now only changes " + made.get() + ".", GOOD);
+		}, null));
+	}
+
+	private void removeProfile() {
+		profilesOpen = false;
+		if (store.profiles().names().size() < 2) {
+			say("This is the only profile, it stays.", MUTED);
+			return;
+		}
+		if (!confirmRemove) {
+			confirmRemove = true;
+			return;
+		}
+		confirmRemove = false;
+		String gone = store.profiles().active();
+		store.profiles().remove(gone);
+		store.save();
+		FilobulusClient.profileChanged();
+		say("Removed " + gone + ", now using " + store.profiles().active() + ". Its imported routes are still here.", MUTED);
 	}
 
 	private void drawRow(GuiGraphicsExtractor graphics, ShaftLayout layout, int y, int mouseX, int mouseY) {

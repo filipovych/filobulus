@@ -126,6 +126,11 @@ public final class FilobulusClient implements ClientModInitializer {
 		}
 	}
 
+	// the profile was switched, the shaft we stand in may use another route now
+	public static void profileChanged() {
+		tracker.location().shaft().ifPresent(type -> routeChanged(type.routeKey()));
+	}
+
 	public static RouteSelector selector() {
 		return selector;
 	}
