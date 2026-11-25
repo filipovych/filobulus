@@ -9,6 +9,7 @@ import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.corpse.CoinText;
 import io.github.filipovych.filobulus.corpse.CorpseTally;
 import io.github.filipovych.filobulus.corpse.CorpseType;
+import io.github.filipovych.filobulus.journal.JournalDays;
 import io.github.filipovych.filobulus.journal.JournalPeriod;
 import io.github.filipovych.filobulus.journal.JournalStats;
 import io.github.filipovych.filobulus.journal.JournalStats.Group;
@@ -31,7 +32,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 // /filo journal: what the logged shafts add up to, a count per shaft layout that also filters, and the log itself
-// the corpses tab shows the same shafts by what their corpses were and what they paid
+// the corpses tab shows the same shafts by what their corpses were and what they paid, the days tab what each day added up to
 public final class JournalScreen extends FlatScreen {
 	private static final int MAX_WIDTH = 560;
 	private static final int MAX_HEIGHT = 420;
@@ -57,8 +58,12 @@ public final class JournalScreen extends FlatScreen {
 	private static final int DOT = 4;
 
 	private enum View {
-		SHAFTS, CORPSES
+		SHAFTS, CORPSES, DAYS
 	}
+
+	// more days than this do not fit as bars anyway
+	private static final int MAX_DAYS = 120;
+	private static final int COINS = 0xFFFFAA00;
 
 	// one line of the log: a visit, or the day that the visits under it share
 	private record Entry(ShaftVisit visit, String day, int shafts) {
@@ -71,6 +76,8 @@ public final class JournalScreen extends FlatScreen {
 	// the period and the tab stay as they were left while the game runs
 	private static JournalPeriod period = JournalPeriod.ALL;
 	private static View view = View.SHAFTS;
+	// what the bars of the days tab stand for
+	private static boolean dayCoins = true;
 
 	private final Screen parent;
 	private final JournalStore store = FilobulusClient.journal();
@@ -94,6 +101,7 @@ public final class JournalScreen extends FlatScreen {
 	private JournalStats stats = JournalStats.of(List.of());
 	private List<ShaftVisit> shown = List.of();
 	private List<Entry> log = List.of();
+	private JournalDays days = new JournalDays(List.of());
 
 	public JournalScreen(Screen parent) {
 		super(Component.literal("Filobulus journal"));
@@ -116,13 +124,16 @@ public final class JournalScreen extends FlatScreen {
 		graphics.text(font, title, left + PAD, top + 9, ACCENT, true);
 		int tabLeft = left + PAD + font.width(title) + 8;
 		tabLeft += tab(graphics, tabLeft, top + 6, "Shafts", view == View.SHAFTS, mouseX, mouseY, () -> view = View.SHAFTS);
-		tab(graphics, tabLeft, top + 6, "Corpses", view == View.CORPSES, mouseX, mouseY, () -> view = View.CORPSES);
+		tabLeft += tab(graphics, tabLeft, top + 6, "Corpses", view == View.CORPSES, mouseX, mouseY, () -> view = View.CORPSES);
+		tab(graphics, tabLeft, top + 6, "Days", view == View.DAYS, mouseX, mouseY, () -> view = View.DAYS);
 		int x = right - PAD;
 		JournalPeriod[] periods = JournalPeriod.values();
 		for (int i = periods.length - 1; i >= 0; i--) {
 			JournalPeriod each = periods[i];
-			x -= buttonWidth(each.title());
-			chip(graphics, x, top + 6, each.title(), each == period, mouseX, mouseY, () -> period = each);
+			// kept short, the tabs need the room
+			String label = each == JournalPeriod.ALL ? "All" : each.title();
+			x -= buttonWidth(label);
+			chip(graphics, x, top + 6, label, each == period, mouseX, mouseY, () -> period = each);
 			x -= 2;
 		}
 		drawTiles(graphics, left + PAD, top + TILES_TOP, panelWidth - PAD * 2, mouseX, mouseY);
@@ -133,6 +144,8 @@ public final class JournalScreen extends FlatScreen {
 			int middle = (bodyTop + bodyBottom) / 2;
 			graphics.centeredText(font, "No shafts yet.", width / 2, middle - 10, MUTED);
 			graphics.centeredText(font, "Every mineshaft you enter is written down here by itself.", width / 2, middle + 2, FAINT);
+		} else if (view == View.DAYS) {
+			drawDays(graphics, left + PAD, bodyTop, panelWidth - PAD * 2, bodyBottom, mouseX, mouseY, now);
 		} else {
 			int groupsWidth = Math.min(215, (panelWidth - PAD * 3) * 9 / 20);
 			logLeft = left + PAD + groupsWidth + PAD;
@@ -158,7 +171,11 @@ public final class JournalScreen extends FlatScreen {
 	}
 
 	private void drawTiles(GuiGraphicsExtractor graphics, int left, int top, int width, int mouseX, int mouseY) {
-		List<Tile> tiles = view == View.SHAFTS ? shaftTiles() : corpseTiles();
+		List<Tile> tiles = switch (view) {
+			case SHAFTS -> shaftTiles();
+			case CORPSES -> corpseTiles();
+			case DAYS -> dayTiles();
+		};
 		int tileWidth = (width - GAP * (tiles.size() - 1)) / tiles.size();
 		for (int i = 0; i < tiles.size(); i++) {
 			Tile tile = tiles.get(i);
@@ -223,6 +240,95 @@ public final class JournalScreen extends FlatScreen {
 						"What the loot of your corpses sold for at the time, with the price of the keys taken off."),
 				new Tile(corpses.paid() == 0 ? "-" : CoinText.signed(corpses.coinsPerShaft()), TEXT, "", "Per shaft", "Each",
 						"Corpse profit per shaft in which you opened at least one corpse."));
+	}
+
+	private List<Tile> dayTiles() {
+		int played = days.played();
+		long coins = days.coins();
+		JournalDays.Day best = days.best();
+		String perDay = played == 0 ? "-" : CoinText.signed(coins / played);
+		String shaftsPerDay = played == 0 ? "-" : String.valueOf(Math.round((double) days.shafts() / played));
+		return List.of(
+				new Tile(String.valueOf(played), TEXT, "", "Days played", "Days",
+						"Days of this period on which you entered at least one shaft. The bars show at most the last " + MAX_DAYS + " days."),
+				new Tile(CoinText.signed(coins), coins < 0 ? BAD : COINS, "", "Coins", "Coins",
+						"What your shafts paid on those days: corpse profit plus what the profit tracker counted as mined inside."),
+				new Tile(perDay, TEXT, "", "Per day", "Per day", "Coins per day you played."),
+				new Tile(best == null ? "-" : CoinText.signed(best.coins()), GOOD, "", "Best day", "Best",
+						best == null ? "No day yet." : "Your best day was " + dayName(best.start()) + ", with " + shafts(best.shafts()) + "."),
+				new Tile(shaftsPerDay, TEXT, "", "Shafts a day", "Shafts", "Shafts entered per day you played."),
+				new Tile(days.shafts() == 0 ? "-" : CoinText.signed(coins / days.shafts()), TEXT, "", "Per shaft", "Each",
+						"Coins per shaft, over every shaft of those days."));
+	}
+
+	// one bar per day, the latest on the right, hovering a bar says what that day was
+	private void drawDays(GuiGraphicsExtractor graphics, int left, int top, int width, int bottom,
+			int mouseX, int mouseY, long now) {
+		graphics.text(font, dayCoins ? "Coins per day" : "Shafts per day", left, top, FAINT, true);
+		int chipLeft = left + width - buttonWidth("Shafts");
+		chip(graphics, chipLeft, top - 3, "Shafts", !dayCoins, mouseX, mouseY, () -> dayCoins = false);
+		chip(graphics, chipLeft - 2 - buttonWidth("Coins"), top - 3, "Coins", dayCoins, mouseX, mouseY, () -> dayCoins = true);
+		List<JournalDays.Day> all = days.days();
+		if (all.isEmpty()) {
+			graphics.text(font, "Nothing in this period.", left, top + LIST_HEAD + 4, FAINT, true);
+			return;
+		}
+		int chartTop = top + LIST_HEAD + 8;
+		int chartBottom = bottom - 13;
+		// as many of the latest days as there is room for
+		int slot = Math.max(3, Math.min(48, width / all.size()));
+		List<JournalDays.Day> shownDays = all.subList(all.size() - Math.min(all.size(), width / slot), all.size());
+		int bar = slot > 4 ? slot - 2 : slot - 1;
+		long most = 1;
+		for (JournalDays.Day day : shownDays) {
+			most = Math.max(most, dayCoins ? day.coins() : day.shafts());
+		}
+		graphics.fill(left, chartBottom, left + width, chartBottom + 1, TRACK);
+		graphics.text(font, dayCoins ? CoinText.amount(most) : String.valueOf(most), left, chartTop - 9, FAINT, true);
+		for (int i = 0; i < shownDays.size(); i++) {
+			JournalDays.Day day = shownDays.get(i);
+			int x = left + i * slot;
+			long value = dayCoins ? day.coins() : day.shafts();
+			boolean hovered = mouseX >= x && mouseX < x + slot && mouseY >= chartTop && mouseY < bottom;
+			if (hovered) {
+				graphics.fill(x, chartTop, x + slot, chartBottom, ROW_HOVER);
+				tooltip(graphics, dayHelp(day), mouseX, mouseY);
+			}
+			if (value > 0) {
+				int height = (int) Math.max(1, (chartBottom - chartTop) * value / most);
+				graphics.fill(x, chartBottom - height, x + bar, chartBottom, dayCoins ? COINS : ACCENT);
+				if (day.jasper() > 0) {
+					// a day with a jasper shaft wears its colour on top
+					graphics.fill(x, chartBottom - height, x + bar, chartBottom - height + 2, ShaftColors.of(ShaftMaterial.JASPER));
+				}
+			} else if (value < 0) {
+				graphics.fill(x, chartBottom + 1, x + bar, chartBottom + 3, BAD);
+			}
+		}
+		// the first and the last day under their bars, only the last one when the two would run into each other
+		String first = dayName(shownDays.get(0).start());
+		String last = dayName(shownDays.get(shownDays.size() - 1).start());
+		int barsRight = left + shownDays.size() * slot - (slot - bar);
+		if (barsRight - left >= font.width(first) + font.width(last) + 8) {
+			graphics.text(font, first, left, chartBottom + 4, FAINT, true);
+			rightText(graphics, last, barsRight, chartBottom + 4, FAINT);
+		} else {
+			graphics.text(font, last, left, chartBottom + 4, FAINT, true);
+		}
+	}
+
+	private String dayName(long start) {
+		return JournalText.day(start, System.currentTimeMillis(), zone);
+	}
+
+	private String dayHelp(JournalDays.Day day) {
+		String name = dayName(day.start());
+		if (day.shafts() == 0) {
+			return name + ": no shafts.";
+		}
+		return name + ": " + shafts(day.shafts()) + (day.jasper() > 0 ? ", " + day.jasper() + " jasper" : "") + ". Corpses "
+				+ CoinText.signed(day.corpseCoins()) + ", mined " + CoinText.signed(day.minedCoins()) + ", total "
+				+ CoinText.signed(day.coins()) + ". " + JournalText.duration(day.timeInside()) + " inside.";
 	}
 
 	private static String left(JournalStats.Corpses corpses) {
@@ -503,7 +609,8 @@ public final class JournalScreen extends FlatScreen {
 		stats = JournalStats.of(inPeriod);
 		// a shaft that is not in this period can not stay picked, the log would be empty with no row to click
 		picked.retainAll(stats.groups().stream().map(Group::key).toList());
-		shown = view == View.SHAFTS
+		days = JournalDays.of(inPeriod, zone, MAX_DAYS);
+		shown = view == View.DAYS ? inPeriod : view == View.SHAFTS
 				? inPeriod.stream().filter(visit -> picked.isEmpty() || picked.contains(visit.key())).toList()
 				: inPeriod.stream().filter(visit -> !visit.corpses().isEmpty() && (pickedCorpses.isEmpty()
 						|| pickedCorpses.stream().anyMatch(letter -> visit.corpses().seen(letter) > 0))).toList();
