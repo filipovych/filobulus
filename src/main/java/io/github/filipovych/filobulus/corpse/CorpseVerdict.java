@@ -43,6 +43,20 @@ public record CorpseVerdict(CorpseType type, CrackTier tier, double value, doubl
 		return Optional.of(new CorpseVerdict(loot.type(), tier, value, keyCost, keySaved, rare, unknown));
 	}
 
+	// what the loot sells for at once, for a corpse that costs no key or when the key has no price
+	// rewards we can not value count as nothing
+	public static double worth(CorpseLoot loot, PriceSource prices) {
+		double value = 0;
+		for (CorpseLoot.Reward reward : loot.rewards()) {
+			if (CorpseItems.rare(reward.name()) || CorpseItems.worthless(reward.name())) {
+				continue;
+			}
+			OptionalDouble price = CorpseItems.id(reward.name()).map(prices::sell).orElseGet(OptionalDouble::empty);
+			value += price.orElse(0) * reward.amount();
+		}
+		return value;
+	}
+
 	// a key that was not used up is one we do not have to buy
 	public double profit() {
 		return keySaved ? value : value - keyCost;
