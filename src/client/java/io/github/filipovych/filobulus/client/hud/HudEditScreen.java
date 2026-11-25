@@ -18,6 +18,10 @@ public final class HudEditScreen extends Screen {
 	private static final int FRAME_ACTIVE = 0xFF7FD4FF;
 	private static final int GUIDE = 0x607FD4FF;
 	private static final int HELP = 0xFFE0E0E0;
+	private static final int FRAME_OFF = 0xA0FF6B6B;
+	private static final int OFF_VEIL = 0x90101010;
+	private static final int LABEL_ON = 0xFF7CE38B;
+	private static final int LABEL_OFF = 0xFFFF6B6B;
 	private static final float SCALE_STEP = 0.1f;
 
 	// the widget the keys act on, the last one that was clicked
@@ -40,7 +44,8 @@ public final class HudEditScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
 		graphics.centeredText(font, "Drag to move, scroll to resize", width / 2, height / 2 - 10, HELP);
-		graphics.centeredText(font, "Arrow keys nudge, Shift stops snapping, R resets", width / 2, height / 2 + 2, HELP);
+		graphics.centeredText(font, "Right click switches a panel on or off", width / 2, height / 2 + 2, HELP);
+		graphics.centeredText(font, "Arrow keys nudge, Shift stops snapping, R resets", width / 2, height / 2 + 14, HELP);
 		for (HudWidget widget : Hud.WIDGETS) {
 			Box box = box(widget);
 			if (widget == dragging) {
@@ -48,9 +53,24 @@ public final class HudEditScreen extends Screen {
 			}
 			Hud.draw(graphics, font, widget, shown(widget));
 			boolean active = widget == dragging || box.contains(mouseX, mouseY);
+			if (!widget.enabled()) {
+				graphics.fill(box.left(), box.top(), box.left() + box.width(), box.top() + box.height(), OFF_VEIL);
+			}
 			graphics.outline(box.left() - 1, box.top() - 1, box.width() + 2, box.height() + 2,
-					active ? FRAME_ACTIVE : FRAME);
+					active ? FRAME_ACTIVE : widget.enabled() ? FRAME : FRAME_OFF);
+			if (active || !widget.enabled()) {
+				label(graphics, widget, box);
+			}
 		}
+	}
+
+	// the name of the panel, whether it is on and its size, above it or below when there is no room above
+	private void label(GuiGraphicsExtractor graphics, HudWidget widget, Box box) {
+		String text = widget.name() + (widget.enabled() ? "  on  " : "  off  ")
+				+ Math.round(widget.placement().scale() * 100) + "%";
+		int left = Math.max(2, Math.min(box.left(), width - font.width(text) - 2));
+		int top = box.top() >= 12 ? box.top() - 11 : box.top() + box.height() + 3;
+		graphics.text(font, text, left, top, widget.enabled() ? LABEL_ON : LABEL_OFF, true);
 	}
 
 	// a line across the screen while the panel sits exactly in the middle of an axis
@@ -73,6 +93,15 @@ public final class HudEditScreen extends Screen {
 					dragging = widget;
 					grabX = event.x() - box.left();
 					grabY = event.y() - box.top();
+					return true;
+				}
+			}
+		}
+		if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
+			for (HudWidget widget : Hud.WIDGETS) {
+				if (box(widget).contains(event.x(), event.y())) {
+					selected = widget;
+					widget.setEnabled(!widget.enabled());
 					return true;
 				}
 			}
