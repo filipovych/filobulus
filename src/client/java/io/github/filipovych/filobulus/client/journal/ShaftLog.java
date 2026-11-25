@@ -2,6 +2,9 @@ package io.github.filipovych.filobulus.client.journal;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.JournalConfig;
+import io.github.filipovych.filobulus.client.detect.GameText;
+import io.github.filipovych.filobulus.corpse.CorpseTabReader;
+import io.github.filipovych.filobulus.corpse.CorpseType;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.journal.VisitTracker;
 import io.github.filipovych.filobulus.route.Location;
@@ -13,7 +16,10 @@ import net.minecraft.client.Minecraft;
 // runs every client tick after the route tracker and writes every shaft we are in to the journal
 public final class ShaftLog {
 	private final JournalStore store;
+	private static final int CORPSE_INTERVAL = 20;
+
 	private final VisitTracker visits = new VisitTracker();
+	private int ticks;
 
 	public ShaftLog(JournalStore store) {
 		this.store = store;
@@ -24,6 +30,20 @@ public final class ShaftLog {
 		boolean inside = JournalConfig.journal && location.area() == Area.MINESHAFT;
 		String code = location.shaft().map(ShaftType::code).orElse("");
 		write(visits.update(inside, code, minecraft.level, System.currentTimeMillis()));
+		// the corpse lines of the tab list say how many the shaft has and which ones we opened
+		if (inside && ticks++ % CORPSE_INTERVAL == 0) {
+			write(visits.corpses(CorpseTabReader.read(GameText.tabLines(minecraft))));
+		}
+	}
+
+	// a corpse was opened in the shaft we are in, coins is its loot with the key taken off
+	public void looted(CorpseType type, long coins) {
+		write(visits.looted(type, coins));
+	}
+
+	// what was mined in the shaft we are in is worth this much so far
+	public void mined(long coins) {
+		write(visits.mined(coins));
 	}
 
 	// the route of this shaft was finished in that time

@@ -3,16 +3,18 @@ package io.github.filipovych.filobulus.client.corpse;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.CorpsesConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.config.JournalConfig;
 import io.github.filipovych.filobulus.corpse.CorpseLoot;
 import io.github.filipovych.filobulus.corpse.CorpseLootReader;
 import io.github.filipovych.filobulus.corpse.CorpseVerdict;
 import io.github.filipovych.filobulus.detect.LocationParser;
 import io.github.filipovych.filobulus.route.Location.Area;
+import java.util.Optional;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 
-// reads the loot of a corpse from chat and starts the reveal for it
+// reads the loot of a corpse from chat, starts the reveal for it and tells the journal
 // it only listens, the chat itself is left alone
 public final class CorpseWatch {
 	// the key saved line can come right after the loot, so the reveal waits a moment for it
@@ -61,7 +63,16 @@ public final class CorpseWatch {
 		boolean keySaved = System.currentTimeMillis() - keySavedAt <= KEY_SAVED_MILLIS;
 		keySavedAt = 0;
 		// empty for a lapis corpse, which costs no key, and while there are no prices
-		CorpseVerdict.of(loot, keySaved, prices).ifPresent(CrackHud::play);
+		Optional<CorpseVerdict> verdict = CorpseVerdict.of(loot, keySaved, prices);
+		if (JournalConfig.journal) {
+			// a corpse with a key we can not price is written down as looted with no coins
+			double coins = verdict.map(CorpseVerdict::profit)
+					.orElse(loot.type().keyId().isPresent() ? 0 : CorpseVerdict.worth(loot, prices));
+			FilobulusClient.shaftLog().looted(loot.type(), Math.round(coins));
+		}
+		if (CorpsesConfig.reveal) {
+			verdict.ifPresent(CrackHud::play);
+		}
 		loot = null;
 	}
 
@@ -76,6 +87,7 @@ public final class CorpseWatch {
 	}
 
 	private static boolean on() {
-		return FilobulusConfig.enabled && CorpsesConfig.reveal;
+		// the journal wants the loot too, with the reveal switched off
+		return FilobulusConfig.enabled && (CorpsesConfig.reveal || JournalConfig.journal);
 	}
 }
