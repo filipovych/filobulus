@@ -39,6 +39,7 @@ public final class ProfitWatch {
 	private static final List<String> BOUGHT = List.of("[Bazaar]", "[Auction]");
 	// the inventory is compared a few times a second, that is plenty to see an item arrive
 	private static final int INVENTORY_INTERVAL = 4;
+	private static final int SHAFT_INTERVAL = 20;
 	private static final int SLOW_INTERVAL = 100;
 	// right after a change of world the inventory is filled in again, that is no loot
 	private static final long SETTLE_MILLIS = 3000;
@@ -141,11 +142,11 @@ public final class ProfitWatch {
 		if (ticks++ % INVENTORY_INTERVAL == 0) {
 			lookAtInventory(player, now);
 		}
-		if (ticks % SLOW_INTERVAL == 0) {
+		if (ticks % SHAFT_INTERVAL == 0) {
 			shaft();
-			if (allTime.version() != savedVersion && now - savedAt > SAVE_MILLIS) {
-				save();
-			}
+		}
+		if (ticks % SLOW_INTERVAL == 0 && allTime.version() != savedVersion && now - savedAt > SAVE_MILLIS) {
+			save();
 		}
 	}
 
@@ -257,13 +258,13 @@ public final class ProfitWatch {
 	// tells the journal what the shaft we are in has paid so far
 	private void shaft() {
 		ShaftVisit open = FilobulusClient.shaftLog().open();
-		if (open == null) {
-			shaftAt = 0;
-			return;
-		}
-		if (open.enteredAt() != shaftAt) {
+		if (open != null && open.enteredAt() != shaftAt) {
 			shaftAt = open.enteredAt();
 			atShaftStart = session.items();
+		}
+		// after leaving it goes on for a moment, the last sack message of a shaft comes late and the journal still takes it
+		if (shaftAt == 0) {
+			return;
 		}
 		ProfitValue mined = ProfitValue.since(session.items(), atShaftStart, this::price);
 		FilobulusClient.shaftLog().mined(Math.round(mined.coins()));

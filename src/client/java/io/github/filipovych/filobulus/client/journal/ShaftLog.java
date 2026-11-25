@@ -43,7 +43,12 @@ public final class ShaftLog {
 
 	// what was mined in the shaft we are in is worth this much so far
 	public void mined(long coins) {
-		write(visits.mined(coins));
+		write(visits.mined(coins, System.currentTimeMillis()));
+	}
+
+	// the shaft we left last, null before the first one
+	public ShaftVisit last() {
+		return visits.last();
 	}
 
 	// the route of this shaft was finished in that time

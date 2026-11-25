@@ -9,9 +9,12 @@ import java.util.List;
 public final class VisitTracker {
 	// nobody gets from one shaft into the next this fast, so it is still the same one
 	private static final long SAME_SHAFT_MILLIS = 10_000;
+	// a sack message can come a few seconds after we left, what it brings still belongs to the shaft
+	private static final long LATE_MILLIS = 10_000;
 
 	private ShaftVisit open;
 	private ShaftVisit last;
+	private long leftAt;
 	// the world of the open visit, or of the last one once it is closed
 	private Object world;
 
@@ -20,11 +23,17 @@ public final class VisitTracker {
 		return open;
 	}
 
+	// the shaft we left last, null before the first one
+	public ShaftVisit last() {
+		return last;
+	}
+
 	// world is whatever stands for the server we are on, a new shaft always comes with a new one
 	public List<ShaftVisit> update(boolean inside, String code, Object world, long now) {
 		List<ShaftVisit> changed = new ArrayList<>();
 		if (open != null && (!inside || !code.isEmpty() && !open.code().isEmpty() && !code.equals(open.code()))) {
 			last = open.withSpent(now - open.enteredAt());
+			leftAt = now;
 			open = null;
 			changed.add(last);
 		}
@@ -76,13 +85,20 @@ public final class VisitTracker {
 		return List.of(open);
 	}
 
-	// what the shaft paid in mined items so far
-	public List<ShaftVisit> mined(long coins) {
-		if (open == null || coins == open.minedCoins()) {
+	// what the shaft paid in mined items so far, for a little while after leaving it still goes to the shaft we left
+	public List<ShaftVisit> mined(long coins, long now) {
+		if (open != null) {
+			if (coins == open.minedCoins()) {
+				return List.of();
+			}
+			open = open.withMined(coins);
+			return List.of(open);
+		}
+		if (last == null || now - leftAt > LATE_MILLIS || coins <= last.minedCoins()) {
 			return List.of();
 		}
-		open = open.withMined(coins);
-		return List.of(open);
+		last = last.withMined(coins);
+		return List.of(last);
 	}
 
 	private boolean resumes(String code, Object world, long now) {

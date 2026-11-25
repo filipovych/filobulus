@@ -106,9 +106,24 @@ class VisitTrackerTest {
 		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 0, 0, new CorpseTally("LTU", "TU"), 700_000, 0)),
 				tracker.looted(CorpseType.UMBER, -500_000));
 		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 0, 0, new CorpseTally("LTU", "TU"), 700_000, 3_000_000)),
-				tracker.mined(3_000_000));
-		assertTrue(tracker.mined(3_000_000).isEmpty());
+				tracker.mined(3_000_000, 50_000));
+		assertTrue(tracker.mined(3_000_000, 51_000).isEmpty());
 		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 59_000, 0, new CorpseTally("LTU", "TU"), 700_000, 3_000_000)),
 				tracker.update(false, "", TUNNELS, 60_000));
+	}
+
+	@Test
+	void whatComesInRightAfterLeavingStillGoesToThatShaft() {
+		VisitTracker tracker = new VisitTracker();
+		assertTrue(tracker.mined(5, 500).isEmpty());
+		tracker.update(true, "JASP_1", SHAFT, 1000);
+		tracker.mined(3_000_000, 50_000);
+		tracker.update(false, "", TUNNELS, 60_000);
+		assertEquals(List.of(new ShaftVisit(1000, "JASP_1", 59_000, 0, CorpseTally.NONE, 0, 3_400_000)),
+				tracker.mined(3_400_000, 65_000));
+		assertEquals(3_400_000, tracker.last().minedCoins());
+		// never less than it had, and not once the moment has passed
+		assertTrue(tracker.mined(3_000_000, 66_000).isEmpty());
+		assertTrue(tracker.mined(9_000_000, 80_000).isEmpty());
 	}
 }
