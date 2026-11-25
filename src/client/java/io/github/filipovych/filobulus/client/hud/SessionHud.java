@@ -16,6 +16,7 @@ import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 // shown in the tunnels and in a shaft: shafts entered since the game was started and since the last jasper one
 // and how long the will-o'-wisp still has, when we know of one
@@ -54,6 +55,13 @@ public final class SessionHud implements HudWidget {
 			rows.add(left == 0 ? new Row("Wisp", "gone", WISP_GONE)
 					: left <= LOW_MILLIS ? new Row("Wisp", SplitText.clock(left), WISP_LOW)
 					: new Row("Wisp", SplitText.clock(left)));
+		}
+		OptionalLong cold = FilobulusClient.cold().left();
+		if (AlertsConfig.coldPotion && cold.isPresent()) {
+			long left = cold.getAsLong();
+			rows.add(left == 0 ? new Row("Cold pot", "none", WISP_GONE)
+					: left <= LOW_MILLIS ? new Row("Cold pot", SplitText.clock(left), WISP_LOW)
+					: new Row("Cold pot", SplitText.clock(left)));
 		}
 		return Optional.of(panel(rows));
 	}

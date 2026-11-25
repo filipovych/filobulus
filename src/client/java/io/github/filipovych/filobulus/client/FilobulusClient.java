@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client;
 
 import com.teamresourceful.resourcefulconfig.api.loader.Configurator;
+import io.github.filipovych.filobulus.client.alert.ColdWatch;
 import io.github.filipovych.filobulus.client.alert.ShaftAlert;
 import io.github.filipovych.filobulus.client.alert.WispWatch;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
@@ -49,6 +50,7 @@ public final class FilobulusClient implements ClientModInitializer {
 	private static final BazaarPrices PRICES = new BazaarPrices();
 	private static ProfitWatch profit;
 	private static SoundBoard sounds;
+	private static ColdWatch cold;
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
@@ -78,6 +80,7 @@ public final class FilobulusClient implements ClientModInitializer {
 		sounds = new SoundBoard(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds.json"),
 				FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds"));
 		sounds.load();
+		cold = new ColdWatch();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> FiloCommand.register(dispatcher));
 		ShaftAlert shaftAlert = new ShaftAlert();
@@ -95,6 +98,7 @@ public final class FilobulusClient implements ClientModInitializer {
 			wisp.tick(minecraft);
 			corpses.tick(minecraft);
 			profit.tick(minecraft);
+			cold.tick(minecraft);
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			shaftLog.close();
@@ -140,6 +144,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static SoundBoard sounds() {
 		return sounds;
+	}
+
+	public static ColdWatch cold() {
+		return cold;
 	}
 
 	public static ProfitWatch profit() {

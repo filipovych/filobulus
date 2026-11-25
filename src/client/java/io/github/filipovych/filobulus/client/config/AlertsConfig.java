@@ -24,6 +24,10 @@ public final class AlertsConfig {
 	@Comment("Show a new best time on a shaft route in big letters.")
 	public static boolean newBest = true;
 
+	@ConfigEntry(id = "coldPotion", translation = "filobulus.config.alerts.coldPotion")
+	@Comment("In a jasper shaft, warn when Cold Resistance is not active and when it has 30 seconds left. Read from the Active Effects widget of your tab list (switch it on in /widgets), your sidebar, or the /effects menu after you opened it. When none of these shows your effects the mod can not know and stays quiet.")
+	public static boolean coldPotion = true;
+
 	private AlertsConfig() {
 	}
 }
