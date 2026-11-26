@@ -21,10 +21,14 @@ public final class FileSoundInstance extends AbstractSoundInstance implements Fa
 	private final Path file;
 
 	public FileSoundInstance(Path file, float volume) {
+		this(file, volume, 1f);
+	}
+
+	public FileSoundInstance(Path file, float volume, float pitch) {
 		super(FabricSoundInstance.EMPTY_SOUND, SoundSource.UI, RandomSource.create());
 		this.file = file;
 		this.volume = volume;
-		this.pitch = 1f;
+		this.pitch = pitch;
 		this.relative = true;
 		this.attenuation = SoundInstance.Attenuation.NONE;
 	}

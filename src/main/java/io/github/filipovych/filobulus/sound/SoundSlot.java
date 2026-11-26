@@ -13,7 +13,9 @@ public enum SoundSlot {
 	CORPSE_GLACITE("Glacite", "Corpse reveal", "bass"),
 	CORPSE_RUBY("Ruby", "Corpse reveal", "xp"),
 	CORPSE_AQUAMARINE("Aquamarine", "Corpse reveal", "level_up"),
-	CORPSE_JASPER("Jasper", "Corpse reveal", "challenge");
+	CORPSE_JASPER("Jasper", "Corpse reveal", "challenge"),
+	COMBO_RANK("Rank up", "Swap combo", "pling"),
+	COMBO_BROKEN("Combo broken", "Swap combo", "glass");
 
 	private final String title;
 	private final String group;

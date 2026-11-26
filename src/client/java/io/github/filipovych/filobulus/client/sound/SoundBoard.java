@@ -105,13 +105,22 @@ public final class SoundBoard {
 
 	// plays what the slot is set to, unless sounds are off
 	public void play(SoundSlot slot) {
+		play(slot, 1f);
+	}
+
+	// pitch is a multiplier on what the slot plays, for sounds that rise
+	public void play(SoundSlot slot, float pitch) {
 		if (SoundsConfig.sounds) {
-			preview(slot);
+			preview(slot, pitch);
 		}
 	}
 
 	// plays it whatever the switch says, for the play button
 	public void preview(SoundSlot slot) {
+		preview(slot, 1f);
+	}
+
+	private void preview(SoundSlot slot, float pitch) {
 		Choice choice = choices.get(slot);
 		float volume = choice.volume() / (float) SoundChoices.FULL;
 		if (choice.key().equals(SoundChoices.NONE) || volume <= 0) {
@@ -121,14 +130,14 @@ public final class SoundBoard {
 		if (choice.isFile()) {
 			Path sound = folder.resolve(choice.fileName());
 			if (Files.isRegularFile(sound)) {
-				minecraft.getSoundManager().play(new FileSoundInstance(sound, volume));
+				minecraft.getSoundManager().play(new FileSoundInstance(sound, volume, pitch));
 				return;
 			}
 		}
 		// a file that is gone plays the slot's own sound instead of nothing
 		BuiltInSounds.BuiltIn builtIn = BuiltInSounds.get(choice.isFile() ? slot.fallback() : choice.key());
 		if (builtIn != null) {
-			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(builtIn.event().get(), builtIn.pitch(), volume));
+			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(builtIn.event().get(), builtIn.pitch() * pitch, volume));
 		}
 	}
 
