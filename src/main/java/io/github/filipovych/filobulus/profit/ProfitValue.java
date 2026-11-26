@@ -35,9 +35,17 @@ public record ProfitValue(List<Line> lines, double coins, int unpriced) {
 		return new ProfitValue(lines, coins, unpriced);
 	}
 
+	// below a minute one sack message would make the rate jump to hundreds of millions
+	public static final long WARMUP_MILLIS = 60_000;
+
 	// coins per hour over the time the player was at it, 0 while that is too short to say
 	public double perHour(long activeMillis) {
-		return activeMillis < 10_000 ? 0 : coins * 3_600_000d / activeMillis;
+		return activeMillis < WARMUP_MILLIS ? 0 : coins * 3_600_000d / activeMillis;
+	}
+
+	// the same with the corpses added, extra is coins that are not items
+	public ProfitValue plus(double extra) {
+		return new ProfitValue(lines, coins + extra, unpriced);
 	}
 
 	// what only the items gained since an earlier moment are worth

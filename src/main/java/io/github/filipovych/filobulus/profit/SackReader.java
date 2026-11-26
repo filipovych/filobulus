@@ -12,6 +12,8 @@ public final class SackReader {
 	private static final Pattern LINE = Pattern.compile("^([+-])(\\d[\\d,]{0,14}) (.+?) \\([^()]*\\)$");
 	// gemstones can come with a small icon in front of their name
 	private static final Pattern ICON = Pattern.compile("^[^A-Za-z0-9]+");
+	// the hover ends with how long the message adds up, like "(Last 30s.)"
+	private static final Pattern WINDOW = Pattern.compile("\\(Last (\\d{1,4})s\\.\\)");
 
 	// amount is negative for what was taken out
 	public record Change(String name, long amount) {
@@ -22,6 +24,15 @@ public final class SackReader {
 
 	public static boolean isSackLine(String chatLine) {
 		return chatLine != null && chatLine.strip().startsWith(PREFIX);
+	}
+
+	// how many seconds of gains the message covers, 0 when it does not say
+	public static long windowMillis(String hover) {
+		if (hover == null) {
+			return 0;
+		}
+		Matcher matcher = WINDOW.matcher(hover);
+		return matcher.find() ? Long.parseLong(matcher.group(1)) * 1000 : 0;
 	}
 
 	// the hover text with its colour codes stripped, lines that are not an item are skipped

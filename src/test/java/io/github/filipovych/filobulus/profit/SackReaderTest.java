@@ -45,4 +45,10 @@ class SackReaderTest {
 		assertTrue(SackReader.read("Added items:\n  and 3 more...\n  +0 Coal (Mining Sack)\n  +x Coal (Mining Sack)").isEmpty());
 		assertTrue(SackReader.read(null).isEmpty());
 	}
+
+	@Test
+	void theHoverSaysHowLongItAddsUp() {
+		assertEquals(30_000, SackReader.windowMillis("Added items:\n  +64 Rough Ruby Gemstone (Gemstones Sack)\n\n(Last 30s.)"));
+		assertEquals(0, SackReader.windowMillis("Added items:"));
+	}
 }

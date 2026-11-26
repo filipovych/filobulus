@@ -28,7 +28,7 @@ class ProfitValueTest {
 	@Test
 	void coinsPerHourNeedSomeTimeToGoBy() {
 		ProfitValue value = ProfitValue.of(Map.of("FLAWED_JASPER_GEM", 100L), PRICES);
-		assertEquals(0, value.perHour(5000));
+		assertEquals(0, value.perHour(59_000));
 		assertEquals(2_400_000, value.perHour(600_000), 0.001);
 	}
 

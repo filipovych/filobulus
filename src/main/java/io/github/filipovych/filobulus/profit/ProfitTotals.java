@@ -8,6 +8,9 @@ import java.util.Map;
 public final class ProfitTotals {
 	private final Map<String, Long> items = new LinkedHashMap<>();
 	private long activeMillis;
+	// corpses opened and what they paid with the keys taken off, in coins at the time they were opened
+	private int corpses;
+	private double corpseCoins;
 	// when the last gain came in, counting is false until there was one
 	private long lastGain;
 	private boolean counting;
@@ -17,6 +20,12 @@ public final class ProfitTotals {
 	}
 
 	// what was saved, the clock of a saved total starts again with the next gain
+	public ProfitTotals(Map<String, Long> items, long activeMillis, int corpses, double corpseCoins) {
+		this(items, activeMillis);
+		this.corpses = Math.max(0, corpses);
+		this.corpseCoins = corpseCoins;
+	}
+
 	public ProfitTotals(Map<String, Long> items, long activeMillis) {
 		items.forEach((id, amount) -> {
 			if (amount > 0) {
@@ -26,9 +35,14 @@ public final class ProfitTotals {
 		this.activeMillis = Math.max(0, activeMillis);
 	}
 
+	public void add(String id, long amount, long now, long idle) {
+		add(id, amount, now, idle, now);
+	}
+
 	// amount can be negative, to take back something that turned out to be no gain
 	// idle is how long after a gain the clock keeps running without another one
-	public void add(String id, long amount, long now, long idle) {
+	// since is when the gain started, a sack message adds up the last 30 seconds, so the first one does not count as 0 seconds
+	public void add(String id, long amount, long now, long idle, long since) {
 		if (amount == 0) {
 			return;
 		}
@@ -40,12 +54,34 @@ public final class ProfitTotals {
 			items.remove(id);
 		}
 		if (amount > 0) {
-			if (counting && now - lastGain <= idle) {
-				activeMillis += Math.max(0, now - lastGain);
-			}
-			lastGain = now;
-			counting = true;
+			activity(now, idle, since);
 		}
+	}
+
+	// a corpse was opened, coins is its loot with the key taken off
+	public void corpse(double coins, long now, long idle) {
+		version++;
+		corpses++;
+		corpseCoins += coins;
+		activity(now, idle, now);
+	}
+
+	private void activity(long now, long idle, long since) {
+		if (counting && now - lastGain <= idle) {
+			activeMillis += Math.max(0, now - lastGain);
+		} else {
+			activeMillis += Math.min(idle, Math.max(0, now - since));
+		}
+		lastGain = now;
+		counting = true;
+	}
+
+	public int corpses() {
+		return corpses;
+	}
+
+	public double corpseCoins() {
+		return corpseCoins;
 	}
 
 	public Map<String, Long> items() {
@@ -53,7 +89,7 @@ public final class ProfitTotals {
 	}
 
 	public boolean isEmpty() {
-		return items.isEmpty();
+		return items.isEmpty() && corpses == 0;
 	}
 
 	// the time since the last gain counts while it is short, and is dropped again when nothing more comes
@@ -68,9 +104,22 @@ public final class ProfitTotals {
 		return version;
 	}
 
+	// takes over what another total holds, the clock starts again with the next gain
+	public void replaceWith(ProfitTotals other) {
+		items.clear();
+		items.putAll(other.items);
+		activeMillis = other.activeMillis;
+		corpses = other.corpses;
+		corpseCoins = other.corpseCoins;
+		counting = false;
+		version++;
+	}
+
 	public void clear() {
 		items.clear();
 		activeMillis = 0;
+		corpses = 0;
+		corpseCoins = 0;
 		counting = false;
 		version++;
 	}
