@@ -18,6 +18,10 @@ public final class JournalConfig {
 	@Comment("Write every mineshaft you enter to the journal: its type, when, and how long you stayed.")
 	public static boolean journal = true;
 
+	@ConfigEntry(id = "party", translation = "filobulus.config.journal.party")
+	@Comment("Show the shafts you joined (found by someone else, you came in through their portal) on a Party tab of the journal, and mark them in its log. A shaft counts as joined when the portal line was not in your chat in the two minutes before.")
+	public static boolean party = true;
+
 	// a new id, the old "recap" was on by default and this one starts off
 	@ConfigEntry(id = "autoRecap", translation = "filobulus.config.journal.recap")
 	@Comment("When you leave a mineshaft, show a small card for a few seconds: what the shaft paid, the rate, the time and the corpses. /filo recap always opens the full recap. Move the card with /filo hud.")

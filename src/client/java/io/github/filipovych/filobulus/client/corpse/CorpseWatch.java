@@ -69,11 +69,12 @@ public final class CorpseWatch {
 		keySavedAt = 0;
 		// empty for a lapis corpse, which costs no key, and while there are no prices
 		Optional<CorpseVerdict> verdict = CorpseVerdict.of(loot, keySaved, prices);
+		long warp = FilobulusClient.shaftLog().warpFee(loot.type());
 		if (JournalConfig.journal) {
 			// a corpse with a key we can not price is written down as looted with no coins
 			double coins = verdict.map(CorpseVerdict::profit)
 					.orElse(loot.type().keyId().isPresent() ? 0 : CorpseVerdict.worth(loot, prices));
-			FilobulusClient.shaftLog().looted(loot.type(), Math.round(coins));
+			FilobulusClient.shaftLog().looted(loot.type(), Math.round(coins) - warp);
 		}
 		if (CorpsesConfig.reveal) {
 			verdict.ifPresent(CrackHud::play);
@@ -84,7 +85,7 @@ public final class CorpseWatch {
 		for (CorpseLoot.Reward reward : loot.rewards()) {
 			CorpseItems.id(reward.name()).ifPresent(id -> items.add(Map.entry(id, reward.amount())));
 		}
-		FilobulusClient.profit().corpse(profit, items);
+		FilobulusClient.profit().corpse(profit - warp, items);
 		loot = null;
 	}
 

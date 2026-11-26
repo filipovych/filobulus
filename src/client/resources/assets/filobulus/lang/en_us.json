@@ -33,7 +33,9 @@
 	"filobulus.config.corpses.reveal": "Corpse reveal",
 	"filobulus.config.corpses.revealSounds": "Reveal sounds",
 	"filobulus.config.corpses.muteOrganDonor": "Mute Organ Donor",
+	"filobulus.config.corpses.vanguardWarpCost": "Vanguard warp cost",
 	"filobulus.config.journal.journal": "Log shafts",
 	"filobulus.config.journal.recap": "Auto recap",
+	"filobulus.config.journal.party": "Party shafts",
 	"filobulus.config.journal.recapSeconds": "Recap seconds"
 }
