@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -8,6 +9,7 @@ import com.teamresourceful.resourcefulconfig.api.client.ResourcefulConfigScreen;
 import io.github.filipovych.filobulus.achievement.Achievement;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.alert.Alerts;
+import io.github.filipovych.filobulus.client.alert.JasperHud;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.TrackerConfig;
@@ -63,6 +65,10 @@ public final class FiloCommand {
 				.then(ClientCommands.literal("hud").executes(FiloCommand::editHud))
 				.then(ClientCommands.literal("alert").executes(FiloCommand::tryAlert))
 				.then(ClientCommands.literal("wisp").executes(FiloCommand::wisp))
+				.then(ClientCommands.literal("jasper")
+						.executes(context -> jasper(context, 0))
+						.then(ClientCommands.argument("dry", IntegerArgumentType.integer(0, 9999))
+								.executes(context -> jasper(context, IntegerArgumentType.getInteger(context, "dry")))))
 				.then(ClientCommands.literal("crack")
 						.executes(context -> crack(context, "jasper"))
 						.then(ClientCommands.argument("tier", StringArgumentType.word())
@@ -112,6 +118,12 @@ public final class FiloCommand {
 	// shows the jasper alert with the sound picked in the settings, to hear it and to see where alerts sit
 	private static int tryAlert(CommandContext<FabricClientCommandSource> context) {
 		Alerts.show("shaft", "JASPER", "This is a test", 0xFF55FF, 1, Alerts.LONG, SoundSlot.JASPER_SHAFT);
+		return 1;
+	}
+
+	// plays the jasper moment, a dry streak of 30 or more shows the big one
+	private static int jasper(CommandContext<FabricClientCommandSource> context, int dry) {
+		JasperHud.play("JASP_1", dry);
 		return 1;
 	}
 

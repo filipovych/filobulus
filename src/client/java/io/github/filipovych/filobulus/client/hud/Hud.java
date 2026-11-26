@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client.hud;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.alert.AlertHud;
+import io.github.filipovych.filobulus.client.alert.JasperHud;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.journal.RecapHud;
@@ -24,7 +25,7 @@ import net.minecraft.resources.Identifier;
 // every panel the mod puts on screen, drawn under the chat
 public final class Hud {
 	public static final List<HudWidget> WIDGETS = List.of(new RouteHud(), new ProfitHud(), new BreakHud(),
-			new RecapHud(), new AlertHud(), new CrackHud(), new SwapHud(), new ComboHud());
+			new RecapHud(), new AlertHud(), new CrackHud(), new SwapHud(), new ComboHud(), new JasperHud());
 
 	// the rectangle a widget covers on screen, scale applied
 	public record Box(int left, int top, int width, int height) {

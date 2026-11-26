@@ -16,6 +16,10 @@ public final class AlertsConfig {
 	@Comment("When you enter a mineshaft, show its type in big letters. A jasper shaft, crystal or not, stays longer and has a sound.")
 	public static boolean shaftType = true;
 
+	@ConfigEntry(id = "jasperMoment", translation = "filobulus.config.alerts.jasperMoment")
+	@Comment("Make entering a jasper shaft an event: frost grows in from the edges of the screen, a crack runs across and JASPER shatters in. After 30 or more shafts without jasper it is bigger and says how dry it was. Needs the shaft type alert. The sound is the Jasper shaft one on the Sounds page.")
+	public static boolean jasperMoment = true;
+
 	@ConfigEntry(id = "wisp", translation = "filobulus.config.alerts.wisp")
 	@Comment("Warn when your Will-o'-wisp has 10 seconds left and when it is gone, 5 minutes after you used it. /filo wisp starts the timer by hand, for a wisp someone else placed.")
 	public static boolean wisp = true;
