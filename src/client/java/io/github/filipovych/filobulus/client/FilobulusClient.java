@@ -13,6 +13,7 @@ import io.github.filipovych.filobulus.client.corpse.CorpseWatch;
 import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.client.journal.ShaftLog;
+import io.github.filipovych.filobulus.client.profit.ProfitControls;
 import io.github.filipovych.filobulus.client.profit.ProfitStore;
 import io.github.filipovych.filobulus.client.profit.ProfitWatch;
 import io.github.filipovych.filobulus.client.render.RouteRenderer;
@@ -98,6 +99,7 @@ public final class FilobulusClient implements ClientModInitializer {
 		profit = new ProfitWatch(
 				new ProfitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("profit.json")), PRICES);
 		profit.register();
+		ProfitControls.register();
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			tracker.tick(minecraft);
 			shaftLog.tick(minecraft);
