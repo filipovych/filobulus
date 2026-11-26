@@ -33,6 +33,10 @@ public final class JournalConfig {
 	@ConfigOption.Slider
 	public static int recapSeconds = 10;
 
+	@ConfigEntry(id = "achievements", translation = "filobulus.config.journal.achievements")
+	@Comment("Unlock achievements from what the journal logs. What you earn while this is off is unlocked quietly when you switch it back on.")
+	public static boolean achievements = true;
+
 	@ConfigButton(title = "Shaft recap", text = "Open")
 	@Comment("The last shaft you were in, and the ones before it. Also at /filo recap.")
 	public static final Runnable openRecap = () -> {

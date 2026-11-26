@@ -33,6 +33,7 @@
 	"filobulus.config.alerts.coldPotion": "Cold potion alert",
 	"filobulus.config.alerts.portal": "Portal closing alert",
 	"filobulus.config.alerts.achievements": "Achievement alert",
+	"filobulus.config.alerts.achievementChat": "Achievement chat line",
 	"filobulus.config.sounds.sounds": "Play sounds",
 	"filobulus.config.corpses.reveal": "Corpse reveal",
 	"filobulus.config.corpses.revealSounds": "Reveal sounds",
@@ -41,5 +42,6 @@
 	"filobulus.config.journal.journal": "Log shafts",
 	"filobulus.config.journal.recap": "Auto recap",
 	"filobulus.config.journal.party": "Party shafts",
-	"filobulus.config.journal.recapSeconds": "Recap seconds"
+	"filobulus.config.journal.recapSeconds": "Recap seconds",
+	"filobulus.config.journal.achievements": "Unlock achievements"
 }

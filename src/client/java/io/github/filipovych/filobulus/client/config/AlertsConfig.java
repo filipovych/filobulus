@@ -37,8 +37,12 @@ public final class AlertsConfig {
 	public static boolean portal = true;
 
 	@ConfigEntry(id = "achievements", translation = "filobulus.config.alerts.achievements")
-	@Comment("Show an achievement in big letters when you earn it. /filo achievements lists them.")
+	@Comment("Show an achievement in big letters when you earn it, in the colour of its rarity. /filo achievements shows them all.")
 	public static boolean achievements = true;
+
+	@ConfigEntry(id = "achievementChat", translation = "filobulus.config.alerts.achievementChat")
+	@Comment("Also write a line in chat for every achievement you earn.")
+	public static boolean achievementChat = true;
 
 	private AlertsConfig() {
 	}

@@ -6,7 +6,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.teamresourceful.resourcefulconfig.api.client.ResourcefulConfigScreen;
-import io.github.filipovych.filobulus.achievement.Achievement;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.alert.JasperHud;
@@ -30,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -77,7 +75,6 @@ public final class FiloCommand {
 								.executes(context -> crack(context, StringArgumentType.getString(context, "tier")))))
 				.then(ClientCommands.literal("recap").executes(FiloCommand::recap))
 				.then(ClientCommands.literal("sounds").executes(FiloCommand::openSounds))
-				.then(ClientCommands.literal("achievements").executes(FiloCommand::achievements))
 				.then(ClientCommands.literal("profit")
 						.then(ClientCommands.literal("reset").executes(FiloCommand::resetProfit)))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
@@ -148,20 +145,6 @@ public final class FiloCommand {
 	private static int openSounds(CommandContext<FabricClientCommandSource> context) {
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new SoundsScreen(null)));
-		return 1;
-	}
-
-	// every achievement, the ones earned with the day they came
-	private static int achievements(CommandContext<FabricClientCommandSource> context) {
-		Map<Achievement, Long> unlocked = FilobulusClient.achievements().unlocked();
-		say(context, "Achievements " + unlocked.size() + "/" + Achievement.values().length);
-		for (Achievement achievement : Achievement.values()) {
-			Long at = unlocked.get(achievement);
-			context.getSource().sendFeedback(Component.literal(at != null ? " + " : " - ")
-					.withStyle(at != null ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY)
-					.append(Component.literal(achievement.title()).withStyle(at != null ? ChatFormatting.WHITE : ChatFormatting.GRAY))
-					.append(Component.literal("  " + achievement.description()).withStyle(ChatFormatting.GRAY)));
-		}
 		return 1;
 	}
 
