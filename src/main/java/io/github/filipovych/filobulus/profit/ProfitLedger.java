@@ -3,6 +3,7 @@ package io.github.filipovych.filobulus.profit;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 // decides what counts as a gain: items that show up in the sacks or in the inventory
 // moving items between the two is no gain, so each move is held against the other side for a minute
@@ -30,6 +31,10 @@ public final class ProfitLedger {
 	private final List<Move> leftInventory = new ArrayList<>();
 	// came into the inventory, a sack line that comes later may say where from
 	private final List<Move> arrived = new ArrayList<>();
+	// loot of a corpse, already counted as the corpse, so it is no gain when it lands in the sacks or the inventory
+	private final List<Move> fromCorpse = new ArrayList<>();
+	// left the inventory with no menu open, a compactor or the crafting grid may turn it into something else
+	private final List<Move> used = new ArrayList<>();
 	private long quietUntil;
 	private long idle = 60_000;
 
@@ -46,14 +51,33 @@ public final class ProfitLedger {
 		quietUntil = now + WINDOW;
 	}
 
-	// a line of a sack message, amount is negative for what was taken out
 	public void sack(String id, long amount, long now) {
+		sack(id, amount, now, 0);
+	}
+
+	// a corpse was opened, its coins count once and its items do not count again when they arrive
+	public void corpse(double coins, List<Map.Entry<String, Long>> items, long now) {
+		prune(now);
+		for (Map.Entry<String, Long> item : items) {
+			fromCorpse.add(new Move(item.getKey(), now, item.getValue(), false));
+		}
+		for (ProfitTotals each : totals) {
+			each.corpse(coins, now, idle);
+		}
+	}
+
+	// a line of a sack message, amount is negative for what was taken out
+	// window is how long the message adds up, the clock is started that far back when it was not running
+	public void sack(String id, long amount, long now, long window) {
 		prune(now);
 		if (amount > 0) {
 			if (now < quietUntil) {
 				return;
 			}
-			credit(id, amount - take(leftInventory, id, amount), now);
+			long left = amount - take(fromCorpse, id, amount);
+			if (left > 0) {
+				credit(id, left - take(leftInventory, id, left), now, now - window);
+			}
 			return;
 		}
 		long left = -amount;
@@ -67,7 +91,7 @@ public final class ProfitLedger {
 			move.amount -= part;
 			left -= part;
 			if (move.counted) {
-				credit(id, -part, now);
+				credit(id, -part, now, now);
 			}
 		}
 		if (left > 0) {
@@ -83,17 +107,31 @@ public final class ProfitLedger {
 			// putting items into a sack happens in its menu, anything else that leaves is not coming back as loot
 			if (!counted) {
 				leftInventory.add(new Move(id, now, -delta, false));
+			} else {
+				used.add(new Move(id, now, -delta, false));
 			}
 			return;
 		}
 		long gained = delta - take(leftSacks, id, delta);
+		if (gained > 0) {
+			gained -= take(fromCorpse, id, gained);
+		}
 		if (gained <= 0) {
 			return;
 		}
 		if (counted) {
-			credit(id, gained, now);
+			credit(id, gained, now, now);
+			compacted(id, gained, now);
 		}
 		arrived.add(new Move(id, now, gained, counted));
+	}
+
+	// 80 rough turning into 1 flawed is no new loot, the rough that went into it is taken back off
+	private void compacted(String output, long gained, long now) {
+		Compaction.of(output).ifPresent(recipe -> {
+			long taken = take(used, recipe.input(), recipe.count() * gained);
+			credit(recipe.input(), -taken, now, now);
+		});
 	}
 
 	// uses up to amount of what is waiting for that item, gives back how much it was
@@ -112,14 +150,17 @@ public final class ProfitLedger {
 		return taken;
 	}
 
-	private void credit(String id, long amount, long now) {
+	private void credit(String id, long amount, long now, long since) {
+		if (amount == 0) {
+			return;
+		}
 		for (ProfitTotals each : totals) {
-			each.add(id, amount, now, idle);
+			each.add(id, amount, now, idle, since);
 		}
 	}
 
 	private void prune(long now) {
-		for (List<Move> moves : List.of(leftSacks, leftInventory, arrived)) {
+		for (List<Move> moves : List.of(leftSacks, leftInventory, arrived, fromCorpse, used)) {
 			for (Iterator<Move> each = moves.iterator(); each.hasNext();) {
 				Move move = each.next();
 				if (move.amount <= 0 || now - move.at > WINDOW) {

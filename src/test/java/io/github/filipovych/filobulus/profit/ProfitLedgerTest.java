@@ -118,4 +118,28 @@ class ProfitLedgerTest {
 		assertEquals(0, session.activeMillis(2 * SECOND, 60 * SECOND));
 		assertEquals(Map.of(JASPER, 1064L), allTime.items());
 	}
+
+	@Test
+	void theFirstSackMessageStartsTheClockAsFarBackAsItAddsUp() {
+		ledger.sack(JASPER, 64, 100 * SECOND, 30 * SECOND);
+		assertEquals(30 * SECOND, session.activeMillis(100 * SECOND, 60 * SECOND));
+	}
+
+	@Test
+	void corpseLootCountsOnceAsTheCorpse() {
+		ledger.corpse(2_000_000, List.of(Map.entry(JASPER, 2L)), SECOND);
+		ledger.sack(JASPER, 2, 2 * SECOND);
+		ledger.inventory(JASPER, 1, 3 * SECOND, true);
+		assertEquals(Map.of(JASPER, 1L), session.items());
+		assertEquals(1, session.corpses());
+		assertEquals(2_000_000, session.corpseCoins());
+	}
+
+	@Test
+	void aCompactorDoesNotCountTwice() {
+		ledger.inventory("ROUGH_RUBY_GEM", 80, SECOND, true);
+		ledger.inventory("ROUGH_RUBY_GEM", -80, 2 * SECOND, true);
+		ledger.inventory("FLAWED_RUBY_GEM", 1, 2 * SECOND, true);
+		assertEquals(Map.of("FLAWED_RUBY_GEM", 1L), session.items());
+	}
 }
