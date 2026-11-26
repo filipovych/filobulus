@@ -1,8 +1,11 @@
 package io.github.filipovych.filobulus.client.alert;
 
+import io.github.filipovych.filobulus.alert.JasperStorm;
+import io.github.filipovych.filobulus.alert.JasperStorm.Cell;
+import io.github.filipovych.filobulus.alert.JasperStorm.Flake;
+import io.github.filipovych.filobulus.alert.JasperStorm.Spot;
 import io.github.filipovych.filobulus.alert.JasperTimeline;
 import io.github.filipovych.filobulus.alert.JasperTimeline.Frame;
-import io.github.filipovych.filobulus.alert.JasperTimeline.Segment;
 import io.github.filipovych.filobulus.alert.JasperTimeline.Shard;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
@@ -26,9 +29,10 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 
-// the jasper moment: frost creeps in from the screen edges, a pink crack runs across and JASPER shatters in
-// the frost and the crack cover the whole screen, the words sit where the player put this widget
-// what is drawn when comes from JasperTimeline, here it is only put on screen with plain fills
+// the jasper moment: a gust of snow blows round the edges of the screen, frost creeps into the corners
+// and JASPER shatters in, the middle of the screen stays clear the whole time
+// the storm goes by the whole screen, the words sit where the player put this widget
+// what is drawn when comes from JasperTimeline and JasperStorm, here it is only put on screen with plain fills
 public final class JasperHud implements HudWidget {
 	private static final int WIDTH = 200;
 	private static final int HEIGHT = 54;
@@ -38,31 +42,37 @@ public final class JasperHud implements HudWidget {
 	private static final int SUBTITLE_Y = 31;
 	private static final int DRY_Y = 43;
 	private static final float TITLE_SCALE = 2.5f;
-	// the frost reaches this far into the screen at most, of its shorter side
-	private static final float FROST_REACH = 0.2f;
-	private static final int BANDS = 10;
-	private static final int ICICLE_GAP = 3;
+	// the corner frost reaches this far into the screen, of its shorter side
+	private static final float FROST_REACH = 0.28f;
+	private static final float BOTTOM_FROST = 0.6f;
 	private static final float GRAVITY = 30;
+	// the shards are blown along with the snow a bit
+	private static final float WIND = 26;
 	// text this faint is not worth drawing, and the game shows an alpha of zero as solid
 	private static final int MIN_ALPHA = 10;
 	// rgb
 	private static final int PINK = ShaftColors.of(ShaftMaterial.JASPER) & 0xFFFFFF;
-	private static final int CRACK_DARK = 0x6A1060;
-	private static final int CRACK_LIGHT = 0xFFB0F4;
+	private static final int PALE_PINK = 0xFFB0F4;
 	private static final int FROST = 0xA8DDFF;
-	private static final int ICICLE = 0xE6F7FF;
+	private static final int ICE = 0xE6F7FF;
+	private static final int SHADOW = 0x2A4870;
 	private static final int SUBTITLE = 0xE0E0E0;
 	private static final int WHITE = 0xFFFFFF;
 	private static final Component TITLE = Component.literal("JASPER").withStyle(ChatFormatting.BOLD);
 	// the editor shows the words once they settled, without the frost over the whole screen
 	private static final Scene SAMPLE = new Scene("JASP_1", 47, 2400, false);
 
-	// one moment with its words and its crack made once, at is the moment it is frozen on or -1 while it plays
-	private record Scene(Component subtitle, Component dry, boolean big, int seed, List<Segment> crack, long at,
-			boolean screen) implements HudDrawable {
+	// one moment with its words, flakes and frost made once, at is the moment it is frozen on or -1 while it plays
+	private record Scene(Component subtitle, Component dry, boolean big, int seed, List<Flake> flakes,
+			List<List<Cell>> corners, long at, boolean screen) implements HudDrawable {
 		Scene(String code, int dry, long at, boolean screen) {
-			this(Component.literal(code), Component.literal("DRY " + dry).withStyle(ChatFormatting.BOLD),
-					JasperTimeline.big(dry), code.hashCode() + dry, JasperTimeline.crack(code.hashCode() + dry), at, screen);
+			this(code, dry, JasperTimeline.big(dry), code.hashCode() + dry, at, screen);
+		}
+
+		private Scene(String code, int dry, boolean big, int seed, long at, boolean screen) {
+			this(Component.literal(code), Component.literal("DRY " + dry).withStyle(ChatFormatting.BOLD), big, seed,
+					JasperStorm.flakes(seed, big), List.of(JasperStorm.frost(seed), JasperStorm.frost(seed + 1),
+							JasperStorm.frost(seed + 2), JasperStorm.frost(seed + 3)), at, screen);
 		}
 
 		@Override
@@ -131,10 +141,11 @@ public final class JasperHud implements HudWidget {
 		if (scene.screen()) {
 			graphics.pose().pushMatrix();
 			try {
-				// the frost and the crack go by the whole screen and not by where the widget sits
+				// the storm goes by the whole screen and not by where the widget sits
 				graphics.pose().identity();
-				drawFrost(graphics, scene.seed(), frame.frost(), graphics.guiWidth(), graphics.guiHeight());
-				drawCrack(graphics, scene.crack(), frame, graphics.guiWidth(), graphics.guiHeight());
+				drawFrost(graphics, scene, frame.frost(), elapsed, graphics.guiWidth(), graphics.guiHeight());
+				drawSnow(graphics, JasperStorm.spots(scene.flakes(), scene.seed(), frame.gust(), frame.drift()),
+						graphics.guiWidth(), graphics.guiHeight());
 			} finally {
 				graphics.pose().popMatrix();
 			}
@@ -166,123 +177,84 @@ public final class JasperHud implements HudWidget {
 		}
 		alpha = Math.round(frame.dry() * 255);
 		if (alpha >= MIN_ALPHA) {
-			graphics.text(font, scene.dry(), CX - font.width(scene.dry()) / 2, DRY_Y, alpha << 24 | CRACK_LIGHT, true);
+			graphics.text(font, scene.dry(), CX - font.width(scene.dry()) / 2, DRY_Y, alpha << 24 | PALE_PINK, true);
 		}
 	}
 
-	// a soft icy border made of bands that get fainter inwards, then short icicles growing in from every edge
-	private static void drawFrost(GuiGraphicsExtractor graphics, int seed, float frost, int width, int height) {
-		float reach = Math.min(width, height) * FROST_REACH * frost;
-		if (reach < 1) {
+	// pixel frost in the four corners like the powder snow overlay but small, a pink light runs through it on the hit
+	private static void drawFrost(GuiGraphicsExtractor graphics, Scene scene, float frost, long elapsed, int width,
+			int height) {
+		if (frost <= 0) {
 			return;
 		}
-		for (int band = 0; band < BANDS; band++) {
-			int inner = Math.round(reach * band / BANDS);
-			int outer = Math.round(reach * (band + 1) / BANDS);
-			float fade = 1 - band / (float) BANDS;
-			int alpha = Math.round(90 * fade * fade * frost);
-			if (alpha < MIN_ALPHA || outer <= inner) {
+		int cell = Math.max(2, Math.round(Math.min(width, height) * FROST_REACH / JasperStorm.CELLS));
+		for (int corner = 0; corner < 4; corner++) {
+			boolean right = corner % 2 == 1;
+			boolean bottom = corner >= 2;
+			for (Cell bit : scene.corners().get(corner)) {
+				// less of it at the bottom, the chat and the hotbar are there
+				if (bottom && bit.at() > BOTTOM_FROST) {
+					continue;
+				}
+				// it grows in from the corner and melts back into it
+				float there = Math.min(1, (frost - bit.at()) * 5);
+				if (there <= 0) {
+					continue;
+				}
+				float shine = JasperStorm.shine(bit.at(), elapsed, scene.big()) * 0.8f;
+				if (bit.glint()) {
+					// a few bits twinkle pink the whole time
+					shine = Math.max(shine, 0.5f + 0.5f * (float) Math.sin(elapsed / 180.0 + bit.at() * 20));
+				}
+				int alpha = Math.round(210 * bit.shade() * there * Math.max(0.6f, shine));
+				if (alpha < MIN_ALPHA) {
+					continue;
+				}
+				int rgb = shine > 0.35f ? PALE_PINK : bit.shade() > 0.7f ? ICE : FROST;
+				int x = right ? width - (bit.dx() + 1) * cell : bit.dx() * cell;
+				int y = bottom ? height - (bit.dy() + 1) * cell : bit.dy() * cell;
+				graphics.fill(x, y, x + cell, y + cell, alpha << 24 | rgb);
+			}
+		}
+	}
+
+	// the flakes as little pixel shapes like the game's snow, each with a faint streak behind it in the wind
+	private static void drawSnow(GuiGraphicsExtractor graphics, List<Spot> spots, int width, int height) {
+		for (Spot spot : spots) {
+			int alpha = Math.round(spot.alpha() * 255);
+			if (alpha < MIN_ALPHA) {
 				continue;
 			}
-			int color = alpha << 24 | FROST;
-			graphics.fill(0, inner, width, outer, color);
-			graphics.fill(0, height - outer, width, height - inner, color);
-			graphics.fill(inner, outer, outer, height - outer, color);
-			graphics.fill(width - outer, outer, width - inner, height - outer, color);
-		}
-		int alpha = Math.round(90 * frost);
-		if (alpha < MIN_ALPHA) {
-			return;
-		}
-		int color = alpha << 24 | ICICLE;
-		int index = 0;
-		// uneven gaps and mostly short ones with now and then a long one, so it does not look like a comb
-		for (int x = 0; x < width; x += ICICLE_GAP + Math.round(4 * JasperTimeline.noise(seed, index++))) {
-			icicle(graphics, x, 0, reach, JasperTimeline.noise(seed, index++), true, 1, color);
-			icicle(graphics, x, height, reach * 0.7f, JasperTimeline.noise(seed, index++), true, -1, color);
-		}
-		for (int y = 0; y < height; y += ICICLE_GAP + Math.round(4 * JasperTimeline.noise(seed, index++))) {
-			icicle(graphics, 0, y, reach * 0.8f, JasperTimeline.noise(seed, index++), false, 1, color);
-			icicle(graphics, width, y, reach * 0.8f, JasperTimeline.noise(seed, index++), false, -1, color);
+			int rgb = switch (spot.tint()) {
+				case WHITE -> WHITE;
+				case ICE -> ICE;
+				case PINK -> PINK;
+			};
+			int x = Math.round(spot.x() * width);
+			int y = Math.round(spot.y() * height);
+			int tail = Math.round(spot.tail() * width);
+			int faint = Math.round(alpha * (spot.size() == 1 && tail > 8 ? 0.45f : 0.3f));
+			if (tail > 1 && faint >= MIN_ALPHA) {
+				graphics.fill(x - tail, y, x, y + 1, faint << 24 | rgb);
+			}
+			if (spot.size() > 1) {
+				// a dark copy one pixel down and right, white on a bright sky is hard to see without it
+				flake(graphics, x + 1, y + 1, spot.size(), alpha / 2 << 24 | SHADOW);
+			}
+			flake(graphics, x, y, spot.size(), alpha << 24 | rgb);
 		}
 	}
 
-	// grows from the edge at x,y inwards, two pixels thick near the edge and one further in
-	private static void icicle(GuiGraphicsExtractor graphics, int x, int y, float reach, float roll, boolean down, int way,
-			int color) {
-		int length = Math.round(reach * (0.1f + 0.9f * roll * roll * roll));
-		if (length < 1) {
-			return;
-		}
-		int root = length / 3;
-		if (down) {
-			int from = way > 0 ? y : y - length;
-			graphics.fill(x, from, x + 1, from + length, color);
-			graphics.fill(x + 1, way > 0 ? y : y - root, x + 2, way > 0 ? y + root : y, color);
-		} else {
-			int from = way > 0 ? x : x - length;
-			graphics.fill(from, y, from + length, y + 1, color);
-			graphics.fill(way > 0 ? x : x - root, y + 1, way > 0 ? x + root : x, y + 2, color);
-		}
-	}
-
-	// every segment grows while the crack runs over its part, drawn as small squares with a dark rim
-	private static void drawCrack(GuiGraphicsExtractor graphics, List<Segment> crack, Frame frame, int width, int height) {
-		int alpha = Math.round(frame.crackAlpha() * 255);
-		if (alpha < MIN_ALPHA || frame.crack() <= 0) {
-			return;
-		}
-		int dark = Math.round(alpha * 0.6f) << 24 | CRACK_DARK;
-		int light = alpha << 24 | CRACK_LIGHT;
-		int pink = alpha << 24 | PINK;
-		for (Segment segment : crack) {
-			float grown = Math.min(1, (frame.crack() - segment.from()) / (segment.to() - segment.from()));
-			if (grown <= 0) {
-				continue;
-			}
-			float x1 = segment.x1() * width;
-			float y1 = segment.y1() * height;
-			float x2 = x1 + (segment.x2() * width - x1) * grown;
-			float y2 = y1 + (segment.y2() * height - y1) * grown;
-			if (segment.branch()) {
-				line(graphics, x1, y1, x2, y2, 0, pink);
-			} else {
-				line(graphics, x1, y1, x2, y2, 1, dark);
-				line(graphics, x1, y1, x2, y2, 0, light);
+	private static void flake(GuiGraphicsExtractor graphics, int x, int y, int size, int color) {
+		switch (size) {
+			case 1 -> graphics.fill(x, y, x + 1, y + 1, color);
+			case 2 -> graphics.fill(x, y, x + 2, y + 2, color);
+			default -> {
+				// a little plus, the biggest flakes
+				graphics.fill(x - 1, y, x + 2, y + 1, color);
+				graphics.fill(x, y - 1, x + 1, y + 2, color);
 			}
 		}
-	}
-
-	// a line as a few runs of pixels, one fill per run and not one per pixel, rim widens it on every side
-	private static void line(GuiGraphicsExtractor graphics, float x1, float y1, float x2, float y2, int rim, int color) {
-		boolean flat = Math.abs(x2 - x1) >= Math.abs(y2 - y1);
-		float from = flat ? x1 : y1;
-		float to = flat ? x2 : y2;
-		int start = Math.round(Math.min(from, to));
-		int end = Math.round(Math.max(from, to));
-		int runStart = start;
-		int runAt = across(x1, y1, x2, y2, flat, start);
-		for (int at = start + 1; at <= end + 1; at++) {
-			int here = at > end ? Integer.MIN_VALUE : across(x1, y1, x2, y2, flat, at);
-			if (here == runAt) {
-				continue;
-			}
-			if (flat) {
-				graphics.fill(runStart - rim, runAt - rim, at + rim, runAt + 1 + rim, color);
-			} else {
-				graphics.fill(runAt - rim, runStart - rim, runAt + 1 + rim, at + rim, color);
-			}
-			runStart = at;
-			runAt = here;
-		}
-	}
-
-	// where the line is across its main direction at a point along it
-	private static int across(float x1, float y1, float x2, float y2, boolean flat, int at) {
-		float from = flat ? x1 : y1;
-		float to = flat ? x2 : y2;
-		float t = to == from ? 0 : (at - from) / (to - from);
-		return Math.round(flat ? y1 + (y2 - y1) * t : x1 + (x2 - x1) * t);
 	}
 
 	// small pink and white chips flying out of the word, they slow down, drop a bit and shrink
@@ -296,7 +268,8 @@ public final class JasperHud implements HudWidget {
 			float size = shard.size() * (1 - burst * 0.6f);
 			graphics.pose().pushMatrix();
 			try {
-				graphics.pose().translate(CX + shard.dx() * out, TITLE_MID + shard.dy() * out + GRAVITY * burst * burst);
+				graphics.pose().translate(CX + shard.dx() * out + WIND * burst,
+						TITLE_MID + shard.dy() * out + GRAVITY * burst * burst);
 				graphics.pose().rotate(shard.spin() * burst);
 				graphics.pose().scale(size, size);
 				graphics.fill(-1, 0, 1, 1, alpha << 24 | (shard.white() ? WHITE : PINK));

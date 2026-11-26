@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.filipovych.filobulus.alert.JasperTimeline.Frame;
-import io.github.filipovych.filobulus.alert.JasperTimeline.Segment;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class JasperTimelineTest {
@@ -29,7 +27,7 @@ class JasperTimelineTest {
 			assertEquals(start, JasperTimeline.at(-100, big));
 			Frame end = JasperTimeline.at(JasperTimeline.total(big), big);
 			assertEquals(0, end.frost());
-			assertEquals(0, end.crackAlpha());
+			assertEquals(0, end.gust());
 			assertEquals(0, end.title());
 			assertEquals(0, end.subtitle());
 			assertEquals(0, end.dry());
@@ -58,11 +56,38 @@ class JasperTimelineTest {
 	}
 
 	@Test
-	void theCrackRunsAcrossBeforeTheTitleLands() {
+	void theGustBlowsInAndDiesDownBeforeTheEnd() {
+		for (boolean big : new boolean[] {false, true}) {
+			long hit = JasperTimeline.hit(big);
+			assertEquals(1, JasperTimeline.at(hit, big).gust());
+			assertTrue(JasperTimeline.at(100, big).gust() > 0);
+			float last = 1;
+			for (long t = hit; t <= JasperTimeline.total(big); t += 10) {
+				float gust = JasperTimeline.at(t, big).gust();
+				assertTrue(gust <= last, "at " + t);
+				last = gust;
+			}
+			assertEquals(0, JasperTimeline.at(JasperTimeline.total(big) - 200, big).gust());
+		}
+	}
+
+	@Test
+	void theSnowOnlyEverMovesOneWayAndSlowsDown() {
+		float last = 0;
+		float step = Float.MAX_VALUE;
+		for (long t = 100; t <= JasperTimeline.total(false); t += 100) {
+			float drift = JasperTimeline.at(t, false).drift();
+			assertTrue(drift >= last, "at " + t);
+			assertTrue(drift - last <= step + 0.0001f, "at " + t);
+			step = drift - last;
+			last = drift;
+		}
+		assertTrue(JasperTimeline.at(1000, false).drift() > 0.5f);
+	}
+
+	@Test
+	void theTitleLandsOnTheHit() {
 		long hit = JasperTimeline.hit(false);
-		assertEquals(0, JasperTimeline.at(150, false).crack());
-		assertEquals(0.5f, JasperTimeline.at((150 + hit) / 2, false).crack(), CLOSE);
-		assertEquals(1, JasperTimeline.at(hit, false).crack());
 		assertEquals(0, JasperTimeline.at(hit - 1, false).title());
 		assertEquals(0, JasperTimeline.at(hit - 1, false).titleScale());
 		assertEquals(-1, JasperTimeline.at(hit - 1, false).burst());
@@ -108,29 +133,6 @@ class JasperTimelineTest {
 			assertFalse(JasperTimeline.lands(JasperTimeline.hit(big), JasperTimeline.hit(big) + 50, big));
 			assertTrue(JasperTimeline.lands(JasperTimeline.hit(big) - 1, JasperTimeline.hit(big), big));
 		}
-	}
-
-	@Test
-	void theCrackGoesFromEdgeToEdgeInOnePiece() {
-		for (int seed = 0; seed < 50; seed++) {
-			List<Segment> crack = JasperTimeline.crack(seed);
-			assertEquals(crack, JasperTimeline.crack(seed));
-			List<Segment> main = crack.stream().filter(segment -> !segment.branch()).toList();
-			assertEquals(0, main.getFirst().x1());
-			assertEquals(1, main.getLast().x2(), CLOSE);
-			for (int i = 1; i < main.size(); i++) {
-				assertEquals(main.get(i - 1).x2(), main.get(i).x1());
-				assertEquals(main.get(i - 1).y2(), main.get(i).y1());
-				assertEquals(main.get(i - 1).to(), main.get(i).from(), CLOSE);
-			}
-			for (Segment segment : crack) {
-				assertTrue(segment.y1() > 0.05f && segment.y1() < 0.95f);
-				assertTrue(segment.y2() > 0.05f && segment.y2() < 0.95f);
-				assertTrue(segment.from() < segment.to() && segment.to() <= 1);
-			}
-			assertTrue(crack.size() > main.size());
-		}
-		assertFalse(JasperTimeline.crack(1).equals(JasperTimeline.crack(2)));
 	}
 
 	@Test

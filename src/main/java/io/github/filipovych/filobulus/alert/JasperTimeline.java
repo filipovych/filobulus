@@ -3,14 +3,16 @@ package io.github.filipovych.filobulus.alert;
 import java.util.ArrayList;
 import java.util.List;
 
-// the jasper moment as a function of time: frost grows in from the edges, a crack runs across, the title shatters in
+// the jasper moment as a function of time: a gust of snow blows in round the edges, frost grows in the corners
+// and the title shatters in
 // the big one is for a jasper that ends a long dry streak, it lasts longer and throws more shards
 // the same time always gives the same frame, so the hud can ask every frame and nothing is stored
 public final class JasperTimeline {
 	// a dry streak this long gets the big one
 	public static final int BIG_DRY = 30;
 
-	public record Frame(float frost, float crack, float crackAlpha, float titleScale, float title, float burst, float flash,
+	// gust is how strong the wind blows, drift how far it has carried the snow so far
+	public record Frame(float frost, float gust, float drift, float titleScale, float title, float burst, float flash,
 			float subtitle, float dry) {
 	}
 
@@ -18,21 +20,18 @@ public final class JasperTimeline {
 	public record Shard(float dx, float dy, float spin, int size, boolean white) {
 	}
 
-	// a piece of the crack from x1,y1 to x2,y2, everything 0 to 1 of the screen
-	// from and to is the part of the crack run where it grows, so it is drawn bit by bit
-	public record Segment(float x1, float y1, float x2, float y2, float from, float to, boolean branch) {
+	// calm is how long after the hit the gust keeps blowing before it dies down
+	private record Times(long total, long frostIn, long hit, long burst, float startScale, long calm) {
 	}
 
-	private record Times(long total, long frostIn, long hit, long burst, float startScale) {
-	}
-
-	private static final Times NORMAL = new Times(3200, 900, 550, 800, 3.5f);
-	private static final Times BIG = new Times(4600, 1300, 750, 1150, 5f);
-	private static final long CRACK_START = 150;
+	private static final Times NORMAL = new Times(3200, 900, 550, 800, 3.5f, 250);
+	private static final Times BIG = new Times(4600, 1300, 750, 1150, 5f, 450);
+	private static final long GUST_IN = 350;
 	private static final long FADE = 500;
+	// how far the snow is blown in all, in screen widths for a flake of speed 1
+	private static final float DRIFT = 1.6f;
 	private static final List<Shard> SHARDS = shards(12, 11);
 	private static final List<Shard> BIG_SHARDS = shards(28, 29);
-	private static final int CRACK_STEPS = 16;
 
 	private JasperTimeline() {
 	}
@@ -57,10 +56,12 @@ public final class JasperTimeline {
 		float fade = 1 - ramp(t, times.total() - FADE, times.total());
 		boolean landed = t >= hit;
 		float drop = out(ramp(t, hit, hit + 300));
+		float calm = ramp(t, hit + times.calm(), times.total() - 200);
 		return new Frame(
 				out(ramp(t, 0, times.frostIn())) * fade,
-				ramp(t, CRACK_START, hit),
-				t > CRACK_START ? fade : 0,
+				out(ramp(t, 0, GUST_IN)) * (1 - calm * calm * (3 - 2 * calm)),
+				// fast while the gust blows in and slower and slower after, the same speed for the big one
+				DRIFT * out(ramp(t, 0, times.total())) * times.total() / NORMAL.total(),
 				landed ? 1 + (times.startScale() - 1) * (1 - drop) : 0,
 				landed ? ramp(t, hit, hit + 120) * fade : 0,
 				landed ? ramp(t, hit, hit + times.burst()) : -1,
@@ -77,33 +78,6 @@ public final class JasperTimeline {
 
 	public static List<Shard> shards(boolean big) {
 		return big ? BIG_SHARDS : SHARDS;
-	}
-
-	// a jagged line from the left edge to the right one with a couple of branches, seed picks which one
-	public static List<Segment> crack(int seed) {
-		List<Segment> segments = new ArrayList<>();
-		float x = 0;
-		float y = 0.38f + 0.24f * noise(seed, 0);
-		for (int step = 0; step < CRACK_STEPS; step++) {
-			float nx = (step + 1) / (float) CRACK_STEPS;
-			// small zig zags, pulled back towards the middle so it does not wander off
-			float ny = clamp(y + (noise(seed, step + 1) - 0.5f) * 0.12f + (0.5f - y) * 0.15f, 0.2f, 0.8f);
-			float from = step / (float) CRACK_STEPS;
-			float to = (step + 1) / (float) CRACK_STEPS;
-			segments.add(new Segment(x, y, nx, ny, from, to, false));
-			// every few steps a short branch splits off up or down
-			if (step % 5 == 2) {
-				float up = noise(seed, step + 40) < 0.5f ? -1 : 1;
-				float bx = nx + 0.03f + 0.03f * noise(seed, step + 60);
-				float by = ny + up * (0.06f + 0.05f * noise(seed, step + 80));
-				segments.add(new Segment(nx, ny, bx, by, to, Math.min(1, to + 0.12f), true));
-				segments.add(new Segment(bx, by, bx + 0.025f, by + up * 0.04f, Math.min(1, to + 0.12f),
-						Math.min(1, to + 0.2f), true));
-			}
-			x = nx;
-			y = ny;
-		}
-		return List.copyOf(segments);
 	}
 
 	// a number between 0 and 1 that is always the same for the same seed and index
@@ -145,9 +119,5 @@ public final class JasperTimeline {
 	private static float out(float x) {
 		float u = 1 - x;
 		return 1 - u * u * u;
-	}
-
-	private static float clamp(float value, float min, float max) {
-		return Math.max(min, Math.min(max, value));
 	}
 }

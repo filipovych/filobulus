@@ -17,7 +17,7 @@ public final class AlertsConfig {
 	public static boolean shaftType = true;
 
 	@ConfigEntry(id = "jasperMoment", translation = "filobulus.config.alerts.jasperMoment")
-	@Comment("Make entering a jasper shaft an event: frost grows in from the edges of the screen, a crack runs across and JASPER shatters in. After 30 or more shafts without jasper it is bigger and says how dry it was. Needs the shaft type alert. The sound is the Jasper shaft one on the Sounds page.")
+	@Comment("Make entering a jasper shaft an event: a gust of snow blows round the edges of the screen, frost creeps into the corners and JASPER shatters in. The middle of the screen stays clear. After 30 or more shafts without jasper it is bigger and says how dry it was. Needs the shaft type alert. The sound is the Jasper shaft one on the Sounds page.")
 	public static boolean jasperMoment = true;
 
 	@ConfigEntry(id = "wisp", translation = "filobulus.config.alerts.wisp")
