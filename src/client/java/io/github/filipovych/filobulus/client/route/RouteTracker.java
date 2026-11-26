@@ -8,6 +8,7 @@ import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.config.RoutesConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
+import io.github.filipovych.filobulus.client.hud.Frost;
 import io.github.filipovych.filobulus.detect.LocationParser;
 import io.github.filipovych.filobulus.detect.SteadyLocation;
 import io.github.filipovych.filobulus.route.CustomRoute;
@@ -211,6 +212,7 @@ public final class RouteTracker {
 				if (behind < 0 && HudConfig.splits && AlertsConfig.newBest) {
 					Alerts.show("best", "NEW BEST", SplitText.clock(total) + " (" + SplitText.delta(behind) + ")",
 							NEW_BEST, 2, Alerts.LONG, SoundSlot.NEW_BEST);
+					Frost.glint("Mining panel", NEW_BEST);
 				}
 			}
 		}

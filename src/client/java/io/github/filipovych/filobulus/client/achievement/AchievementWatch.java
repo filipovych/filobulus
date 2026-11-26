@@ -8,6 +8,7 @@ import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
+import io.github.filipovych.filobulus.client.hud.Frost;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.io.IOException;
@@ -86,6 +87,7 @@ public final class AchievementWatch {
 		if (AlertsConfig.achievements) {
 			Alerts.show("achievement", "ACHIEVEMENT", achievement.title() + ": " + achievement.description(), COLOR, 3,
 					Alerts.LONG, SoundSlot.ACHIEVEMENT);
+			Frost.glint(Frost.ALL, COLOR);
 		}
 		GameCompat.say(minecraft, FilobulusClient.chatLine("Achievement unlocked: " + achievement.title()
 				+ " (" + achievement.description() + ")"));

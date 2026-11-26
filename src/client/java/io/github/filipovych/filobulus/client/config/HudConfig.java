@@ -18,6 +18,10 @@ public final class HudConfig {
 	@Comment("Draw a dark panel behind the text. Off shows only the text over the game.")
 	public static boolean panel = false;
 
+	@ConfigEntry(id = "frosted", translation = "filobulus.config.hud.frosted")
+	@Comment("Give the panels a frosted look: a bit of ice along their edges, and a glint of light over them on a new best run, a jasper shaft or corpse, and a new achievement.")
+	public static boolean frosted = false;
+
 	@ConfigEntry(id = "splits", translation = "filobulus.config.hud.splits")
 	@Comment("Time your run of a shaft route against your best, from its first stop to its last.")
 	public static boolean splits = true;
@@ -130,6 +134,27 @@ public final class HudConfig {
 	@ConfigEntry(id = "recapScale")
 	@ConfigOption.Hidden
 	public static float recapScale = 1f;
+
+	// and for the jasper moment
+	@ConfigEntry(id = "jasperAnchorX")
+	@ConfigOption.Hidden
+	public static HudAnchor jasperAnchorX = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "jasperX")
+	@ConfigOption.Hidden
+	public static int jasperX = 0;
+
+	@ConfigEntry(id = "jasperAnchorY")
+	@ConfigOption.Hidden
+	public static HudAnchor jasperAnchorY = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "jasperY")
+	@ConfigOption.Hidden
+	public static int jasperY = -56;
+
+	@ConfigEntry(id = "jasperScale")
+	@ConfigOption.Hidden
+	public static float jasperScale = 1f;
 
 	private HudConfig() {
 	}
