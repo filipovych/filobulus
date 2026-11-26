@@ -18,7 +18,7 @@ public final class CustomRoutesScreen extends RoutesFrame {
 	private static final String MINESHAFT = "Mineshaft";
 
 	public CustomRoutesScreen(Screen parent) {
-		super(parent, "Copy a route in any waypoint mod, then press Import here.");
+		super(parent);
 	}
 
 	@Override
@@ -29,22 +29,23 @@ public final class CustomRoutesScreen extends RoutesFrame {
 	@Override
 	protected void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		List<CustomRoute> routes = store.custom().all();
-		begin(graphics, mouseX, mouseY, "Your own routes for outside the shafts, like a Crystal Hollows loop.", routes.size());
+		begin(graphics, routes.size());
 		int editLeft = left + panelWidth - 8 - buttonWidth("Edit");
 		int copyLeft = editLeft - GAP - buttonWidth("Copy");
 		int pillLeft = copyLeft - 8 - PILL_WIDTH;
 		int stopsRight = pillLeft - 10;
 		int areaLeft = left + Math.max(120, panelWidth * 38 / 100);
-		graphics.text(font, "Route", left + 8, top + 34, FAINT, true);
-		graphics.text(font, "Shows in", areaLeft, top + 34, FAINT, true);
-		graphics.text(font, "Stops", stopsRight - font.width("Stops"), top + 34, FAINT, true);
-		graphics.text(font, "In use", pillLeft, top + 34, FAINT, true);
+		graphics.text(font, "Route", left + 8, top + COLUMNS_TOP, FAINT, true);
+		graphics.text(font, "Shows in", areaLeft, top + COLUMNS_TOP, FAINT, true);
+		graphics.text(font, "Stops", stopsRight - font.width("Stops"), top + COLUMNS_TOP, FAINT, true);
+		graphics.text(font, "In use", pillLeft, top + COLUMNS_TOP, FAINT, true);
 
 		if (routes.isEmpty()) {
 			int middle = (listTop + listBottom) / 2;
-			graphics.centeredText(font, "No routes of your own yet.", width / 2, middle - 10, MUTED);
-			graphics.centeredText(font, "Coal, gemstones, powder: bring any route and give it a name and an icon.",
-					width / 2, middle + 2, FAINT);
+			graphics.centeredText(font, "No Crystal Hollows routes yet.", width / 2, middle - 16, MUTED);
+			graphics.centeredText(font, "Copy a route in any waypoint mod, coal, gemstones, powder, anything,", width / 2,
+					middle - 2, FAINT);
+			graphics.centeredText(font, "then press Import and give it a name and an icon.", width / 2, middle + 9, FAINT);
 		}
 		graphics.enableScissor(left + 1, listTop, left + panelWidth - 1, listBottom);
 		for (int i = 0; i < routes.size(); i++) {
@@ -53,7 +54,7 @@ public final class CustomRoutesScreen extends RoutesFrame {
 				continue;
 			}
 			CustomRoute route = routes.get(i);
-			rowHovered(graphics, y, mouseX, mouseY);
+			boolean hot = rowHovered(graphics, y, mouseX, mouseY);
 			graphics.item(RouteIcons.of(route.icon()), left + 6, y + 2);
 			graphics.text(font, clip(route.name(), areaLeft - left - 32), left + 26, y + 6, route.on() ? TEXT : MUTED, true);
 			graphics.text(font, clip(route.everywhere() ? "Everywhere" : route.area(), stopsRight - 30 - areaLeft),
@@ -61,10 +62,10 @@ public final class CustomRoutesScreen extends RoutesFrame {
 			String stops = route.stops().size() + (route.loop() ? "" : " once");
 			graphics.text(font, stops, stopsRight - font.width(stops), y + 6, MUTED, true);
 			pill(graphics, pillLeft, y + 4, route.on(), () -> use(route));
-			if (button(graphics, copyLeft, y + 3, buttonWidth("Copy"), "Copy", MUTED, mouseX, mouseY, () -> copy(route))) {
+			if (hot && button(graphics, copyLeft, y + 3, buttonWidth("Copy"), "Copy", MUTED, mouseX, mouseY, () -> copy(route))) {
 				tooltip(graphics, "Copy this route in the Coleweight format, which every waypoint mod reads.", mouseX, mouseY);
 			}
-			if (button(graphics, editLeft, y + 3, buttonWidth("Edit"), "Edit", MUTED, mouseX, mouseY, () -> edit(route))) {
+			if (hot && button(graphics, editLeft, y + 3, buttonWidth("Edit"), "Edit", MUTED, mouseX, mouseY, () -> edit(route))) {
 				tooltip(graphics, "Change the name, the icon and where it shows, or delete it.", mouseX, mouseY);
 			}
 		}

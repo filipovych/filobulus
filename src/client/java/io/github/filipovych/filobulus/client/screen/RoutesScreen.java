@@ -33,7 +33,7 @@ public final class RoutesScreen extends RoutesFrame {
 	private boolean profilesOpen;
 
 	public RoutesScreen(Screen parent) {
-		super(parent, "Routes copied from Coleweight, SkyHanni or Skyblocker can be imported.");
+		super(parent);
 	}
 
 	@Override
@@ -44,10 +44,10 @@ public final class RoutesScreen extends RoutesFrame {
 	@Override
 	protected void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		List<ShaftLayout> layouts = ShaftLayout.all();
-		begin(graphics, mouseX, mouseY, "The bundled routes are only a starting point. Import better ones.", layouts.size());
-		graphics.text(font, "Shaft", left + 8, top + 34, FAINT, true);
-		graphics.text(font, "Auto-load", left + AUTO_COLUMN, top + 34, FAINT, true);
-		graphics.text(font, "Route", left + ROUTE_COLUMN, top + 34, FAINT, true);
+		begin(graphics, layouts.size());
+		graphics.text(font, "Shaft", left + 8, top + COLUMNS_TOP, FAINT, true);
+		graphics.text(font, "Auto-load", left + AUTO_COLUMN, top + COLUMNS_TOP, FAINT, true);
+		graphics.text(font, "Route", left + ROUTE_COLUMN, top + COLUMNS_TOP, FAINT, true);
 
 		graphics.enableScissor(left + 1, listTop, left + panelWidth - 1, listBottom);
 		// an open profile list covers the rows, they must not light up under it
@@ -63,7 +63,8 @@ public final class RoutesScreen extends RoutesFrame {
 		int y = end(graphics, mouseX, mouseY, layouts.size());
 		int x = left + 8;
 		if (button(graphics, x, y, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(null))) {
-			tooltip(graphics, "Import what is on your clipboard: a route collection, or a route for the shaft you are in.",
+			tooltip(graphics, "Import what is on your clipboard: a route collection, or a route for the shaft you are in. "
+					+ "Routes copied from Coleweight, SkyHanni or Skyblocker work too. The bundled routes are only a starting point.",
 					mouseX, mouseY);
 		}
 		x += buttonWidth("Import") + GAP;
@@ -163,15 +164,13 @@ public final class RoutesScreen extends RoutesFrame {
 
 	private void drawRow(GuiGraphicsExtractor graphics, ShaftLayout layout, int y, int mouseX, int mouseY) {
 		String key = layout.key();
-		rowHovered(graphics, y, mouseX, mouseY);
+		boolean hot = rowHovered(graphics, y, mouseX, mouseY);
 		graphics.item(ShaftIcons.of(layout), left + 6, y + 2);
 		int titleColor = layout.material().map(ShaftColors::of).orElse(ACCENT);
 		graphics.text(font, layout.title(), left + 26, y + 6, titleColor, true);
-		// the type code as the scoreboard shows it, left out when the name is too long to fit it
-		String code = layout.isCrystal() ? "all crystal" : key;
-		int codeLeft = left + 31 + font.width(layout.title());
-		if (codeLeft + font.width(code) <= left + AUTO_COLUMN) {
-			graphics.text(font, code, codeLeft, y + 6, FAINT, true);
+		if (hot && mouseX < left + AUTO_COLUMN) {
+			// the type code as the scoreboard shows it
+			tooltip(graphics, layout.isCrystal() ? "Every crystal shaft." : key, mouseX, mouseY);
 		}
 
 		boolean auto = store.choices().autoLoad(key);
@@ -184,19 +183,20 @@ public final class RoutesScreen extends RoutesFrame {
 		LibraryRoute picked = store.library().routeFor(key, store.choices().preferredRouteId(key)).orElse(null);
 
 		// every button has its own column, a row without one leaves that spot empty so the others do not move
+		// they only show on the row under the mouse, the list stays quiet
 		int by = y + 3;
 		int editLeft = left + panelWidth - 8 - buttonWidth("Edit");
 		int copyLeft = editLeft - GAP - buttonWidth("Copy");
 		int importLeft = copyLeft - GAP - buttonWidth("Import");
-		if (picked != null && !picked.bundled()
+		if (hot && picked != null && !picked.bundled()
 				&& button(graphics, editLeft, by, buttonWidth("Edit"), "Edit", MUTED, mouseX, mouseY, () -> edit(picked))) {
 			tooltip(graphics, "Rename this imported route, or delete it.", mouseX, mouseY);
 		}
-		if (picked != null
+		if (hot && picked != null
 				&& button(graphics, copyLeft, by, buttonWidth("Copy"), "Copy", MUTED, mouseX, mouseY, () -> copy(picked))) {
 			tooltip(graphics, "Copy this route in the Coleweight format, which every waypoint mod reads.", mouseX, mouseY);
 		}
-		if (button(graphics, importLeft, by, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(layout))) {
+		if (hot && button(graphics, importLeft, by, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(layout))) {
 			tooltip(graphics, "Use the route on your clipboard for " + layout.title() + " shafts.", mouseX, mouseY);
 		}
 

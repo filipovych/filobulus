@@ -13,7 +13,9 @@ abstract class RoutesFrame extends FlatScreen {
 	protected static final int MAX_WIDTH = 470;
 	protected static final int MARGIN = 8;
 	protected static final int ROW = 20;
-	protected static final int LIST_TOP = 46;
+	protected static final int LIST_TOP = 34;
+	// where the column names of a tab go
+	protected static final int COLUMNS_TOP = 22;
 	protected static final int FOOTER = 38;
 	protected static final int GAP = 3;
 	protected static final int ROW_HOVER = 0x12FFFFFF;
@@ -28,31 +30,26 @@ abstract class RoutesFrame extends FlatScreen {
 	protected int listTop;
 	protected int listBottom;
 	protected int scroll;
-	private String status;
+	// empty until something happens
+	private String status = "";
 	private int statusColor = FAINT;
 
-	protected RoutesFrame(Screen parent, String status) {
+	protected RoutesFrame(Screen parent) {
 		super(Component.literal("Filobulus routes"));
 		this.parent = parent;
-		this.status = status;
 	}
 
 	protected abstract boolean shafts();
 
-	// the panel, the title row and the line under it, rows is how many the list has
-	protected void begin(GuiGraphicsExtractor graphics, int mouseX, int mouseY, String about, int rows) {
+	// the panel and where the list goes, rows is how many the list has
+	// the title and the tabs are drawn by end, after the rows, so a row scrolled under them can not take their click
+	protected void begin(GuiGraphicsExtractor graphics, int rows) {
 		panelWidth = Math.min(width - MARGIN * 2, MAX_WIDTH);
 		left = (width - panelWidth) / 2;
 		top = MARGIN;
 		listTop = top + LIST_TOP;
 		listBottom = height - MARGIN - FOOTER;
 		panel(graphics, left, top, panelWidth, height - MARGIN * 2);
-		Component title = Component.literal("Routes").withStyle(ChatFormatting.BOLD);
-		graphics.text(font, title, left + 8, top + 7, ACCENT, true);
-		int x = left + 16 + font.width(title);
-		x += tab(graphics, x, top + 4, "Shafts", shafts(), mouseX, mouseY, () -> open(new RoutesScreen(parent)));
-		tab(graphics, x, top + 4, "My routes", !shafts(), mouseX, mouseY, () -> open(new CustomRoutesScreen(parent)));
-		graphics.text(font, clip(about, panelWidth - 16), left + 8, top + 21, MUTED, true);
 		scroll = Math.max(0, Math.min(scroll, rows * ROW - (listBottom - listTop)));
 	}
 
@@ -62,6 +59,11 @@ abstract class RoutesFrame extends FlatScreen {
 		// clicks in the header and footer must not reach a row that is scrolled under them
 		clickable(left, top, panelWidth, LIST_TOP, null, null);
 		clickable(left, listBottom, panelWidth, FOOTER, null, null);
+		Component title = Component.literal("Routes").withStyle(ChatFormatting.BOLD);
+		graphics.text(font, title, left + 8, top + 7, ACCENT, true);
+		int x = left + 16 + font.width(title);
+		x += tab(graphics, x, top + 4, "Shafts", shafts(), mouseX, mouseY, () -> open(new RoutesScreen(parent)));
+		tab(graphics, x, top + 4, "Crystal Hollows", !shafts(), mouseX, mouseY, () -> open(new CustomRoutesScreen(parent)));
 		graphics.text(font, clip(status, panelWidth - 16), left + 8, listBottom + 5, statusColor, true);
 		int y = height - MARGIN - BUTTON_HEIGHT - 6;
 		int doneWidth = buttonWidth("Done");
