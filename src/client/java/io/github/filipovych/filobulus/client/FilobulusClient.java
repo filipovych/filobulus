@@ -14,6 +14,7 @@ import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.client.journal.ShaftLog;
 import io.github.filipovych.filobulus.client.mining.ComboWatch;
+import io.github.filipovych.filobulus.client.journal.WrappedNotice;
 import io.github.filipovych.filobulus.client.mining.MiningWatch;
 import io.github.filipovych.filobulus.client.profit.ProfitControls;
 import io.github.filipovych.filobulus.client.profit.ProfitStore;
@@ -109,6 +110,7 @@ public final class FilobulusClient implements ClientModInitializer {
 		mining.register();
 		combo = new ComboWatch(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("combo.json"));
 		combo.load();
+		WrappedNotice wrapped = new WrappedNotice(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("wrapped.txt"));
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			tracker.tick(minecraft);
 			shaftLog.tick(minecraft);
@@ -121,6 +123,7 @@ public final class FilobulusClient implements ClientModInitializer {
 			achievements.tick(minecraft);
 			mining.tick(minecraft);
 			combo.tick(minecraft);
+			wrapped.tick(minecraft);
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			shaftLog.close();

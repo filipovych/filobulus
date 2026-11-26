@@ -43,5 +43,6 @@
 	"filobulus.config.journal.recap": "Auto recap",
 	"filobulus.config.journal.party": "Party shafts",
 	"filobulus.config.journal.recapSeconds": "Recap seconds",
-	"filobulus.config.journal.achievements": "Unlock achievements"
+	"filobulus.config.journal.achievements": "Unlock achievements",
+	"filobulus.config.journal.wrapped": "Monthly Wrapped"
 }

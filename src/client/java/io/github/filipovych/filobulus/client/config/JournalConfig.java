@@ -6,10 +6,14 @@ import com.teamresourceful.resourcefulconfig.api.annotations.ConfigButton;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigEntry;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigInfo;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigOption;
+import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.screen.AchievementsScreen;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RecapScreen;
+import io.github.filipovych.filobulus.client.screen.WrappedScreen;
+import io.github.filipovych.filobulus.journal.MonthlyWrapped;
+import java.time.ZoneId;
 import net.minecraft.client.Minecraft;
 
 @Category("journal")
@@ -38,6 +42,10 @@ public final class JournalConfig {
 	@Comment("Unlock achievements from what the journal logs. What you earn while this is off is unlocked quietly when you switch it back on.")
 	public static boolean achievements = true;
 
+	@ConfigEntry(id = "wrapped", translation = "filobulus.config.journal.wrapped")
+	@Comment("On the first start of a new month, say in chat that your Wrapped for the month before is ready. /filo wrapped works either way.")
+	public static boolean wrapped = false;
+
 	@ConfigButton(title = "Shaft recap", text = "Open")
 	@Comment("The last shaft you were in, and the ones before it. Also at /filo recap.")
 	public static final Runnable openRecap = () -> {
@@ -57,6 +65,14 @@ public final class JournalConfig {
 	public static final Runnable openAchievements = () -> {
 		Minecraft minecraft = Minecraft.getInstance();
 		GameCompat.setScreen(minecraft, new AchievementsScreen(GameCompat.screen(minecraft)));
+	};
+
+	@ConfigButton(title = "Wrapped", text = "Open")
+	@Comment("Your last full month of shafts, one card at a time. Also at /filo wrapped.")
+	public static final Runnable openWrapped = () -> {
+		Minecraft minecraft = Minecraft.getInstance();
+		GameCompat.setScreen(minecraft, new WrappedScreen(GameCompat.screen(minecraft), MonthlyWrapped.defaultMonth(
+				FilobulusClient.journal().journal().visits(), System.currentTimeMillis(), ZoneId.systemDefault())));
 	};
 
 	private JournalConfig() {
