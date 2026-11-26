@@ -11,7 +11,7 @@ import io.github.filipovych.filobulus.hud.HudAnchor;
 @ConfigInfo(title = "HUD", description = "Panels on screen. Move them with /filo hud.", icon = "layout-dashboard")
 public final class HudConfig {
 	@ConfigEntry(id = "routeHud", translation = "filobulus.config.hud.routeHud")
-	@Comment("In a mineshaft, show its type, the stop you are on and the time spent inside.")
+	@Comment("One panel for mining. In a mineshaft: its type, the stop you are on and the time inside. In the Glacite Tunnels: your session.")
 	public static boolean routeHud = true;
 
 	@ConfigEntry(id = "panel", translation = "filobulus.config.hud.panel")
@@ -23,7 +23,7 @@ public final class HudConfig {
 	public static boolean splits = true;
 
 	@ConfigEntry(id = "sessionHud", translation = "filobulus.config.hud.sessionHud")
-	@Comment("In the Glacite Tunnels and in a mineshaft, show the shafts entered this session and since your last jasper one.")
+	@Comment("Add the shafts entered this session and since your last jasper one to the mining panel.")
 	public static boolean sessionHud = true;
 
 	// where the route hud sits, changed by dragging it in /filo hud and not shown in the settings
@@ -46,27 +46,6 @@ public final class HudConfig {
 	@ConfigEntry(id = "routeHudScale")
 	@ConfigOption.Hidden
 	public static float routeHudScale = 1f;
-
-	// the same for the session hud
-	@ConfigEntry(id = "sessionHudAnchorX")
-	@ConfigOption.Hidden
-	public static HudAnchor sessionHudAnchorX = HudAnchor.START;
-
-	@ConfigEntry(id = "sessionHudX")
-	@ConfigOption.Hidden
-	public static int sessionHudX = 4;
-
-	@ConfigEntry(id = "sessionHudAnchorY")
-	@ConfigOption.Hidden
-	public static HudAnchor sessionHudAnchorY = HudAnchor.CENTRE;
-
-	@ConfigEntry(id = "sessionHudY")
-	@ConfigOption.Hidden
-	public static int sessionHudY = -66;
-
-	@ConfigEntry(id = "sessionHudScale")
-	@ConfigOption.Hidden
-	public static float sessionHudScale = 1f;
 
 	// and for the alerts
 	@ConfigEntry(id = "alertsAnchorX")

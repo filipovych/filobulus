@@ -1,9 +1,13 @@
 package io.github.filipovych.filobulus.client.hud;
 
+import io.github.filipovych.filobulus.alert.WispTimer;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
+import io.github.filipovych.filobulus.client.config.JournalConfig;
 import io.github.filipovych.filobulus.client.hud.HudPanel.Content;
 import io.github.filipovych.filobulus.client.hud.HudPanel.Row;
+import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.hud.HudAnchor;
 import io.github.filipovych.filobulus.hud.HudPlacement;
@@ -17,17 +21,23 @@ import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import net.minecraft.world.item.ItemStack;
 
-// shown in a mineshaft: its type code, the stop the line points at, the time spent inside and the run against the best
+// the one panel for mining: in a shaft its name, the stop, the time inside and the run against the best
+// under that the session, shafts and since jasper, and the wisp and cold potion when we know of them
+// in the tunnels only the session part shows, outside them a route of the player's own
 public final class RouteHud implements HudWidget {
-	// argb, ahead of the best run and behind it
+	// argb
 	private static final int AHEAD = 0xFF55FF55;
 	private static final int BEHIND = 0xFFFF5555;
+	private static final int LOW = 0xFFFFAA00;
+	private static final int GONE = 0xFFFF5555;
+	private static final long LOW_MILLIS = 30_000;
 
 	@Override
 	public String name() {
-		return "Route HUD";
+		return "Mining panel";
 	}
 
 	@Override
@@ -42,46 +52,91 @@ public final class RouteHud implements HudWidget {
 
 	@Override
 	public Optional<HudDrawable> content() {
-		RouteTracker tracker = FilobulusClient.tracker();
-		Location location = tracker.location();
 		if (!HudConfig.routeHud) {
 			return Optional.empty();
 		}
-		if (location.area() != Area.MINESHAFT) {
-			return tracker.custom().map(route -> own(tracker, route));
-		}
-		List<Row> rows = new ArrayList<>();
-		// the stop row goes away once the route is done or when none is loaded
-		tracker.progress().filter(progress -> !progress.finished()).ifPresent(progress ->
-				rows.add(new Row("Stop", (progress.reached() + 1) + "/" + progress.total())));
+		RouteTracker tracker = FilobulusClient.tracker();
+		Location location = tracker.location();
 		long now = System.currentTimeMillis();
-		rows.add(new Row("Time", SplitText.clock(now - tracker.shaftEnteredAt())));
-		if (HudConfig.splits) {
-			tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), now));
+		if (location.area() == Area.MINESHAFT) {
+			List<Row> rows = new ArrayList<>();
+			// the stop row goes away once the route is done or when none is loaded
+			tracker.progress().filter(progress -> !progress.finished()).ifPresent(progress ->
+					rows.add(new Row("Stop", (progress.reached() + 1) + "/" + progress.total())));
+			rows.add(new Row("Time", SplitText.clock(now - tracker.shaftEnteredAt())));
+			if (HudConfig.splits) {
+				tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), now));
+			}
+			session(rows, now);
+			// the type comes a moment after the area, until then the title is plain
+			String title = location.shaft().map(ShaftType::displayName).orElse("Mineshaft");
+			int color = location.shaft().map(type -> ShaftColors.of(type.material())).orElse(ShaftColors.GLACITE);
+			ItemStack icon = ShaftIcons.of(location.shaft().map(ShaftType::material).orElse(ShaftMaterial.LITTLEFOOT));
+			return Optional.of(new Content(icon, title, color, rows));
 		}
-		// the type code comes a moment after the area, until then the title is plain
-		String title = location.shaft().map(ShaftType::code).orElse("Mineshaft");
-		int color = location.shaft().map(type -> ShaftColors.of(type.material())).orElse(ShaftColors.GLACITE);
-		ItemStack icon = ShaftIcons.of(location.shaft().map(ShaftType::material).orElse(ShaftMaterial.LITTLEFOOT));
-		return Optional.of(new Content(icon, title, color, rows));
+		Optional<CustomRoute> own = tracker.custom();
+		if (own.isPresent()) {
+			return Optional.of(own(tracker, own.get(), now, location.area() == Area.GLACITE_TUNNELS));
+		}
+		if (location.area() == Area.GLACITE_TUNNELS) {
+			List<Row> rows = new ArrayList<>();
+			session(rows, now);
+			if (rows.isEmpty()) {
+				return Optional.empty();
+			}
+			rows.remove(0);
+			return Optional.of(new Content(ShaftIcons.of(ShaftMaterial.LITTLEFOOT), "Glacite Tunnels", ShaftColors.GLACITE, rows));
+		}
+		return Optional.empty();
 	}
 
 	// one of the player's own routes, outside of a shaft: its name, the stop and the lap against the best one
-	private static HudDrawable own(RouteTracker tracker, CustomRoute route) {
+	private static HudDrawable own(RouteTracker tracker, CustomRoute route, long now, boolean tunnels) {
 		List<Row> rows = new ArrayList<>();
 		tracker.progress().filter(progress -> !progress.finished()).ifPresent(progress ->
 				rows.add(new Row("Stop", (progress.reached() + 1) + "/" + progress.total())));
 		if (HudConfig.splits) {
-			tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), System.currentTimeMillis()));
+			tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), now));
+		}
+		if (tunnels) {
+			session(rows, now);
 		}
 		return new Content(RouteIcons.of(route.icon()), route.name(), ShaftColors.GLACITE, rows);
 	}
 
+	// shafts this session and since jasper, then the wisp and the cold potion, after a small gap
+	private static void session(List<Row> rows, long now) {
+		List<Row> more = new ArrayList<>();
+		if (HudConfig.sessionHud && JournalConfig.journal) {
+			JournalStore store = FilobulusClient.journal();
+			more.add(new Row("Shafts", String.valueOf(store.journal().since(store.sessionStart()).size())));
+			more.add(new Row("Since jasper", String.valueOf(store.journal().sinceJasper())));
+		}
+		WispTimer wisp = FilobulusClient.wisp().timer();
+		if (AlertsConfig.wisp && wisp.known()) {
+			more.add(timer("Wisp", wisp.left(now), "gone"));
+		}
+		OptionalLong cold = FilobulusClient.cold().left();
+		if (AlertsConfig.coldPotion && cold.isPresent()) {
+			more.add(timer("Cold pot", cold.getAsLong(), "none"));
+		}
+		if (!more.isEmpty()) {
+			rows.add(HudPanel.SPACER);
+			rows.addAll(more);
+		}
+	}
+
+	private static Row timer(String label, long left, String none) {
+		return left == 0 ? new Row(label, none, GONE)
+				: left <= LOW_MILLIS ? new Row(label, SplitText.clock(left), LOW)
+				: new Row(label, SplitText.clock(left));
+	}
+
 	@Override
 	public Content sample() {
-		return new Content(ShaftIcons.of(ShaftMaterial.JASPER), "JASP_1", ShaftColors.of(ShaftMaterial.JASPER),
-				List.of(new Row("Stop", "12/47"), new Row("Time", "2:31"), new Row("Run", "1:42"),
-						new Row("Split", "-3.2s", AHEAD), new Row("Left", "4:55")));
+		return new Content(ShaftIcons.of(ShaftMaterial.JASPER), "Jasper", ShaftColors.of(ShaftMaterial.JASPER),
+				List.of(new Row("Stop", "12/47"), new Row("Time", "2:31"), new Row("Split", "-3.2s", AHEAD),
+						HudPanel.SPACER, new Row("Shafts", "12"), new Row("Since jasper", "7"), new Row("Wisp", "3:21")));
 	}
 
 	@Override

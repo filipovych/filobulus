@@ -18,7 +18,7 @@ import net.minecraft.resources.Identifier;
 
 // every panel the mod puts on screen, drawn under the chat
 public final class Hud {
-	public static final List<HudWidget> WIDGETS = List.of(new RouteHud(), new SessionHud(), new ProfitHud(), new RecapHud(), new AlertHud(), new CrackHud());
+	public static final List<HudWidget> WIDGETS = List.of(new RouteHud(), new ProfitHud(), new RecapHud(), new AlertHud(), new CrackHud());
 
 	// the rectangle a widget covers on screen, scale applied
 	public record Box(int left, int top, int width, int height) {

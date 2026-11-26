@@ -23,6 +23,10 @@ public final class HudPanel {
 		}
 	}
 
+	// a small gap between two groups of rows
+	public static final Row SPACER = new Row("", "", 0);
+	private static final int SPACER_HEIGHT = 4;
+
 	public record Content(ItemStack icon, String title, int titleColor, List<Row> rows) implements HudDrawable {
 		public Content {
 			rows = List.copyOf(rows);
@@ -75,7 +79,11 @@ public final class HudPanel {
 	}
 
 	public static int height(Content content) {
-		return PADDING * 2 + ROW_HEIGHT * content.rows().size() + TEXT_HEIGHT;
+		int rows = 0;
+		for (Row row : content.rows()) {
+			rows += row == SPACER ? SPACER_HEIGHT : ROW_HEIGHT;
+		}
+		return PADDING * 2 + rows + TEXT_HEIGHT;
 	}
 
 	public static void draw(GuiGraphicsExtractor graphics, Font font, Content content, boolean background) {
@@ -92,6 +100,10 @@ public final class HudPanel {
 		graphics.text(font, title(content), PADDING + ICON_SIZE + ICON_GAP, PADDING, content.titleColor(), true);
 		int y = PADDING + ROW_HEIGHT;
 		for (Row row : content.rows()) {
+			if (row == SPACER) {
+				y += SPACER_HEIGHT;
+				continue;
+			}
 			int x = PADDING;
 			if (!row.icon().isEmpty()) {
 				graphics.pose().pushMatrix();
