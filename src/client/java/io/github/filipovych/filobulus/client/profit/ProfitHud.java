@@ -16,8 +16,10 @@ import io.github.filipovych.filobulus.journal.JournalText;
 import io.github.filipovych.filobulus.profit.ProfitValue;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 // the profit tracker on screen: the items gained with what each sells for, then the total, the rate and the time
@@ -27,6 +29,11 @@ public final class ProfitHud implements HudWidget {
 	private static final int TIME = 0xFF55FFFF;
 	private static final int UNPRICED = 0xFF6B7782;
 	private static final int LOSS = 0xFFFF6B6B;
+	// an item that just went up shows green for a moment
+	private static final int FLASH = 0xFF7CE38B;
+	private static final long FLASH_MILLIS = 800;
+	private final Map<String, Long> seen = new HashMap<>();
+	private final Map<String, Long> grewAt = new HashMap<>();
 
 	@Override
 	public String name() {
@@ -54,10 +61,16 @@ public final class ProfitHud implements HudWidget {
 		boolean everything = TrackerConfig.items == TrackerConfig.Items.EVERYTHING;
 		// with everything counted the things nobody buys are left out of the list
 		List<ProfitValue.Line> lines = value.lines().stream().filter(line -> line.priced() || !everything).toList();
+		long now = System.currentTimeMillis();
 		for (int i = 0; i < lines.size() && i < TrackerConfig.lines; i++) {
 			ProfitValue.Line line = lines.get(i);
+			Long before = seen.put(line.id(), line.amount());
+			if (before != null && line.amount() > before) {
+				grewAt.put(line.id(), now);
+			}
+			boolean flash = now - grewAt.getOrDefault(line.id(), 0L) < FLASH_MILLIS;
 			rows.add(new Row(ProfitIcons.of(line.id()), brief(watch.name(line.id())), amount(line.amount()),
-					line.priced() ? CoinText.amount(line.coins()) : "?", line.priced() ? GOLD : UNPRICED));
+					line.priced() ? CoinText.amount(line.coins()) : "?", flash ? FLASH : line.priced() ? GOLD : UNPRICED));
 		}
 		if (lines.size() > TrackerConfig.lines && TrackerConfig.lines > 0) {
 			rows.add(new Row("", (lines.size() - TrackerConfig.lines) + " more", UNPRICED));
