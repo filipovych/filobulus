@@ -20,12 +20,17 @@ import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RecapScreen;
 import io.github.filipovych.filobulus.client.screen.RoutesScreen;
 import io.github.filipovych.filobulus.client.screen.SoundsScreen;
+import io.github.filipovych.filobulus.client.screen.WrappedScreen;
 import io.github.filipovych.filobulus.corpse.CrackTier;
+import io.github.filipovych.filobulus.journal.MonthlyWrapped;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import io.github.filipovych.filobulus.sound.SoundSlot;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -75,6 +80,12 @@ public final class FiloCommand {
 										Arrays.stream(CrackTier.values()).map(tier -> tier.name().toLowerCase(Locale.ROOT)), builder))
 								.executes(context -> crack(context, StringArgumentType.getString(context, "tier")))))
 				.then(ClientCommands.literal("recap").executes(FiloCommand::recap))
+				.then(ClientCommands.literal("wrapped")
+						.executes(context -> wrapped(context, ""))
+						.then(ClientCommands.argument("month", StringArgumentType.word())
+								.suggests((context, builder) -> SharedSuggestionProvider.suggest(MonthlyWrapped.months(
+										FilobulusClient.journal().journal().visits(), ZoneId.systemDefault()).stream().map(YearMonth::toString), builder))
+								.executes(context -> wrapped(context, StringArgumentType.getString(context, "month")))))
 				.then(ClientCommands.literal("sounds").executes(FiloCommand::openSounds))
 				.then(ClientCommands.literal("achievements").executes(FiloCommand::openAchievements))
 				.then(ClientCommands.literal("profit")
@@ -161,6 +172,27 @@ public final class FiloCommand {
 		ShaftVisit last = FilobulusClient.shaftLog().last();
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new RecapScreen(null, last != null ? last.enteredAt() : 0)));
+		return 1;
+	}
+
+	// a month of the journal as cards, without a month the last full one
+	private static int wrapped(CommandContext<FabricClientCommandSource> context, String text) {
+		YearMonth month;
+		try {
+			month = text.isEmpty()
+					? MonthlyWrapped.defaultMonth(FilobulusClient.journal().journal().visits(), System.currentTimeMillis(), ZoneId.systemDefault())
+					: YearMonth.parse(text);
+		} catch (DateTimeParseException e) {
+			fail(context, "\"" + text + "\" is not a month. Write it like " + YearMonth.now() + ".");
+			return 1;
+		}
+		// a far off year would overflow the date maths
+		if (month.getYear() < 2000 || month.getYear() > 9999) {
+			fail(context, "\"" + text + "\" is not a month. Write it like " + YearMonth.now() + ".");
+			return 1;
+		}
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new WrappedScreen(null, month)));
 		return 1;
 	}
 

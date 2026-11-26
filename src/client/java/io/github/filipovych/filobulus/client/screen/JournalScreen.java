@@ -15,6 +15,7 @@ import io.github.filipovych.filobulus.journal.JournalPeriod;
 import io.github.filipovych.filobulus.journal.JournalStats;
 import io.github.filipovych.filobulus.journal.JournalStats.Group;
 import io.github.filipovych.filobulus.journal.JournalText;
+import io.github.filipovych.filobulus.journal.MonthlyWrapped;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
@@ -184,6 +185,12 @@ public final class JournalScreen extends FlatScreen {
 		int copyLeft = right - PAD - doneWidth - GAP - copyWidth;
 		if (button(graphics, copyLeft, y, copyWidth, "Copy CSV", TEXT, mouseX, mouseY, this::copy)) {
 			tooltip(graphics, "Copy the log as it is shown here, for a spreadsheet.", mouseX, mouseY);
+		}
+		int wrappedWidth = buttonWidth("Wrapped");
+		copyLeft -= GAP + wrappedWidth;
+		if (button(graphics, copyLeft, y, wrappedWidth, "Wrapped", TEXT, mouseX, mouseY, () -> GameCompat.setScreen(minecraft,
+				new WrappedScreen(this, MonthlyWrapped.defaultMonth(store.journal().visits(), now, zone))))) {
+			tooltip(graphics, "Your last full month of shafts, one card at a time.", mouseX, mouseY);
 		}
 		graphics.text(font, clip(status.isEmpty() ? summary(now) : status, copyLeft - left - PAD * 2),
 				left + PAD, y + 3, status.isEmpty() ? FAINT : GOOD, true);
