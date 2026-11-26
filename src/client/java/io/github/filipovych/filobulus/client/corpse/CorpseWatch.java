@@ -4,11 +4,16 @@ import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.CorpsesConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.JournalConfig;
+import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.corpse.CorpseLoot;
 import io.github.filipovych.filobulus.corpse.CorpseLootReader;
 import io.github.filipovych.filobulus.corpse.CorpseVerdict;
 import io.github.filipovych.filobulus.detect.LocationParser;
 import io.github.filipovych.filobulus.route.Location.Area;
+import io.github.filipovych.filobulus.corpse.CorpseItems;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
@@ -73,6 +78,13 @@ public final class CorpseWatch {
 		if (CorpsesConfig.reveal) {
 			verdict.ifPresent(CrackHud::play);
 		}
+		// the profit tracker counts the corpse as one gain, its items are not counted again when they reach the sacks
+		double profit = verdict.map(CorpseVerdict::profit).orElse(CorpseVerdict.worth(loot, prices));
+		List<Map.Entry<String, Long>> items = new ArrayList<>();
+		for (CorpseLoot.Reward reward : loot.rewards()) {
+			CorpseItems.id(reward.name()).ifPresent(id -> items.add(Map.entry(id, reward.amount())));
+		}
+		FilobulusClient.profit().corpse(profit, items);
 		loot = null;
 	}
 
@@ -88,6 +100,6 @@ public final class CorpseWatch {
 
 	private static boolean on() {
 		// the journal wants the loot too, with the reveal switched off
-		return FilobulusConfig.enabled && (CorpsesConfig.reveal || JournalConfig.journal);
+		return FilobulusConfig.enabled && (CorpsesConfig.reveal || JournalConfig.journal || TrackerConfig.profit);
 	}
 }

@@ -122,6 +122,13 @@ public final class ProfitWatch {
 		return ProfitValue.of(totals().items(), this::price).plus(totals().corpseCoins());
 	}
 
+	// a corpse was opened, coins is its loot with the key taken off, the items are not counted again when they arrive
+	public void corpse(double coins, List<Map.Entry<String, Long>> items) {
+		if (active) {
+			ledger.corpse(coins, items, System.currentTimeMillis());
+		}
+	}
+
 	public long activeMillis() {
 		return totals().activeMillis(System.currentTimeMillis(), idle());
 	}
