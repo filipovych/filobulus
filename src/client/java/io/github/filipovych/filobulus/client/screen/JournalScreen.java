@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client.screen;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
+import io.github.filipovych.filobulus.client.config.JournalConfig;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
 import io.github.filipovych.filobulus.client.hud.RouteIcons;
@@ -33,6 +34,7 @@ import net.minecraft.world.item.ItemStack;
 
 // /filo journal: what the logged shafts add up to, a count per shaft layout that also filters, and the log itself
 // the corpses tab shows the same shafts by what their corpses were and what they paid, the days tab what each day added up to
+// the party tab is the shafts tab with only the shafts someone else found
 public final class JournalScreen extends FlatScreen {
 	private static final int MAX_WIDTH = 560;
 	private static final int MAX_HEIGHT = 420;
@@ -56,9 +58,10 @@ public final class JournalScreen extends FlatScreen {
 	// one colour per corpse type, in the order lapis, tungsten, umber, vanguard
 	private static final int[] CORPSE_COLORS = {0xFF4A7BFF, 0xFF8C9AA6, 0xFFC8743A, 0xFFFFD75E};
 	private static final int DOT = 4;
+	private static final String PARTY_TAG = "party";
 
 	private enum View {
-		SHAFTS, CORPSES, DAYS
+		SHAFTS, CORPSES, DAYS, PARTY
 	}
 
 	// more days than this do not fit as bars anyway
@@ -111,6 +114,9 @@ public final class JournalScreen extends FlatScreen {
 	@Override
 	protected void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		long now = System.currentTimeMillis();
+		if (view == View.PARTY && !JournalConfig.party) {
+			view = View.SHAFTS;
+		}
 		count(now);
 		int panelWidth = Math.min(width - MARGIN * 2, MAX_WIDTH);
 		int panelHeight = Math.min(height - MARGIN * 2, MAX_HEIGHT);
@@ -121,13 +127,26 @@ public final class JournalScreen extends FlatScreen {
 		panel(graphics, left, top, panelWidth, panelHeight);
 
 		Component title = Component.literal("Journal").withStyle(ChatFormatting.BOLD);
-		graphics.text(font, title, left + PAD, top + 9, ACCENT, true);
-		int tabLeft = left + PAD + font.width(title) + 8;
+		JournalPeriod[] periods = JournalPeriod.values();
+		int chipsWidth = 0;
+		for (JournalPeriod each : periods) {
+			chipsWidth += buttonWidth(each == JournalPeriod.ALL ? "All" : each.title()) + 2;
+		}
+		int tabsWidth = buttonWidth("Shafts") + buttonWidth("Corpses") + buttonWidth("Days")
+				+ (JournalConfig.party ? buttonWidth("Party") : 0);
+		// on a narrow screen the title gives way so the tabs do not run into the periods
+		boolean titled = PAD + font.width(title) + 8 + tabsWidth <= panelWidth - PAD - chipsWidth;
+		if (titled) {
+			graphics.text(font, title, left + PAD, top + 9, ACCENT, true);
+		}
+		int tabLeft = left + PAD + (titled ? font.width(title) + 8 : 0);
 		tabLeft += tab(graphics, tabLeft, top + 6, "Shafts", view == View.SHAFTS, mouseX, mouseY, () -> view = View.SHAFTS);
 		tabLeft += tab(graphics, tabLeft, top + 6, "Corpses", view == View.CORPSES, mouseX, mouseY, () -> view = View.CORPSES);
-		tab(graphics, tabLeft, top + 6, "Days", view == View.DAYS, mouseX, mouseY, () -> view = View.DAYS);
+		tabLeft += tab(graphics, tabLeft, top + 6, "Days", view == View.DAYS, mouseX, mouseY, () -> view = View.DAYS);
+		if (JournalConfig.party) {
+			tab(graphics, tabLeft, top + 6, "Party", view == View.PARTY, mouseX, mouseY, () -> view = View.PARTY);
+		}
 		int x = right - PAD;
-		JournalPeriod[] periods = JournalPeriod.values();
 		for (int i = periods.length - 1; i >= 0; i--) {
 			JournalPeriod each = periods[i];
 			// kept short, the tabs need the room
@@ -149,7 +168,7 @@ public final class JournalScreen extends FlatScreen {
 		} else {
 			int groupsWidth = Math.min(215, (panelWidth - PAD * 3) * 9 / 20);
 			logLeft = left + PAD + groupsWidth + PAD;
-			if (view == View.SHAFTS) {
+			if (view != View.CORPSES) {
 				drawGroups(graphics, left + PAD, bodyTop, groupsWidth, bodyBottom, mouseX, mouseY);
 			} else {
 				drawCorpseTypes(graphics, left + PAD, bodyTop, groupsWidth, mouseX, mouseY);
@@ -172,7 +191,7 @@ public final class JournalScreen extends FlatScreen {
 
 	private void drawTiles(GuiGraphicsExtractor graphics, int left, int top, int width, int mouseX, int mouseY) {
 		List<Tile> tiles = switch (view) {
-			case SHAFTS -> shaftTiles();
+			case SHAFTS, PARTY -> shaftTiles();
 			case CORPSES -> corpseTiles();
 			case DAYS -> dayTiles();
 		};
@@ -441,7 +460,8 @@ public final class JournalScreen extends FlatScreen {
 		int listTop = top + LIST_HEAD;
 		List<Group> groups = stats.groups();
 		if (groups.isEmpty()) {
-			graphics.text(font, "Nothing in this period.", left, listTop + 4, FAINT, true);
+			graphics.text(font, view == View.PARTY ? "No joined shafts in this period." : "Nothing in this period.",
+					left, listTop + 4, FAINT, true);
 			return;
 		}
 		int content = groups.size() * GROUP_ROW;
@@ -546,6 +566,9 @@ public final class JournalScreen extends FlatScreen {
 			if (mouseX >= left && mouseX < left + width && mouseY >= Math.max(y, listTop) && mouseY < Math.min(y + LOG_ROW, bottom)) {
 				graphics.fill(left, y, right + 3, y + LOG_ROW, ROW_HOVER);
 				String help = corpseHelp(visit);
+				if (visit.joined() && JournalConfig.party) {
+					help = ("Joined: someone else found this shaft. " + help).strip();
+				}
 				if (!help.isEmpty()) {
 					tooltip(graphics, help, mouseX, mouseY);
 				}
@@ -553,8 +576,14 @@ public final class JournalScreen extends FlatScreen {
 			type.ifPresent(known -> smallItem(graphics, known, left + 2, y + 1));
 			// the corpses sit between the name and the time, the name gives way to them
 			int dotsWidth = dots(graphics, visit.corpses(), atRight - 32, y + 4);
-			graphics.text(font, clip(type.map(ShaftType::displayName).orElse("Unknown"), atRight - 36 - dotsWidth - left - 15),
-					left + 15, y + 3, type.map(known -> ShaftColors.of(known.material())).orElse(MUTED), true);
+			// on the party tab every shaft is a joined one, the tag would say nothing there
+			int nameRoom = atRight - 36 - dotsWidth - left - 15;
+			boolean tag = visit.joined() && JournalConfig.party && view != View.PARTY && nameRoom > font.width(PARTY_TAG) + 30;
+			String name = clip(type.map(ShaftType::displayName).orElse("Unknown"), nameRoom - (tag ? font.width(PARTY_TAG) + 4 : 0));
+			graphics.text(font, name, left + 15, y + 3, type.map(known -> ShaftColors.of(known.material())).orElse(MUTED), true);
+			if (tag) {
+				graphics.text(font, PARTY_TAG, left + 15 + font.width(name) + 4, y + 3, FAINT, true);
+			}
 			rightText(graphics, JournalText.clock(visit.enteredAt(), zone), atRight, y + 3, MUTED);
 			boolean inside = open != null && open.enteredAt() == visit.enteredAt();
 			if (corpseView) {
@@ -612,11 +641,14 @@ public final class JournalScreen extends FlatScreen {
 			status = "";
 		}
 		List<ShaftVisit> inPeriod = List.copyOf(store.journal().since(period.start(now, store.sessionStart(), zone)));
+		if (view == View.PARTY) {
+			inPeriod = inPeriod.stream().filter(ShaftVisit::joined).toList();
+		}
 		stats = JournalStats.of(inPeriod);
 		// a shaft that is not in this period can not stay picked, the log would be empty with no row to click
 		picked.retainAll(stats.groups().stream().map(Group::key).toList());
 		days = JournalDays.of(inPeriod, zone, MAX_DAYS);
-		shown = view == View.DAYS ? inPeriod : view == View.SHAFTS
+		shown = view == View.DAYS ? inPeriod : view != View.CORPSES
 				? inPeriod.stream().filter(visit -> picked.isEmpty() || picked.contains(visit.key())).toList()
 				: inPeriod.stream().filter(visit -> !visit.corpses().isEmpty() && (pickedCorpses.isEmpty()
 						|| pickedCorpses.stream().anyMatch(letter -> visit.corpses().seen(letter) > 0))).toList();
