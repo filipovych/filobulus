@@ -13,6 +13,8 @@ class ProfitLedgerTest {
 	private static final String JASPER = "FLAWED_JASPER_GEM";
 	private static final String GLACITE = "GLACITE";
 	private static final long SECOND = 1000;
+	private static final String FLAWED = "FLAWED_RUBY_GEM";
+	private static final String FINE = "FINE_RUBY_GEM";
 
 	private ProfitTotals session;
 	private ProfitTotals allTime;
@@ -141,5 +143,101 @@ class ProfitLedgerTest {
 		ledger.inventory("ROUGH_RUBY_GEM", -80, 2 * SECOND, true);
 		ledger.inventory("FLAWED_RUBY_GEM", 1, 2 * SECOND, true);
 		assertEquals(Map.of("FLAWED_RUBY_GEM", 1L), session.items());
+	}
+
+	@Test
+	void craftingFromTheSacksInOneMessageCountsOnlyTheOutput() {
+		ledger.sack(FLAWED, 8000, SECOND);
+		ledger.sack(FINE, 100, 40 * SECOND);
+		ledger.sack(FLAWED, -8000, 40 * SECOND);
+		assertEquals(Map.of(FINE, 100L), session.items());
+	}
+
+	@Test
+	void theInputLineBeforeTheOutputIsACraft() {
+		ledger.sack(FLAWED, 8000, SECOND);
+		ledger.sack(FLAWED, -8000, 10 * SECOND);
+		// the output lands in the inventory while the crafting menu is still open
+		ledger.inventory(FINE, 100, 11 * SECOND, false);
+		assertEquals(Map.of(FINE, 100L), session.items());
+	}
+
+	@Test
+	void theOutputBeforeTheInputLineIsACraft() {
+		ledger.sack(FLAWED, 8000, SECOND);
+		ledger.inventory(FINE, 100, 10 * SECOND, false);
+		assertEquals(Map.of(FLAWED, 8000L), session.items());
+		ledger.sack(FLAWED, -8000, 35 * SECOND);
+		assertEquals(Map.of(FINE, 100L), session.items());
+		// the fines go into the sacks afterwards, that is still no gain
+		ledger.inventory(FINE, -100, 40 * SECOND, false);
+		ledger.sack(FINE, 100, 65 * SECOND);
+		assertEquals(Map.of(FINE, 100L), session.items());
+	}
+
+	@Test
+	void anOutputInTheSacksBeforeItsInputLineIsACraft() {
+		ledger.sack(FLAWED, 8000, SECOND);
+		ledger.sack(FINE, 100, 30 * SECOND);
+		ledger.sack(FLAWED, -8000, 30 * SECOND);
+		assertEquals(Map.of(FINE, 100L), session.items());
+	}
+
+	@Test
+	void anInventoryCompactorTakesBackOnlyWhatWentIn() {
+		ledger.inventory(FLAWED, 200, SECOND, true);
+		ledger.inventory(FLAWED, -160, 2 * SECOND, true);
+		ledger.inventory(FINE, 2, 2 * SECOND, true);
+		assertEquals(Map.of(FLAWED, 40L, FINE, 2L), session.items());
+	}
+
+	@Test
+	void aWithdrawalFromTheSacksStaysNeutral() {
+		ledger.sack(FLAWED, 500, SECOND);
+		ledger.sack(FINE, 10, SECOND);
+		// the sack menu, items first, the sack line half a minute later
+		ledger.inventory(FLAWED, 320, 5 * SECOND, false);
+		ledger.inventory(FINE, 4, 5 * SECOND, false);
+		ledger.sack(FLAWED, -320, 30 * SECOND);
+		ledger.sack(FINE, -4, 30 * SECOND);
+		assertEquals(Map.of(FLAWED, 500L, FINE, 10L), session.items());
+		// and the sack line first
+		ledger.sack(FLAWED, -80, 40 * SECOND);
+		ledger.inventory(FLAWED, 80, 41 * SECOND, true);
+		ledger.inventory(FINE, 1, 42 * SECOND, true);
+		assertEquals(Map.of(FLAWED, 500L, FINE, 11L), session.items());
+	}
+
+	@Test
+	void sellingTheInputFromTheSacksIsNoCraft() {
+		ledger.sack("ROUGH_RUBY_GEM", 8000, SECOND);
+		ledger.sack(FLAWED, 10, 30 * SECOND);
+		ledger.quiet(40 * SECOND);
+		ledger.sack("ROUGH_RUBY_GEM", -800, 45 * SECOND);
+		assertEquals(Map.of("ROUGH_RUBY_GEM", 8000L, FLAWED, 10L), session.items());
+	}
+
+	@Test
+	void miningKeepsTheClockRunningWithoutAddingItems() {
+		ledger.idle(60 * SECOND);
+		ledger.sack(JASPER, 1, 0);
+		for (long at = 30; at <= 150; at += 30) {
+			ledger.active(at * SECOND);
+		}
+		ledger.sack(JASPER, 1, 200 * SECOND);
+		assertEquals(200 * SECOND, session.activeMillis(200 * SECOND, 60 * SECOND));
+		assertEquals(Map.of(JASPER, 2L), session.items());
+	}
+
+	@Test
+	void miningStartsTheClockButAnEmptyTotalStaysEmpty() {
+		ProfitTotals totals = new ProfitTotals();
+		totals.active(10 * SECOND, 60 * SECOND);
+		totals.active(20 * SECOND, 60 * SECOND);
+		assertTrue(totals.isEmpty());
+		assertEquals(10 * SECOND, totals.activeMillis(20 * SECOND, 60 * SECOND));
+		// a break still stops it
+		totals.active(200 * SECOND, 60 * SECOND);
+		assertEquals(10 * SECOND, totals.activeMillis(200 * SECOND, 60 * SECOND));
 	}
 }
