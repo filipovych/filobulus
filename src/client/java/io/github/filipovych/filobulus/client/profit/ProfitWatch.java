@@ -49,6 +49,8 @@ public final class ProfitWatch {
 
 	private final ProfitStore base;
 	private ProfitStore store;
+	// the skyblock profile the all time total belongs to, empty until the join line said
+	private String profile = "";
 	private final BazaarPrices prices;
 	private final ItemCatalog catalog = new ItemCatalog();
 	private final Map<String, String> names = new ConcurrentHashMap<>();
@@ -94,6 +96,23 @@ public final class ProfitWatch {
 	// true while the tracker counts, the panel shows then
 	public boolean active() {
 		return active;
+	}
+
+	// the join line said which skyblock profile we are on, each keeps its own all time total
+	// the first profile seen takes over what was counted before profiles were known
+	public void profile(String id) {
+		if (id.equals(profile)) {
+			return;
+		}
+		ProfitStore next = base.forProfile(id);
+		if (!profile.isEmpty() || next.exists()) {
+			save();
+			allTime.replaceWith(next.load(names));
+			savedVersion = allTime.version();
+		}
+		profile = id;
+		store = next;
+		save();
 	}
 
 	// /filo profit reset, forgets what the period on show has counted

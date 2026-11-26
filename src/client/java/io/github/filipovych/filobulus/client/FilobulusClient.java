@@ -13,6 +13,7 @@ import io.github.filipovych.filobulus.client.corpse.CorpseWatch;
 import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.client.journal.ShaftLog;
+import io.github.filipovych.filobulus.client.mining.MiningWatch;
 import io.github.filipovych.filobulus.client.profit.ProfitControls;
 import io.github.filipovych.filobulus.client.profit.ProfitStore;
 import io.github.filipovych.filobulus.client.profit.ProfitWatch;
@@ -52,6 +53,7 @@ public final class FilobulusClient implements ClientModInitializer {
 	// one price list for everything that needs prices
 	private static final BazaarPrices PRICES = new BazaarPrices();
 	private static ProfitWatch profit;
+	private static MiningWatch mining;
 	private static SoundBoard sounds;
 	private static ColdWatch cold;
 	private static AchievementWatch achievements;
@@ -100,6 +102,8 @@ public final class FilobulusClient implements ClientModInitializer {
 				new ProfitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("profit.json")), PRICES);
 		profit.register();
 		ProfitControls.register();
+		mining = new MiningWatch();
+		mining.register();
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			tracker.tick(minecraft);
 			shaftLog.tick(minecraft);
@@ -110,6 +114,7 @@ public final class FilobulusClient implements ClientModInitializer {
 			cold.tick(minecraft);
 			portal.tick(minecraft);
 			achievements.tick(minecraft);
+			mining.tick(minecraft);
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			shaftLog.close();
@@ -163,6 +168,10 @@ public final class FilobulusClient implements ClientModInitializer {
 
 	public static AchievementWatch achievements() {
 		return achievements;
+	}
+
+	public static MiningWatch mining() {
+		return mining;
 	}
 
 	public static ProfitWatch profit() {
