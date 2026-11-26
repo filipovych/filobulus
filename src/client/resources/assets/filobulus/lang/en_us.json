@@ -5,10 +5,10 @@
 	"filobulus.config.routes.skipAhead": "Skip ahead",
 	"filobulus.config.routes.stopsShown": "Stops shown",
 	"filobulus.config.routes.announceLoad": "Announce in chat",
-	"filobulus.config.hud.routeHud": "Route HUD",
+	"filobulus.config.hud.routeHud": "Mining panel",
 	"filobulus.config.hud.splits": "Route splits",
 	"filobulus.config.hud.panel": "Panel background",
-	"filobulus.config.hud.sessionHud": "Session HUD",
+	"filobulus.config.hud.sessionHud": "Session rows",
 	"filobulus.config.tracker.profit": "Profit tracker",
 	"filobulus.config.tracker.items": "Count",
 	"filobulus.config.tracker.price": "Price",
@@ -26,7 +26,8 @@
 	"filobulus.config.sounds.sounds": "Play sounds",
 	"filobulus.config.corpses.reveal": "Corpse reveal",
 	"filobulus.config.corpses.revealSounds": "Reveal sounds",
+	"filobulus.config.corpses.muteOrganDonor": "Mute Organ Donor",
 	"filobulus.config.journal.journal": "Log shafts",
-	"filobulus.config.journal.recap": "Shaft recap",
+	"filobulus.config.journal.recap": "Auto recap",
 	"filobulus.config.journal.recapSeconds": "Recap seconds"
 }

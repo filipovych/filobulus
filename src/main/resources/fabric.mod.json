@@ -18,6 +18,12 @@
 			"io.github.filipovych.filobulus.client.FilobulusClient"
 		]
 	},
+	"mixins": [
+		{
+			"config": "filobulus.client.mixins.json",
+			"environment": "client"
+		}
+	],
 	"depends": {
 		"fabricloader": ">=0.20.1",
 		"minecraft": "~${minecraft}",

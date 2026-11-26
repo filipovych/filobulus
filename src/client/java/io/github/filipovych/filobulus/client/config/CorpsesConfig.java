@@ -16,6 +16,27 @@ public final class CorpsesConfig {
 	@Comment("Play the cracking sounds and the sound of the reveal. Which sound each tier plays is picked on the Sounds page.")
 	public static boolean revealSounds = true;
 
+	@ConfigEntry(id = "muteOrganDonor", translation = "filobulus.config.corpses.muteOrganDonor")
+	@Comment("Mute the ding of the Organ Donor accessory in a mineshaft. Once all opened waits until every corpse of the shaft is looted, so the ding still helps you find them.")
+	public static Mute muteOrganDonor = Mute.IN_SHAFTS;
+
+	public enum Mute {
+		NEVER("Never"),
+		IN_SHAFTS("In shafts"),
+		ONCE_ALL_OPENED("Once all opened");
+
+		private final String title;
+
+		Mute(String title) {
+			this.title = title;
+		}
+
+		@Override
+		public String toString() {
+			return title;
+		}
+	}
+
 	private CorpsesConfig() {
 	}
 }
