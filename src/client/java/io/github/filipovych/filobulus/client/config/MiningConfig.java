@@ -28,6 +28,14 @@ public final class MiningConfig {
 	@Comment("Ping gliding: a small cue near the crosshair when the server should already have the block broken, half your ping before the animation ends, so you can move to the next one.")
 	public static boolean swapCue = true;
 
+	@ConfigEntry(id = "swapCombo", translation = "filobulus.config.mining.swapCombo")
+	@Comment("A style meter for ping gliding: every block you leave in its glide window that breaks adds to the combo and climbs the ranks, leaving one too early breaks it, and a few seconds without a swap lets it fall. Only in the Glacite Tunnels and mineshafts.")
+	public static boolean swapCombo = true;
+
+	@ConfigEntry(id = "comboSounds", translation = "filobulus.config.mining.comboSounds")
+	@Comment("Play a rising sound on every rank up of the swap combo and one when it breaks. Pick them on the Sounds page.")
+	public static boolean comboSounds = true;
+
 	@ConfigEntry(id = "cold", translation = "filobulus.config.mining.cold")
 	@Comment("Show your cold on the mining panel with how long until 100 at the rate it is going up. Reads Cold from the sidebar.")
 	public static boolean cold = true;
@@ -76,6 +84,26 @@ public final class MiningConfig {
 	@ConfigEntry(id = "swapHudScale")
 	@ConfigOption.Hidden
 	public static float swapHudScale = 1f;
+
+	@ConfigEntry(id = "comboHudAnchorX")
+	@ConfigOption.Hidden
+	public static HudAnchor comboHudAnchorX = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "comboHudX")
+	@ConfigOption.Hidden
+	public static int comboHudX = 0;
+
+	@ConfigEntry(id = "comboHudAnchorY")
+	@ConfigOption.Hidden
+	public static HudAnchor comboHudAnchorY = HudAnchor.CENTRE;
+
+	@ConfigEntry(id = "comboHudY")
+	@ConfigOption.Hidden
+	public static int comboHudY = 48;
+
+	@ConfigEntry(id = "comboHudScale")
+	@ConfigOption.Hidden
+	public static float comboHudScale = 1f;
 
 	private MiningConfig() {
 	}

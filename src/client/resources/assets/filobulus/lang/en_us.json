@@ -3,6 +3,8 @@
 	"filobulus.config.mining.alphaStrengths": "Alpha gemstone strengths",
 	"filobulus.config.mining.msbBonus": "Mining Speed Boost %",
 	"filobulus.config.mining.swapCue": "Swap cue",
+	"filobulus.config.mining.swapCombo": "Swap combo",
+	"filobulus.config.mining.comboSounds": "Combo sounds",
 	"filobulus.config.mining.cold": "Cold forecast",
 	"filobulus.config.mining.pity": "Pity row",
 	"filobulus.config.enabled": "Enabled",
