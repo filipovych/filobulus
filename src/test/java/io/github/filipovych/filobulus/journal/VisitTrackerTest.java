@@ -126,4 +126,15 @@ class VisitTrackerTest {
 		assertTrue(tracker.mined(3_000_000, 66_000).isEmpty());
 		assertTrue(tracker.mined(9_000_000, 80_000).isEmpty());
 	}
+
+	@Test
+	void aJoinedShaftStaysJoinedWhenItIsResumed() {
+		VisitTracker tracker = new VisitTracker();
+		tracker.update(true, "FAIR_1", SHAFT, 1000);
+		assertEquals(List.of(ShaftVisit.entered(1000, "FAIR_1").withJoined(true)), tracker.joined());
+		assertTrue(tracker.joined().isEmpty());
+		tracker.update(false, "", TUNNELS, 5000);
+		// back in after a disconnect, the same visit and still joined
+		assertEquals(List.of(new ShaftVisit(1000, "FAIR_1", 0, 0).withJoined(true)), tracker.update(true, "FAIR_1", SHAFT, 8000));
+	}
 }

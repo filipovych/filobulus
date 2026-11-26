@@ -54,6 +54,15 @@ public final class VisitTracker {
 		return changed;
 	}
 
+	// the shaft we are in turned out to be someone else's
+	public List<ShaftVisit> joined() {
+		if (open == null || open.joined()) {
+			return List.of();
+		}
+		open = open.withJoined(true);
+		return List.of(open);
+	}
+
 	// the route of the shaft we are in was finished
 	public List<ShaftVisit> ran(long runMillis) {
 		if (open == null || runMillis <= 0) {
