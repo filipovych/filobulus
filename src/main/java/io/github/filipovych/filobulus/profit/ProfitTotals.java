@@ -11,7 +11,7 @@ public final class ProfitTotals {
 	// corpses opened and what they paid with the keys taken off, in coins at the time they were opened
 	private int corpses;
 	private double corpseCoins;
-	// when the last gain came in, counting is false until there was one
+	// when the last gain or activity came in, counting is false until there was one
 	private long lastGain;
 	private boolean counting;
 	private int version;
@@ -63,6 +63,12 @@ public final class ProfitTotals {
 		version++;
 		corpses++;
 		corpseCoins += coins;
+		activity(now, idle, now);
+	}
+
+	// the player is busy without gaining anything, like mining a block, the clock keeps running but nothing is added
+	public void active(long now, long idle) {
+		version++;
 		activity(now, idle, now);
 	}
 

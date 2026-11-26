@@ -15,6 +15,8 @@ public final class ProfitLedger {
 		final long at;
 		final boolean counted;
 		long amount;
+		// for something made, the inventory gain it came in with
+		Move arrival;
 
 		Move(String id, long at, long amount, boolean counted) {
 			this.id = id;
@@ -35,6 +37,8 @@ public final class ProfitLedger {
 	private final List<Move> fromCorpse = new ArrayList<>();
 	// left the inventory with no menu open, a compactor or the crafting grid may turn it into something else
 	private final List<Move> used = new ArrayList<>();
+	// an item a recipe makes was gained, the sack line for what went into it may still come
+	private final List<Move> made = new ArrayList<>();
 	private long quietUntil;
 	private long idle = 60_000;
 
@@ -44,6 +48,13 @@ public final class ProfitLedger {
 
 	public void idle(long millis) {
 		idle = millis;
+	}
+
+	// the player is mining, the clock keeps running even when no gain came in for a while
+	public void active(long now) {
+		for (ProfitTotals each : totals) {
+			each.active(now, idle);
+		}
 	}
 
 	// something was bought or claimed, what lands in the sacks in the next minute is not loot
@@ -75,8 +86,10 @@ public final class ProfitLedger {
 				return;
 			}
 			long left = amount - take(fromCorpse, id, amount);
+			left -= take(leftInventory, id, left);
 			if (left > 0) {
-				credit(id, left - take(leftInventory, id, left), now, now - window);
+				credit(id, left, now, now - window);
+				compacted(id, left, now, null);
 			}
 			return;
 		}
@@ -90,9 +103,15 @@ public final class ProfitLedger {
 			long part = Math.min(left, move.amount);
 			move.amount -= part;
 			left -= part;
+			// it came out of the sack, so it was not made either
+			take(made, id, part);
 			if (move.counted) {
 				credit(id, -part, now, now);
 			}
+		}
+		// right after a trade a line going out is a sale, not a craft
+		if (now >= quietUntil) {
+			left = usedFor(id, left, now);
 		}
 		if (left > 0) {
 			leftSacks.add(new Move(id, now, left, false));
@@ -121,17 +140,71 @@ public final class ProfitLedger {
 		}
 		if (counted) {
 			credit(id, gained, now, now);
-			compacted(id, gained, now);
 		}
-		arrived.add(new Move(id, now, gained, counted));
+		Move arrival = new Move(id, now, gained, counted);
+		arrived.add(arrival);
+		compacted(id, gained, now, arrival);
 	}
 
 	// 80 rough turning into 1 flawed is no new loot, the rough that went into it is taken back off
-	private void compacted(String output, long gained, long now) {
-		Compaction.of(output).ifPresent(recipe -> {
-			long taken = take(used, recipe.input(), recipe.count() * gained);
-			credit(recipe.input(), -taken, now, now);
-		});
+	// the input may have left the inventory or the sacks, before or after, arrival is null for a sack line
+	// an output that was not counted, because a menu was open, counts when it was made from inputs we saw go
+	private void compacted(String output, long gained, long now, Move arrival) {
+		Compaction.Recipe recipe = Compaction.of(output).orElse(null);
+		if (recipe == null) {
+			return;
+		}
+		long wanted = recipe.count() * gained;
+		long taken = take(used, recipe.input(), wanted);
+		taken += take(leftSacks, recipe.input(), wanted - taken);
+		taken += take(leftInventory, recipe.input(), wanted - taken);
+		credit(recipe.input(), -taken, now, now);
+		long crafted = Math.min(gained, Math.ceilDiv(taken, recipe.count()));
+		boolean counted = arrival == null || arrival.counted;
+		if (!counted && crafted > 0) {
+			credit(output, crafted, now, now);
+			countArrival(arrival, crafted, now);
+		}
+		if (gained > crafted) {
+			Move waiting = new Move(output, now, gained - crafted, counted);
+			waiting.arrival = arrival;
+			made.add(waiting);
+		}
+	}
+
+	// a sack line took out an input after its output was gained, so it went into that output
+	// gives back how much of the line is left over
+	private long usedFor(String input, long amount, long now) {
+		long left = amount;
+		for (Move move : made) {
+			if (left == 0) {
+				break;
+			}
+			Compaction.Recipe recipe = Compaction.of(move.id).orElse(null);
+			if (recipe == null || !recipe.input().equals(input) || move.amount <= 0) {
+				continue;
+			}
+			long outputs = Math.min(move.amount, Math.ceilDiv(left, recipe.count()));
+			long inputs = Math.min(left, outputs * recipe.count());
+			move.amount -= outputs;
+			left -= inputs;
+			credit(input, -inputs, now, now);
+			if (!move.counted) {
+				credit(move.id, outputs, now, now);
+				countArrival(move.arrival, outputs, now);
+			}
+		}
+		return left;
+	}
+
+	// part of an inventory gain that was not counted turned out to be made, so it counts now
+	// split off, so a sack line that later says it was taken out takes it back again
+	private void countArrival(Move arrival, long amount, long now) {
+		long part = Math.min(amount, arrival.amount);
+		if (part > 0) {
+			arrival.amount -= part;
+			arrived.add(new Move(arrival.id, now, part, true));
+		}
 	}
 
 	// uses up to amount of what is waiting for that item, gives back how much it was
@@ -160,7 +233,7 @@ public final class ProfitLedger {
 	}
 
 	private void prune(long now) {
-		for (List<Move> moves : List.of(leftSacks, leftInventory, arrived, fromCorpse, used)) {
+		for (List<Move> moves : List.of(leftSacks, leftInventory, arrived, fromCorpse, used, made)) {
 			for (Iterator<Move> each = moves.iterator(); each.hasNext();) {
 				Move move = each.next();
 				if (move.amount <= 0 || now - move.at > WINDOW) {
