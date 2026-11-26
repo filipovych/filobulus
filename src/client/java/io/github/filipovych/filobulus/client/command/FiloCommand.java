@@ -15,6 +15,7 @@ import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
+import io.github.filipovych.filobulus.client.screen.AchievementsScreen;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RecapScreen;
 import io.github.filipovych.filobulus.client.screen.RoutesScreen;
@@ -75,6 +76,7 @@ public final class FiloCommand {
 								.executes(context -> crack(context, StringArgumentType.getString(context, "tier")))))
 				.then(ClientCommands.literal("recap").executes(FiloCommand::recap))
 				.then(ClientCommands.literal("sounds").executes(FiloCommand::openSounds))
+				.then(ClientCommands.literal("achievements").executes(FiloCommand::openAchievements))
 				.then(ClientCommands.literal("profit")
 						.then(ClientCommands.literal("reset").executes(FiloCommand::resetProfit)))
 				.then(ClientCommands.literal("debug").executes(FiloCommand::debug));
@@ -145,6 +147,12 @@ public final class FiloCommand {
 	private static int openSounds(CommandContext<FabricClientCommandSource> context) {
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new SoundsScreen(null)));
+		return 1;
+	}
+
+	private static int openAchievements(CommandContext<FabricClientCommandSource> context) {
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new AchievementsScreen(null)));
 		return 1;
 	}
 

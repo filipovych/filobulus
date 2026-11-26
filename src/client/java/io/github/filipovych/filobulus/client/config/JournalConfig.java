@@ -7,6 +7,7 @@ import com.teamresourceful.resourcefulconfig.api.annotations.ConfigEntry;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigInfo;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigOption;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
+import io.github.filipovych.filobulus.client.screen.AchievementsScreen;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
 import io.github.filipovych.filobulus.client.screen.RecapScreen;
 import net.minecraft.client.Minecraft;
@@ -49,6 +50,13 @@ public final class JournalConfig {
 	public static final Runnable openJournal = () -> {
 		Minecraft minecraft = Minecraft.getInstance();
 		GameCompat.setScreen(minecraft, new JournalScreen(GameCompat.screen(minecraft)));
+	};
+
+	@ConfigButton(title = "Achievements", text = "Open")
+	@Comment("Every achievement, what it takes and how far along you are. Also at /filo achievements.")
+	public static final Runnable openAchievements = () -> {
+		Minecraft minecraft = Minecraft.getInstance();
+		GameCompat.setScreen(minecraft, new AchievementsScreen(GameCompat.screen(minecraft)));
 	};
 
 	private JournalConfig() {
