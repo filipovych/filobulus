@@ -1,0 +1,55 @@
+package io.github.filipovych.filobulus.mining;
+
+// how many ticks a skyblock block takes at a mining speed, the way the wiki and skyhanni work it out
+// ticks = round(30 * strength / speed), never under 4 ticks, and 1 tick once the speed is over 60 times the strength
+// plain blocks like hard stone instamine at 30 times the strength
+public final class Breakpoints {
+	public static final int SOFT_CAP = 4;
+
+	private Breakpoints() {
+	}
+
+	public static int ticks(int strength, int speed, boolean plain) {
+		if (strength <= 0 || speed <= 0) {
+			return 0;
+		}
+		if (speed > instamine(strength, plain) - 1) {
+			return 1;
+		}
+		return Math.max(SOFT_CAP, (int) Math.round(30d * strength / speed));
+	}
+
+	// the smallest speed that breaks the block in that many ticks
+	public static int speedFor(int strength, int ticks, boolean plain) {
+		if (ticks <= 1) {
+			return instamine(strength, plain);
+		}
+		if (ticks <= SOFT_CAP) {
+			return (int) Math.ceil(20d * strength / 3);
+		}
+		// round gives ticks while 30 * strength / speed is under ticks + 0.5
+		return (int) Math.floor(30d * strength / (ticks + 0.5)) + 1;
+	}
+
+	// the next tick count down from now and the speed it needs, ticks 0 once nothing is left to reach
+	public record Next(int ticks, int speed) {
+	}
+
+	public static Next next(int strength, int speed, boolean plain) {
+		int now = ticks(strength, speed, plain);
+		if (now <= 1) {
+			return new Next(0, 0);
+		}
+		int target = now <= SOFT_CAP ? 1 : now - 1;
+		return new Next(target, speedFor(strength, target, plain));
+	}
+
+	private static int instamine(int strength, boolean plain) {
+		return (plain ? 30 : 60) * strength + 1;
+	}
+
+	// ping gliding: the server has the block broken about half the ping before the client sees it go
+	public static int swapTick(int ticks, int pingMillis) {
+		return Math.max(1, ticks - (int) Math.round(pingMillis / 2d / 50d));
+	}
+}
