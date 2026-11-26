@@ -5,12 +5,16 @@ import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.config.JournalConfig;
+import io.github.filipovych.filobulus.client.config.MiningConfig;
 import io.github.filipovych.filobulus.client.hud.HudPanel.Content;
 import io.github.filipovych.filobulus.client.hud.HudPanel.Row;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
+import io.github.filipovych.filobulus.client.mining.MiningWatch;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.hud.HudAnchor;
 import io.github.filipovych.filobulus.hud.HudPlacement;
+import io.github.filipovych.filobulus.journal.ShaftVisit;
+import io.github.filipovych.filobulus.mining.ColdRate;
 import io.github.filipovych.filobulus.route.CustomRoute;
 import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.route.Location.Area;
@@ -20,12 +24,13 @@ import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalLong;
 import net.minecraft.world.item.ItemStack;
 
 // the one panel for mining: in a shaft its name, the stop, the time inside and the run against the best
-// under that the session, shafts and since jasper, and the wisp and cold potion when we know of them
+// under that the session: shafts and since jasper, pity, cold, the wisp and the cold potion
 // in the tunnels only the session part shows, outside them a route of the player's own
 public final class RouteHud implements HudWidget {
 	// argb
@@ -34,6 +39,7 @@ public final class RouteHud implements HudWidget {
 	private static final int LOW = 0xFFFFAA00;
 	private static final int GONE = 0xFFFF5555;
 	private static final long LOW_MILLIS = 30_000;
+	private static final int VALUE = 0xFFFFFFFF;
 
 	@Override
 	public String name() {
@@ -109,8 +115,20 @@ public final class RouteHud implements HudWidget {
 		List<Row> more = new ArrayList<>();
 		if (HudConfig.sessionHud && JournalConfig.journal) {
 			JournalStore store = FilobulusClient.journal();
-			more.add(new Row("Shafts", String.valueOf(store.journal().since(store.sessionStart()).size())));
+			List<ShaftVisit> session = store.journal().since(store.sessionStart());
+			more.add(new Row(ItemStack.EMPTY, "Shafts", perHour(session, now), String.valueOf(session.size()), VALUE));
 			more.add(new Row("Since jasper", String.valueOf(store.journal().sinceJasper())));
+		}
+		MiningWatch mining = FilobulusClient.mining();
+		if (MiningConfig.pity) {
+			mining.pity().ifPresent(pity -> more.add(new Row("Pity",
+					String.format(Locale.ROOT, "%,d/%,d", pity.now(), pity.full()))));
+		}
+		ColdRate freezing = mining.cold();
+		if (MiningConfig.cold && freezing.known() && freezing.cold() > 0) {
+			long until = freezing.untilDeadly(now);
+			int color = freezing.cold() >= 75 ? GONE : freezing.cold() >= 50 ? LOW : VALUE;
+			more.add(new Row(ItemStack.EMPTY, "Cold", until < 0 ? "" : SplitText.clock(until) + " left", String.valueOf(freezing.cold()), color));
 		}
 		WispTimer wisp = FilobulusClient.wisp().timer();
 		if (AlertsConfig.wisp && wisp.known()) {
@@ -124,6 +142,15 @@ public final class RouteHud implements HudWidget {
 			rows.add(HudPanel.SPACER);
 			rows.addAll(more);
 		}
+	}
+
+	// shafts an hour this session, once there are a few and enough time to say
+	private static String perHour(List<ShaftVisit> session, long now) {
+		if (session.size() < 2) {
+			return "";
+		}
+		long spent = now - session.get(0).enteredAt();
+		return spent < 10 * 60_000 ? "" : String.format(Locale.ROOT, "%.1f/h", session.size() * 3_600_000d / spent);
 	}
 
 	private static Row timer(String label, long left, String none) {
