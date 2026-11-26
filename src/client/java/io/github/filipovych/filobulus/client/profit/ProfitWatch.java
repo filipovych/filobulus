@@ -44,8 +44,11 @@ public final class ProfitWatch {
 	// right after a change of world the inventory is filled in again, that is no loot
 	private static final long SETTLE_MILLIS = 3000;
 	private static final long SAVE_MILLIS = 60_000;
+	// while warping the tab list has no island for a few seconds, the tracker stays up that long
+	private static final long WARP_MILLIS = 20_000;
 
-	private final ProfitStore store;
+	private final ProfitStore base;
+	private ProfitStore store;
 	private final BazaarPrices prices;
 	private final ItemCatalog catalog = new ItemCatalog();
 	private final Map<String, String> names = new ConcurrentHashMap<>();
@@ -56,6 +59,8 @@ public final class ProfitWatch {
 	private Map<String, Long> held;
 	private ClientLevel level;
 	private long settledAt;
+	// when the tracker last knew it was somewhere it counts
+	private long hereAt;
 	private boolean active;
 	private int ticks;
 	private int savedVersion;
@@ -65,6 +70,7 @@ public final class ProfitWatch {
 	private Map<String, Long> atShaftStart = Map.of();
 
 	public ProfitWatch(ProfitStore store, BazaarPrices prices) {
+		this.base = store;
 		this.store = store;
 		this.prices = prices;
 		allTime = store.load(names);
@@ -113,7 +119,7 @@ public final class ProfitWatch {
 	}
 
 	public ProfitValue value() {
-		return ProfitValue.of(totals().items(), this::price);
+		return ProfitValue.of(totals().items(), this::price).plus(totals().corpseCoins());
 	}
 
 	public long activeMillis() {
@@ -122,7 +128,13 @@ public final class ProfitWatch {
 
 	public void tick(Minecraft minecraft) {
 		Player player = minecraft.player;
-		active = player != null && FilobulusConfig.enabled && TrackerConfig.profit && here();
+		long now = System.currentTimeMillis();
+		if (here()) {
+			hereAt = now;
+		}
+		// a warp leaves the island unknown for a moment, that is no reason to hide the panel
+		boolean warping = FilobulusClient.tracker().areaName().isEmpty() && now - hereAt < WARP_MILLIS;
+		active = player != null && FilobulusConfig.enabled && TrackerConfig.profit && (now - hereAt == 0 || warping);
 		if (!active) {
 			held = null;
 			return;
@@ -133,13 +145,12 @@ public final class ProfitWatch {
 			catalog.refresh();
 		}
 		ledger.idle(idle());
-		long now = System.currentTimeMillis();
 		if (minecraft.level != level) {
+			// the counts from before the warp are kept, once the new world settled they are compared again
 			level = minecraft.level;
 			settledAt = now + SETTLE_MILLIS;
-			held = null;
 		}
-		if (ticks++ % INVENTORY_INTERVAL == 0) {
+		if (ticks++ % INVENTORY_INTERVAL == 0 && now >= settledAt) {
 			lookAtInventory(player, now);
 		}
 		if (ticks % SHAFT_INTERVAL == 0) {
@@ -192,11 +203,12 @@ public final class ProfitWatch {
 		Set<String> hovers = new LinkedHashSet<>();
 		collectHovers(message, hovers, 0);
 		for (String hover : hovers) {
+			long window = Math.min(SackReader.windowMillis(hover), idle());
 			for (SackReader.Change change : SackReader.read(hover)) {
 				Optional<String> id = MiningItems.id(change.name()).or(() -> catalog.id(change.name()));
 				if (id.isPresent() && tracked(id.get())) {
 					names.putIfAbsent(id.get(), change.name());
-					ledger.sack(id.get(), change.amount(), now);
+					ledger.sack(id.get(), change.amount(), now, window);
 				}
 			}
 		}
@@ -227,7 +239,7 @@ public final class ProfitWatch {
 			return;
 		}
 		// with a chest, a shop or the bazaar open what comes and goes is not loot
-		boolean counted = player.containerMenu == player.inventoryMenu && now >= settledAt;
+		boolean counted = player.containerMenu == player.inventoryMenu;
 		Set<String> ids = new HashSet<>(before.keySet());
 		ids.addAll(counts.keySet());
 		for (String id : ids) {

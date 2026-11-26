@@ -21,6 +21,15 @@ public final class ProfitStore {
 		this.file = file;
 	}
 
+	// the all time total of one skyblock profile has a file of its own
+	public ProfitStore forProfile(String id) {
+		return new ProfitStore(file.resolveSibling("profit-" + id + ".json"));
+	}
+
+	public boolean exists() {
+		return Files.exists(file);
+	}
+
 	// names gets the saved item names put into it, a file that can not be read gives empty totals
 	public ProfitTotals load(Map<String, String> names) {
 		if (!Files.exists(file)) {
@@ -37,7 +46,9 @@ public final class ProfitStore {
 					names.put(name.getKey(), name.getValue().getAsString());
 				}
 			}
-			return new ProfitTotals(items, root.has("active") ? root.get("active").getAsLong() : 0);
+			return new ProfitTotals(items, root.has("active") ? root.get("active").getAsLong() : 0,
+					root.has("corpses") ? root.get("corpses").getAsInt() : 0,
+					root.has("corpseCoins") ? root.get("corpseCoins").getAsDouble() : 0);
 		} catch (IOException | RuntimeException e) {
 			FilobulusClient.LOGGER.error("Could not read {}, it is kept as profit.json.broken", file, e);
 			try {
@@ -62,6 +73,8 @@ public final class ProfitStore {
 		JsonObject root = new JsonObject();
 		root.addProperty("version", 1);
 		root.addProperty("active", activeMillis);
+		root.addProperty("corpses", totals.corpses());
+		root.addProperty("corpseCoins", totals.corpseCoins());
 		root.add("items", items);
 		root.add("names", kept);
 		try {
