@@ -14,8 +14,8 @@ import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.client.hud.HudEditScreen;
-import io.github.filipovych.filobulus.client.journal.RecapHud;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
+import io.github.filipovych.filobulus.client.screen.RecapScreen;
 import io.github.filipovych.filobulus.client.screen.RoutesScreen;
 import io.github.filipovych.filobulus.client.screen.SoundsScreen;
 import io.github.filipovych.filobulus.corpse.CrackTier;
@@ -153,15 +153,11 @@ public final class FiloCommand {
 		return 1;
 	}
 
-	// shows the card of the last shaft again
+	// opens the recap of the last shaft
 	private static int recap(CommandContext<FabricClientCommandSource> context) {
 		ShaftVisit last = FilobulusClient.shaftLog().last();
-		List<ShaftVisit> journal = FilobulusClient.journal().journal().visits();
-		if (last == null && journal.isEmpty()) {
-			fail(context, "No shaft to show yet.");
-			return 1;
-		}
-		RecapHud.show(last != null ? last.enteredAt() : journal.get(journal.size() - 1).enteredAt());
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new RecapScreen(null, last != null ? last.enteredAt() : 0)));
 		return 1;
 	}
 

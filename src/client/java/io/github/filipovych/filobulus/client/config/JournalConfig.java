@@ -8,6 +8,7 @@ import com.teamresourceful.resourcefulconfig.api.annotations.ConfigInfo;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigOption;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.screen.JournalScreen;
+import io.github.filipovych.filobulus.client.screen.RecapScreen;
 import net.minecraft.client.Minecraft;
 
 @Category("journal")
@@ -17,15 +18,23 @@ public final class JournalConfig {
 	@Comment("Write every mineshaft you enter to the journal: its type, when, and how long you stayed.")
 	public static boolean journal = true;
 
-	@ConfigEntry(id = "recap", translation = "filobulus.config.journal.recap")
-	@Comment("When you leave a mineshaft, show a card for a few seconds: the time inside, the route time, the corpses you opened and what the shaft paid. /filo recap shows the last one again. Move it with /filo hud.")
-	public static boolean recap = true;
+	// a new id, the old "recap" was on by default and this one starts off
+	@ConfigEntry(id = "autoRecap", translation = "filobulus.config.journal.recap")
+	@Comment("When you leave a mineshaft, show a small card for a few seconds: what the shaft paid, the rate, the time and the corpses. /filo recap always opens the full recap. Move the card with /filo hud.")
+	public static boolean recap = false;
 
 	@ConfigEntry(id = "recapSeconds", translation = "filobulus.config.journal.recapSeconds")
-	@Comment("How many seconds the card stays.")
+	@Comment("How many seconds the small card stays.")
 	@ConfigOption.Range(min = 3, max = 30)
 	@ConfigOption.Slider
 	public static int recapSeconds = 10;
+
+	@ConfigButton(title = "Shaft recap", text = "Open")
+	@Comment("The last shaft you were in, and the ones before it. Also at /filo recap.")
+	public static final Runnable openRecap = () -> {
+		Minecraft minecraft = Minecraft.getInstance();
+		GameCompat.setScreen(minecraft, new RecapScreen(GameCompat.screen(minecraft), 0));
+	};
 
 	@ConfigButton(title = "Shaft journal", text = "Open")
 	@Comment("Every shaft you were in, with totals per shaft type. Also at /filo journal.")
