@@ -46,6 +46,8 @@ public final class ProfitWatch {
 	private static final long SAVE_MILLIS = 60_000;
 	// while warping the tab list has no island for a few seconds, the tracker stays up that long
 	private static final long WARP_MILLIS = 20_000;
+	// mining keeps the clock running, it is told at most this often
+	private static final long MINING_MILLIS = 1000;
 
 	private final ProfitStore base;
 	private ProfitStore store;
@@ -67,6 +69,7 @@ public final class ProfitWatch {
 	private int ticks;
 	private int savedVersion;
 	private long savedAt;
+	private long minedAt;
 	// the shaft we are in and what the session held when we got in
 	private long shaftAt;
 	private Map<String, Long> atShaftStart = Map.of();
@@ -176,6 +179,10 @@ public final class ProfitWatch {
 			level = minecraft.level;
 			settledAt = now + SETTLE_MILLIS;
 		}
+		if (now - minedAt >= MINING_MILLIS && minecraft.gameMode != null && minecraft.gameMode.isDestroying() && mining()) {
+			minedAt = now;
+			ledger.active(now);
+		}
 		if (ticks++ % INVENTORY_INTERVAL == 0 && now >= settledAt) {
 			lookAtInventory(player, now);
 		}
@@ -208,8 +215,12 @@ public final class ProfitWatch {
 	// the tunnels and the shafts are known from the mod's own location read
 	private static boolean here() {
 		String area = FilobulusClient.tracker().areaName();
-		return FilobulusClient.tracker().location().area() != Area.ELSEWHERE || MINING_ISLANDS.contains(area)
-				|| TrackerConfig.items == TrackerConfig.Items.EVERYTHING && !area.isEmpty();
+		return mining() || TrackerConfig.items == TrackerConfig.Items.EVERYTHING && !area.isEmpty();
+	}
+
+	private static boolean mining() {
+		return FilobulusClient.tracker().location().area() != Area.ELSEWHERE
+				|| MINING_ISLANDS.contains(FilobulusClient.tracker().areaName());
 	}
 
 	private static boolean tracked(String id) {

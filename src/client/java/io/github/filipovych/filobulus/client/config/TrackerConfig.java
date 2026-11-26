@@ -82,10 +82,10 @@ public final class TrackerConfig {
 	public static int lines = 6;
 
 	@ConfigEntry(id = "idle", translation = "filobulus.config.tracker.idle")
-	@Comment("Seconds without a gain after which the clock for coins per hour stops, so a break does not pull the rate down.")
+	@Comment("Seconds without a gain or mining after which the clock for coins per hour stops, so a break does not pull the rate down.")
 	@ConfigOption.Range(min = 15, max = 300)
 	@ConfigOption.Slider
-	public static int idle = 60;
+	public static int idle = 180;
 
 	@ConfigEntry(id = "hideEmpty", translation = "filobulus.config.tracker.hideEmpty")
 	@Comment("Hide the panel while nothing has been gained yet.")
