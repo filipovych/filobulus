@@ -3,6 +3,7 @@ package io.github.filipovych.filobulus.profit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -239,5 +240,65 @@ class ProfitLedgerTest {
 		// a break still stops it
 		totals.active(200 * SECOND, 60 * SECOND);
 		assertEquals(10 * SECOND, totals.activeMillis(200 * SECOND, 60 * SECOND));
+	}
+
+	@Test
+	void aCompactorOutputListedBeforeItsInputInOneLookCountsOnce() {
+		ledger.inventory("ROUGH_RUBY_GEM", 80, SECOND, true);
+		Map<String, Long> look = new LinkedHashMap<>();
+		look.put(FLAWED, 1L);
+		look.put("ROUGH_RUBY_GEM", -80L);
+		ledger.inventory(look, 2 * SECOND, true);
+		assertEquals(Map.of(FLAWED, 1L), session.items());
+	}
+
+	@Test
+	void droppingItemsAndPickingThemUpIsNoGain() {
+		ledger.inventory(GLACITE, 64, SECOND, true);
+		ledger.inventory(GLACITE, -64, 5 * SECOND, true);
+		ledger.inventory(GLACITE, 64, 8 * SECOND, true);
+		ledger.inventory(GLACITE, 10, 9 * SECOND, true);
+		assertEquals(Map.of(GLACITE, 74L), session.items());
+	}
+
+	@Test
+	void corpseLootThatReachedTheInventoryBeforeTheChatIsTakenBack() {
+		ledger.inventory("ENCHANTED_GLACITE", 2, SECOND, true);
+		ledger.corpse(1_000_000, List.of(Map.entry("ENCHANTED_GLACITE", 2L)), SECOND + 300);
+		assertEquals(Map.of(), session.items());
+		assertEquals(1_000_000, session.corpseCoins());
+		// a gain from a while before is no part of the corpse
+		ledger.inventory(GLACITE, 5, 10 * SECOND, true);
+		ledger.corpse(0, List.of(Map.entry(GLACITE, 5L)), 30 * SECOND);
+		assertEquals(Map.of(GLACITE, 5L), session.items());
+	}
+
+	@Test
+	void aBazaarBuyIsNoLootButWhatIsMinedMeanwhileStillCounts() {
+		ledger.bought(JASPER, 64, SECOND);
+		ledger.sack(JASPER, 100, 20 * SECOND);
+		ledger.sack(GLACITE, 500, 20 * SECOND);
+		ledger.inventory(GLACITE, 3, 21 * SECOND, true);
+		assertEquals(Map.of(JASPER, 36L, GLACITE, 503L), session.items());
+	}
+
+	@Test
+	void aLineThatOnlySaysAnOrderFilledCostsNoLoot() {
+		ledger.traded(SECOND);
+		ledger.sack(JASPER, 100, 20 * SECOND);
+		assertEquals(Map.of(JASPER, 100L), session.items());
+	}
+
+	@Test
+	void sellingFromTheInventoryDoesNotEatTheNextSackGain() {
+		// the inventory shows it leaving first
+		ledger.inventory(JASPER, -64, SECOND, false);
+		ledger.sold(JASPER, 64, 2 * SECOND);
+		ledger.sack(JASPER, 70, 20 * SECOND);
+		// the sale line first
+		ledger.sold(GLACITE, 32, 30 * SECOND);
+		ledger.inventory(GLACITE, -32, 31 * SECOND, false);
+		ledger.sack(GLACITE, 40, 50 * SECOND);
+		assertEquals(Map.of(JASPER, 70L, GLACITE, 40L), session.items());
 	}
 }

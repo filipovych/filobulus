@@ -9,6 +9,8 @@ import java.util.Map;
 // moving items between the two is no gain, so each move is held against the other side for a minute
 public final class ProfitLedger {
 	private static final long WINDOW = 60_000;
+	// the loot of a corpse can reach the inventory a moment before its chat block is read
+	private static final long CORPSE_EARLY = 5000;
 
 	private static final class Move {
 		final String id;
@@ -39,7 +41,13 @@ public final class ProfitLedger {
 	private final List<Move> used = new ArrayList<>();
 	// an item a recipe makes was gained, the sack line for what went into it may still come
 	private final List<Move> made = new ArrayList<>();
+	// bought or claimed at the bazaar, waiting to show up in the sacks or the inventory
+	private final List<Move> bought = new ArrayList<>();
+	// said to be sold, the inventory may not have shown it leaving yet
+	private final List<Move> sold = new ArrayList<>();
 	private long quietUntil;
+	// after a sale a sack line taking items out is the sale, not a craft
+	private long saleUntil;
 	private long idle = 60_000;
 
 	public ProfitLedger(List<ProfitTotals> totals) {
@@ -57,9 +65,32 @@ public final class ProfitLedger {
 		}
 	}
 
-	// something was bought or claimed, what lands in the sacks in the next minute is not loot
+	// something was bought or claimed and we do not know what, what lands in the sacks in the next minute is not loot
 	public void quiet(long now) {
 		quietUntil = now + WINDOW;
+		saleUntil = now + WINDOW;
+	}
+
+	// a trade line we can not tie to an item, it costs no loot but items leaving the sacks are no craft for a minute
+	public void traded(long now) {
+		saleUntil = now + WINDOW;
+	}
+
+	// bought, claimed or refunded at the bazaar, that many of the item arriving is no loot
+	public void bought(String id, long amount, long now) {
+		prune(now);
+		traded(now);
+		bought.add(new Move(id, now, amount, false));
+	}
+
+	// sold to the bazaar or an npc, what left the inventory for it is not on its way into a sack
+	public void sold(String id, long amount, long now) {
+		prune(now);
+		traded(now);
+		long left = amount - take(leftInventory, id, amount);
+		if (left > 0) {
+			sold.add(new Move(id, now, left, false));
+		}
 	}
 
 	public void sack(String id, long amount, long now) {
@@ -70,7 +101,20 @@ public final class ProfitLedger {
 	public void corpse(double coins, List<Map.Entry<String, Long>> items, long now) {
 		prune(now);
 		for (Map.Entry<String, Long> item : items) {
-			fromCorpse.add(new Move(item.getKey(), now, item.getValue(), false));
+			long left = item.getValue();
+			// already counted as a gain when it landed in the inventory first, that is taken back
+			for (int i = arrived.size() - 1; i >= 0 && left > 0; i--) {
+				Move move = arrived.get(i);
+				if (move.counted && move.id.equals(item.getKey()) && now - move.at <= CORPSE_EARLY) {
+					long part = Math.min(left, move.amount);
+					move.amount -= part;
+					left -= part;
+					credit(move.id, -part, now, now);
+				}
+			}
+			if (left > 0) {
+				fromCorpse.add(new Move(item.getKey(), now, left, false));
+			}
 		}
 		for (ProfitTotals each : totals) {
 			each.corpse(coins, now, idle);
@@ -87,6 +131,7 @@ public final class ProfitLedger {
 			}
 			long left = amount - take(fromCorpse, id, amount);
 			left -= take(leftInventory, id, left);
+			left -= take(bought, id, left);
 			if (left > 0) {
 				credit(id, left, now, now - window);
 				compacted(id, left, now, null);
@@ -110,7 +155,7 @@ public final class ProfitLedger {
 			}
 		}
 		// right after a trade a line going out is a sale, not a craft
-		if (now >= quietUntil) {
+		if (now >= saleUntil) {
 			left = usedFor(id, left, now);
 		}
 		if (left > 0) {
@@ -125,15 +170,21 @@ public final class ProfitLedger {
 		if (delta < 0) {
 			// putting items into a sack happens in its menu, anything else that leaves is not coming back as loot
 			if (!counted) {
-				leftInventory.add(new Move(id, now, -delta, false));
+				long left = -delta - take(sold, id, -delta);
+				if (left > 0) {
+					leftInventory.add(new Move(id, now, left, false));
+				}
 			} else {
 				used.add(new Move(id, now, -delta, false));
 			}
 			return;
 		}
 		long gained = delta - take(leftSacks, id, delta);
-		if (gained > 0) {
-			gained -= take(fromCorpse, id, gained);
+		gained -= take(fromCorpse, id, gained);
+		gained -= take(bought, id, gained);
+		// dropped and picked up again, or anything else that left with no menu open and came back
+		if (counted) {
+			gained -= take(used, id, gained);
 		}
 		if (gained <= 0) {
 			return;
@@ -144,6 +195,21 @@ public final class ProfitLedger {
 		Move arrival = new Move(id, now, gained, counted);
 		arrived.add(arrival);
 		compacted(id, gained, now, arrival);
+	}
+
+	// one look at the inventory, what left is handled before what came in
+	// so a compactor's output always finds the items that went into it, whatever order the map has
+	public void inventory(Map<String, Long> deltas, long now, boolean counted) {
+		deltas.forEach((id, delta) -> {
+			if (delta < 0) {
+				inventory(id, delta, now, counted);
+			}
+		});
+		deltas.forEach((id, delta) -> {
+			if (delta > 0) {
+				inventory(id, delta, now, counted);
+			}
+		});
 	}
 
 	// 80 rough turning into 1 flawed is no new loot, the rough that went into it is taken back off
@@ -233,7 +299,7 @@ public final class ProfitLedger {
 	}
 
 	private void prune(long now) {
-		for (List<Move> moves : List.of(leftSacks, leftInventory, arrived, fromCorpse, used, made)) {
+		for (List<Move> moves : List.of(leftSacks, leftInventory, arrived, fromCorpse, used, made, bought, sold)) {
 			for (Iterator<Move> each = moves.iterator(); each.hasNext();) {
 				Move move = each.next();
 				if (move.amount <= 0 || now - move.at > WINDOW) {

@@ -11,6 +11,7 @@ import io.github.filipovych.filobulus.profit.ProfitLedger;
 import io.github.filipovych.filobulus.profit.ProfitTotals;
 import io.github.filipovych.filobulus.profit.ProfitValue;
 import io.github.filipovych.filobulus.profit.SackReader;
+import io.github.filipovych.filobulus.profit.TradeLines;
 import io.github.filipovych.filobulus.route.Location.Area;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,7 +37,7 @@ import net.minecraft.world.item.component.CustomData;
 public final class ProfitWatch {
 	private static final Set<String> MINING_ISLANDS = Set.of(
 			"Dwarven Mines", "Crystal Hollows", "Mineshaft", "Gold Mine", "Deep Caverns");
-	private static final List<String> BOUGHT = List.of("[Bazaar]", "[Auction]");
+	private static final List<String> TRADES = List.of("[Bazaar]", "[Auction]");
 	// the inventory is compared a few times a second, that is plenty to see an item arrive
 	private static final int INVENTORY_INTERVAL = 4;
 	private static final int SHAFT_INTERVAL = 20;
@@ -48,6 +49,8 @@ public final class ProfitWatch {
 	private static final long WARP_MILLIS = 20_000;
 	// mining keeps the clock running, it is told at most this often
 	private static final long MINING_MILLIS = 1000;
+	// the last sack message adds up the half minute before it, it still counts a little after leaving
+	private static final long LATE_SACKS_MILLIS = 30_000;
 
 	private final ProfitStore base;
 	private ProfitStore store;
@@ -66,6 +69,8 @@ public final class ProfitWatch {
 	// when the tracker last knew it was somewhere it counts
 	private long hereAt;
 	private boolean active;
+	// a menu was open at some point since the last look at the inventory
+	private boolean menuSeen;
 	private int ticks;
 	private int savedVersion;
 	private long savedAt;
@@ -86,10 +91,14 @@ public final class ProfitWatch {
 	public void register() {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			// overlay is the action bar
-			if (!overlay && active) {
+			if (!overlay && (active || late())) {
 				chat(message);
 			}
 		});
+	}
+
+	private boolean late() {
+		return FilobulusConfig.enabled && TrackerConfig.profit && System.currentTimeMillis() - hereAt <= LATE_SACKS_MILLIS;
 	}
 
 	public ProfitTotals totals() {
@@ -183,6 +192,9 @@ public final class ProfitWatch {
 			minedAt = now;
 			ledger.active(now);
 		}
+		if (player.containerMenu != player.inventoryMenu) {
+			menuSeen = true;
+		}
 		if (ticks++ % INVENTORY_INTERVAL == 0 && now >= settledAt) {
 			lookAtInventory(player, now);
 		}
@@ -230,8 +242,14 @@ public final class ProfitWatch {
 	private void chat(Component message) {
 		String text = LocationParser.stripColor(message.getString()).strip();
 		long now = System.currentTimeMillis();
-		if (BOUGHT.stream().anyMatch(text::startsWith)) {
-			ledger.quiet(now);
+		Optional<TradeLines.Trade> trade = TradeLines.read(text);
+		if (trade.isPresent()) {
+			trade(trade.get(), now);
+			return;
+		}
+		// an order filled or an auction sold, nothing moved, only a sack line taking items out is no craft for a while
+		if (TRADES.stream().anyMatch(text::startsWith)) {
+			ledger.traded(now);
 			return;
 		}
 		if (!SackReader.isSackLine(text)) {
@@ -248,6 +266,24 @@ public final class ProfitWatch {
 					ledger.sack(id.get(), change.amount(), now, window);
 				}
 			}
+		}
+	}
+
+	private void trade(TradeLines.Trade trade, long now) {
+		Optional<String> id = MiningItems.id(trade.name()).or(() -> catalog.id(trade.name()));
+		if (id.isEmpty()) {
+			// with everything counted an item we can not name may still be tracked, then the sacks are left alone a minute
+			if (trade.bought() && TrackerConfig.items == TrackerConfig.Items.EVERYTHING) {
+				ledger.quiet(now);
+			} else {
+				ledger.traded(now);
+			}
+		} else if (!tracked(id.get())) {
+			ledger.traded(now);
+		} else if (trade.bought()) {
+			ledger.bought(id.get(), trade.amount(), now);
+		} else {
+			ledger.sold(id.get(), trade.amount(), now);
 		}
 	}
 
@@ -276,15 +312,19 @@ public final class ProfitWatch {
 			return;
 		}
 		// with a chest, a shop or the bazaar open what comes and goes is not loot
-		boolean counted = player.containerMenu == player.inventoryMenu;
+		// also when it was closed again between two looks
+		boolean counted = !menuSeen && player.containerMenu == player.inventoryMenu;
+		menuSeen = false;
 		Set<String> ids = new HashSet<>(before.keySet());
 		ids.addAll(counts.keySet());
+		Map<String, Long> deltas = new HashMap<>();
 		for (String id : ids) {
 			long delta = counts.getOrDefault(id, 0L) - before.getOrDefault(id, 0L);
 			if (delta != 0 && tracked(id)) {
-				ledger.inventory(id, delta, now, counted);
+				deltas.put(id, delta);
 			}
 		}
+		ledger.inventory(deltas, now, counted);
 	}
 
 	private void count(ItemStack stack, Map<String, Long> counts) {
