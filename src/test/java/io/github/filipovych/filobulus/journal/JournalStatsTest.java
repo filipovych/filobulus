@@ -83,11 +83,11 @@ class JournalStatsTest {
 
 	@Test
 	void exportsACsv() {
-		assertEquals("entered,type,seconds_inside,route_seconds,corpses,corpses_looted,corpse_coins,mined_coins\n"
-				+ "2026-11-24 15:30:00,JASP_1,183,171,LTU,LT,-250000,9000000\n"
-				+ "2026-11-24 15:40:00,,,,,,,\n",
+		assertEquals("entered,type,seconds_inside,route_seconds,corpses,corpses_looted,corpse_coins,mined_coins,joined\n"
+				+ "2026-11-24 15:30:00,JASP_1,183,171,LTU,LT,-250000,9000000,yes\n"
+				+ "2026-11-24 15:40:00,,,,,,,,\n",
 				JournalText.csv(List.of(
-						new ShaftVisit(at(24, 15, 30), "JASP_1", 183_000, 171_000, new CorpseTally("LTU", "LT"), -250_000, 9_000_000),
+						new ShaftVisit(at(24, 15, 30), "JASP_1", 183_000, 171_000, new CorpseTally("LTU", "LT"), -250_000, 9_000_000, true),
 						ShaftVisit.entered(at(24, 15, 40), "")), LISBON));
 	}
 

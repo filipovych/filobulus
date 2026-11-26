@@ -83,4 +83,15 @@ class ShaftJournalTest {
 		assertEquals(Optional.of(new ShaftVisit(1000, "JASP_1", 183_000, 0)),
 				JournalCodec.read("{\"at\":1000,\"type\":\"JASP_1\",\"spent\":183000}"));
 	}
+
+	@Test
+	void joinedIsWrittenOnlyWhenTrue() {
+		ShaftVisit joined = ShaftVisit.entered(1000, "FAIR_1").withJoined(true);
+		assertTrue(JournalCodec.write(joined).contains("\"joined\":true"));
+		assertEquals(Optional.of(joined), JournalCodec.read(JournalCodec.write(joined)));
+		ShaftVisit found = ShaftVisit.entered(1000, "FAIR_1");
+		assertFalse(JournalCodec.write(found).contains("joined"));
+		// a line from before party shafts reads as one we found
+		assertFalse(JournalCodec.read("{\"at\":1000,\"type\":\"FAIR_1\"}").orElseThrow().joined());
+	}
 }

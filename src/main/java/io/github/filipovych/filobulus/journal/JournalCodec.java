@@ -30,6 +30,9 @@ public final class JournalCodec {
 		if (visit.minedCoins() != 0) {
 			line.addProperty("mined", visit.minedCoins());
 		}
+		if (visit.joined()) {
+			line.addProperty("joined", true);
+		}
 		return line.toString();
 	}
 
@@ -51,7 +54,8 @@ public final class JournalCodec {
 					json.has("run") ? Math.max(0, json.get("run").getAsLong()) : 0,
 					new CorpseTally(text(json, "corpses"), text(json, "looted")),
 					json.has("corpseCoins") ? json.get("corpseCoins").getAsLong() : 0,
-					json.has("mined") ? json.get("mined").getAsLong() : 0));
+					json.has("mined") ? json.get("mined").getAsLong() : 0,
+					json.has("joined") && json.get("joined").getAsBoolean()));
 		} catch (RuntimeException e) {
 			return Optional.empty();
 		}

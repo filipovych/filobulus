@@ -9,8 +9,14 @@ import java.util.Optional;
 // code is empty when the type was never read, spent and run are 0 while they are not known
 // corpses are the ones the shaft had and the ones that were opened, corpseCoins what their loot was worth with the keys taken off
 // minedCoins is what was mined and picked up inside, as the profit tracker counted it
+// joined is a shaft someone else found, the player came in through their portal
 public record ShaftVisit(long enteredAt, String code, long spentMillis, long runMillis, CorpseTally corpses,
-		long corpseCoins, long minedCoins) {
+		long corpseCoins, long minedCoins, boolean joined) {
+	public ShaftVisit(long enteredAt, String code, long spentMillis, long runMillis, CorpseTally corpses,
+			long corpseCoins, long minedCoins) {
+		this(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins, false);
+	}
+
 	public ShaftVisit(long enteredAt, String code, long spentMillis, long runMillis) {
 		this(enteredAt, code, spentMillis, runMillis, CorpseTally.NONE, 0, 0);
 	}
@@ -39,22 +45,26 @@ public record ShaftVisit(long enteredAt, String code, long spentMillis, long run
 	}
 
 	public ShaftVisit withCode(String code) {
-		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins, joined);
 	}
 
 	public ShaftVisit withSpent(long spentMillis) {
-		return new ShaftVisit(enteredAt, code, Math.max(0, spentMillis), runMillis, corpses, corpseCoins, minedCoins);
+		return new ShaftVisit(enteredAt, code, Math.max(0, spentMillis), runMillis, corpses, corpseCoins, minedCoins, joined);
 	}
 
 	public ShaftVisit withRun(long runMillis) {
-		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins, joined);
 	}
 
 	public ShaftVisit withCorpses(CorpseTally corpses, long corpseCoins) {
-		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins, joined);
 	}
 
 	public ShaftVisit withMined(long minedCoins) {
-		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins);
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins, joined);
+	}
+
+	public ShaftVisit withJoined(boolean joined) {
+		return new ShaftVisit(enteredAt, code, spentMillis, runMillis, corpses, corpseCoins, minedCoins, joined);
 	}
 }
