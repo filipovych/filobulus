@@ -27,9 +27,18 @@ public final class HudPanel {
 	public static final Row SPACER = new Row("", "", 0);
 	private static final int SPACER_HEIGHT = 4;
 
-	public record Content(ItemStack icon, String title, int titleColor, List<Row> rows) implements HudDrawable {
+	// minWidth keeps the panel from shrinking for a moment when a number gets shorter, 0 for none
+	public record Content(ItemStack icon, String title, int titleColor, List<Row> rows, int minWidth) implements HudDrawable {
 		public Content {
 			rows = List.copyOf(rows);
+		}
+
+		public Content(ItemStack icon, String title, int titleColor, List<Row> rows) {
+			this(icon, title, titleColor, rows, 0);
+		}
+
+		public Content atLeast(int width) {
+			return new Content(icon, title, titleColor, rows, width);
 		}
 
 		@Override
@@ -75,7 +84,7 @@ public final class HudPanel {
 			values = Math.max(values, font.width(row.value()));
 		}
 		int rows = content.rows().isEmpty() ? 0 : labels + COLUMN_GAP + values;
-		return Math.max(ICON_SIZE + ICON_GAP + font.width(title(content)), rows) + PADDING * 2;
+		return Math.max(content.minWidth(), Math.max(ICON_SIZE + ICON_GAP + font.width(title(content)), rows) + PADDING * 2);
 	}
 
 	public static int height(Content content) {
@@ -93,10 +102,13 @@ public final class HudPanel {
 			graphics.outline(0, 0, width, height(content), OUTLINE);
 		}
 		graphics.pose().pushMatrix();
-		graphics.pose().translate(PADDING, PADDING - 1);
-		graphics.pose().scale(ICON_SIZE / 16f, ICON_SIZE / 16f);
-		graphics.item(content.icon(), 0, 0);
-		graphics.pose().popMatrix();
+		try {
+			graphics.pose().translate(PADDING, PADDING - 1);
+			graphics.pose().scale(ICON_SIZE / 16f, ICON_SIZE / 16f);
+			graphics.item(content.icon(), 0, 0);
+		} finally {
+			graphics.pose().popMatrix();
+		}
 		graphics.text(font, title(content), PADDING + ICON_SIZE + ICON_GAP, PADDING, content.titleColor(), true);
 		int y = PADDING + ROW_HEIGHT;
 		for (Row row : content.rows()) {
@@ -107,10 +119,13 @@ public final class HudPanel {
 			int x = PADDING;
 			if (!row.icon().isEmpty()) {
 				graphics.pose().pushMatrix();
-				graphics.pose().translate(x, y - 1);
-				graphics.pose().scale(ICON_SIZE / 16f, ICON_SIZE / 16f);
-				graphics.item(row.icon(), 0, 0);
-				graphics.pose().popMatrix();
+				try {
+					graphics.pose().translate(x, y - 1);
+					graphics.pose().scale(ICON_SIZE / 16f, ICON_SIZE / 16f);
+					graphics.item(row.icon(), 0, 0);
+				} finally {
+					graphics.pose().popMatrix();
+				}
 				x += ICON_SIZE + ICON_GAP;
 			}
 			graphics.text(font, row.label(), x, y, row.icon().isEmpty() ? LABEL : VALUE, true);

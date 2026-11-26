@@ -7,7 +7,9 @@ import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.journal.RecapHud;
 import io.github.filipovych.filobulus.client.profit.ProfitHud;
 import io.github.filipovych.filobulus.hud.HudPlacement;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.DeltaTracker;
@@ -28,6 +30,9 @@ public final class Hud {
 	}
 
 	private static boolean failed;
+	// a panel keeps its widest size for a few seconds, so it does not jitter while numbers change
+	private static final long STEADY_MILLIS = 3000;
+	private static final Map<HudWidget, long[]> WIDEST = new IdentityHashMap<>();
 
 	private Hud() {
 	}
@@ -45,7 +50,7 @@ public final class Hud {
 		}
 		try {
 			for (HudWidget widget : WIDGETS) {
-				widget.content().ifPresent(content -> draw(graphics, minecraft.font, widget, content));
+				widget.content().ifPresent(content -> draw(graphics, minecraft.font, widget, steady(minecraft.font, widget, content)));
 			}
 		} catch (RuntimeException e) {
 			// same as the route drawing, say it once and keep the game running
@@ -56,7 +61,22 @@ public final class Hud {
 		}
 	}
 
-	static Box box(Font font, HudWidget widget, HudDrawable content, int screenWidth, int screenHeight) {
+	private static HudDrawable steady(Font font, HudWidget widget, HudDrawable content) {
+		if (!(content instanceof HudPanel.Content panel)) {
+			return content;
+		}
+		long now = System.currentTimeMillis();
+		int width = panel.width(font);
+		long[] widest = WIDEST.computeIfAbsent(widget, key -> new long[2]);
+		if (width >= widest[0] || now - widest[1] > STEADY_MILLIS) {
+			widest[0] = width;
+			widest[1] = now;
+			return content;
+		}
+		return panel.atLeast((int) widest[0]);
+	}
+
+	public static Box box(Font font, HudWidget widget, HudDrawable content, int screenWidth, int screenHeight) {
 		HudPlacement placement = widget.placement();
 		int width = Math.round(content.width(font) * placement.scale());
 		int height = Math.round(content.height() * placement.scale());
