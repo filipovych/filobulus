@@ -1,4 +1,10 @@
 {
+	"filobulus.config.mining.breakpoints": "Breakpoints",
+	"filobulus.config.mining.alphaStrengths": "Alpha gemstone strengths",
+	"filobulus.config.mining.msbBonus": "Mining Speed Boost %",
+	"filobulus.config.mining.swapCue": "Swap cue",
+	"filobulus.config.mining.cold": "Cold forecast",
+	"filobulus.config.mining.pity": "Pity row",
 	"filobulus.config.enabled": "Enabled",
 	"filobulus.config.routes.showRoutes": "Show routes",
 	"filobulus.config.routes.reach": "Stop reach",
