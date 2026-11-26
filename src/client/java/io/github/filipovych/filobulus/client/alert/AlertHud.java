@@ -56,10 +56,13 @@ public final class AlertHud implements HudWidget {
 				if (alpha >= MIN_ALPHA) {
 					Component title = title(alert);
 					graphics.pose().pushMatrix();
-					graphics.pose().translate(middle - font.width(title) * TITLE_SCALE / 2, y);
-					graphics.pose().scale(TITLE_SCALE, TITLE_SCALE);
-					graphics.text(font, title, 0, 0, alpha << 24 | alert.color(), true);
-					graphics.pose().popMatrix();
+					try {
+						graphics.pose().translate(middle - font.width(title) * TITLE_SCALE / 2, y);
+						graphics.pose().scale(TITLE_SCALE, TITLE_SCALE);
+						graphics.text(font, title, 0, 0, alpha << 24 | alert.color(), true);
+					} finally {
+						graphics.pose().popMatrix();
+					}
 					graphics.text(font, alert.subtitle(), middle - font.width(alert.subtitle()) / 2, y + TITLE_HEIGHT,
 							alpha << 24 | SUBTITLE, true);
 				}

@@ -185,10 +185,13 @@ public final class JournalScreen extends FlatScreen {
 			int noteWidth = tile.note().isEmpty() ? 0 : font.width(tile.note()) + 4;
 			float scale = font.width(tile.value()) * BIG + noteWidth <= tileWidth - 10 ? BIG : 1f;
 			graphics.pose().pushMatrix();
-			graphics.pose().translate(x + 5, top + (scale == BIG ? 5 : 8));
-			graphics.pose().scale(scale, scale);
-			graphics.text(font, tile.value(), 0, 0, tile.color(), true);
-			graphics.pose().popMatrix();
+			try {
+				graphics.pose().translate(x + 5, top + (scale == BIG ? 5 : 8));
+				graphics.pose().scale(scale, scale);
+				graphics.text(font, tile.value(), 0, 0, tile.color(), true);
+			} finally {
+				graphics.pose().popMatrix();
+			}
 			graphics.text(font, tile.note(), x + 9 + Math.round(font.width(tile.value()) * scale), top + 9, MUTED, true);
 			String label = font.width(tile.label()) <= tileWidth - 8 ? tile.label() : tile.brief();
 			graphics.text(font, label, x + 5, top + 20, FAINT, true);
@@ -572,10 +575,13 @@ public final class JournalScreen extends FlatScreen {
 
 	private void smallItem(GuiGraphicsExtractor graphics, ShaftType type, int x, int y) {
 		graphics.pose().pushMatrix();
-		graphics.pose().translate(x, y);
-		graphics.pose().scale(10 / 16f, 10 / 16f);
-		graphics.item(ShaftIcons.of(type.material()), 0, 0);
-		graphics.pose().popMatrix();
+		try {
+			graphics.pose().translate(x, y);
+			graphics.pose().scale(10 / 16f, 10 / 16f);
+			graphics.item(ShaftIcons.of(type.material()), 0, 0);
+		} finally {
+			graphics.pose().popMatrix();
+		}
 	}
 
 	private void chip(GuiGraphicsExtractor graphics, int left, int top, String label, boolean on,
