@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import net.minecraft.world.item.ItemStack;
 
-// the one panel for mining: in a shaft its name, the stop, the time inside and the run against the best
+// the one panel for mining: in a shaft its name, the stop, the time inside, the best run and how this one compares
 // under that the session: shafts and since jasper, pity, cold, the wisp and the cold potion
 // in the tunnels only the session part shows, outside them a route of the player's own
 public final class RouteHud implements HudWidget {
@@ -76,7 +76,7 @@ public final class RouteHud implements HudWidget {
 					rows.add(new Row("Stop", (progress.reached() + 1) + "/" + progress.total())));
 			rows.add(new Row("Time", SplitText.clock(now - tracker.shaftEnteredAt())));
 			if (HudConfig.splits) {
-				tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), now));
+				tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best()));
 			}
 			session(rows, now);
 			// the type comes a moment after the area, until then the title is plain
@@ -106,8 +106,9 @@ public final class RouteHud implements HudWidget {
 		List<Row> rows = new ArrayList<>();
 		tracker.progress().filter(progress -> !progress.finished()).ifPresent(progress ->
 				rows.add(new Row("Stop", (progress.reached() + 1) + "/" + progress.total())));
+		tracker.splits().ifPresent(run -> rows.add(new Row(route.loop() ? "Lap" : "Time", SplitText.clock(run.elapsed(now)))));
 		if (HudConfig.splits) {
-			tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best(), now));
+			tracker.splits().ifPresent(run -> splitRows(rows, run, tracker.best()));
 		}
 		if (tunnels) {
 			session(rows, now);
@@ -167,8 +168,9 @@ public final class RouteHud implements HudWidget {
 	@Override
 	public Content sample() {
 		return new Content(ShaftIcons.of(ShaftMaterial.JASPER), "Jasper", ShaftColors.of(ShaftMaterial.JASPER),
-				List.of(new Row("Stop", "12/47"), new Row("Time", "2:31"), new Row("Split", "-3.2s", AHEAD),
-						HudPanel.SPACER, new Row("Shafts", "12"), new Row("Since jasper", "7"), new Row("Wisp", "3:21")));
+				List.of(new Row("Stop", "12/47"), new Row("Time", "2:31"), new Row("Best", "2:48"), new Row("Split", "-3.2s", AHEAD),
+						HudPanel.SPACER, new Row(ItemStack.EMPTY, "Shafts", "4.1/h", "12", VALUE), new Row("Since jasper", "7"),
+						new Row("Wisp", "3:21")));
 	}
 
 	@Override
@@ -192,17 +194,14 @@ public final class RouteHud implements HudWidget {
 		return new HudPlacement(HudAnchor.START, 4, HudAnchor.CENTRE, 0, 1f);
 	}
 
-	// before the first stop only the best is shown, after it the run, how it compares and what is left
-	private static void splitRows(List<Row> rows, RouteSplits run, Optional<long[]> best, long now) {
-		if (!run.started()) {
-			best.ifPresent(times -> rows.add(new Row("Best", SplitText.clock(times[times.length - 1]))));
-			return;
-		}
-		rows.add(new Row("Run", SplitText.clock(run.elapsed(now))));
+	// the best run of the route on the same clock as the time, and once a stop was reached how this run compares at the last one
+	private static void splitRows(List<Row> rows, RouteSplits run, Optional<long[]> best) {
 		best.ifPresent(times -> {
-			long behind = run.behind(times);
-			rows.add(new Row("Split", SplitText.delta(behind), behind <= 0 ? AHEAD : BEHIND));
-			rows.add(new Row("Left", SplitText.clock(run.left(times, now))));
+			rows.add(new Row("Best", SplitText.clock(times[times.length - 1])));
+			if (run.started()) {
+				long behind = run.behind(times);
+				rows.add(new Row("Split", SplitText.delta(behind), behind <= 0 ? AHEAD : BEHIND));
+			}
 		});
 	}
 }
