@@ -9,6 +9,7 @@ import io.github.filipovych.filobulus.client.alert.ShaftAlert;
 import io.github.filipovych.filobulus.client.alert.WispWatch;
 import io.github.filipovych.filobulus.client.command.FiloCommand;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.config.SoundsConfig;
 import io.github.filipovych.filobulus.client.corpse.BazaarPrices;
 import io.github.filipovych.filobulus.client.corpse.CorpseWatch;
 import io.github.filipovych.filobulus.client.corpse.CrackHud;
@@ -32,7 +33,9 @@ import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteSelector;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
+import io.github.filipovych.filobulus.sound.OldSoundSwitch;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
@@ -68,10 +71,26 @@ public final class FilobulusClient implements ClientModInitializer {
 	private static RouteSelector selector;
 	private static RouteTracker tracker;
 
+	// 0.3 had the sounds switch under alerts, keep it off for players who turned it off
+	private static boolean oldSoundsWereOff() {
+		Path file = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".jsonc");
+		try {
+			return Files.isRegularFile(file) && OldSoundSwitch.wasMuted(Files.readString(file));
+		} catch (IOException | RuntimeException e) {
+			return false;
+		}
+	}
+
 	@Override
 	public void onInitializeClient() {
 		// reads config/filobulus.jsonc, creates it on first run
+		boolean oldMute = oldSoundsWereOff();
 		CONFIGURATOR.register(FilobulusConfig.class);
+		if (oldMute) {
+			SoundsConfig.sounds = false;
+			CONFIGURATOR.saveConfig(FilobulusConfig.class);
+			LOGGER.info("Moved the old sounds off setting over");
+		}
 
 		// the mod ships no shaft routes, every one of those is the player's own
 		RouteLibrary routes = new RouteLibrary(List.of());
