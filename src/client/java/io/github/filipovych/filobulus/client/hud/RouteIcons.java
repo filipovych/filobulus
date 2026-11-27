@@ -2,14 +2,18 @@ package io.github.filipovych.filobulus.client.hud;
 
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 // the items a player can put on a route of their own, a key is a gemstone's name or a vanilla item id
 public final class RouteIcons {
+	// the stacks are never changed, so one per item is enough
+	private static final Map<String, ItemStack> STACKS = new HashMap<>();
 	public static final String DEFAULT = "compass";
 
 	private static final List<String> VANILLA = List.of(
@@ -46,7 +50,7 @@ public final class RouteIcons {
 			}
 		}
 		String id = VANILLA.contains(key) ? key : DEFAULT;
-		return new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(id)));
+		return STACKS.computeIfAbsent(id, each -> new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(each))));
 	}
 
 	// a first pick from the name of the route, "ruby loop" gets the ruby

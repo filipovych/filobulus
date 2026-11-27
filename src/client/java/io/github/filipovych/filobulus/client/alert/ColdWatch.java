@@ -59,6 +59,10 @@ public final class ColdWatch {
 		}
 		long now = System.currentTimeMillis();
 		readMenu(minecraft, now);
+		// the tab widget and the sidebar only carry effects on the mining islands
+		if (FilobulusClient.tracker().location().area() == Area.ELSEWHERE) {
+			return;
+		}
 		EffectReader.Read read = EffectReader.read(GameText.tabLines(minecraft), GameText.sidebarLines(minecraft));
 		if (read.millis().isPresent()) {
 			none = false;

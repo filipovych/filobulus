@@ -11,12 +11,9 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 
 // starts the wisp timer when we use a will-o'-wisp and warns when its five minutes are nearly over
 // it only watches our own right click, the click itself is left alone
@@ -69,10 +66,7 @@ public final class WispWatch {
 		if (player != Minecraft.getInstance().player) {
 			return;
 		}
-		ItemStack stack = player.getItemInHand(hand);
-		CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-		// skyblock items carry their id in the custom data
-		if (data != null && WISP_ID.equals(data.copyTag().getStringOr("id", ""))) {
+		if (WISP_ID.equals(GameText.skyblockId(player.getItemInHand(hand)))) {
 			placed();
 		}
 	}

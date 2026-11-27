@@ -4,10 +4,12 @@ import io.github.filipovych.filobulus.route.Location;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.Set;
 
 // works out where the player is from the tab list and sidebar text, all the game text we match on is here
 public final class LocationParser {
+	private static final Pattern COLOR = Pattern.compile("§.");
 	private static final String TAB_AREA = "Area: ";
 	private static final String MINESHAFT = "Mineshaft";
 	private static final String SIDEBAR_MARK = "⏣";
@@ -45,7 +47,7 @@ public final class LocationParser {
 	}
 
 	public static String stripColor(String text) {
-		return text.replaceAll("§.", "");
+		return text.indexOf('§') < 0 ? text : COLOR.matcher(text).replaceAll("");
 	}
 
 	private static Optional<ShaftType> shaftType(List<String> sidebarLines) {

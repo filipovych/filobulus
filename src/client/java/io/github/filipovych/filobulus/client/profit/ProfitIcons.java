@@ -3,6 +3,7 @@ package io.github.filipovych.filobulus.client.profit;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
 import io.github.filipovych.filobulus.profit.MiningItems;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -13,6 +14,8 @@ import net.minecraft.world.item.ItemStack;
 
 // the item drawn in front of a line of the profit tracker
 public final class ProfitIcons {
+	// the stacks are never changed, so one per item is enough
+	private static final Map<String, ItemStack> STACKS = new HashMap<>();
 	// the real items, as they were seen in the inventory
 	private static final Map<String, ItemStack> SEEN = new ConcurrentHashMap<>();
 	private static final Map<String, String> VANILLA = Map.ofEntries(
@@ -60,6 +63,6 @@ public final class ProfitIcons {
 	}
 
 	private static ItemStack vanilla(String id) {
-		return new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(id)));
+		return STACKS.computeIfAbsent(id, each -> new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(each))));
 	}
 }

@@ -36,6 +36,10 @@ public final class TradeLines {
 			return Optional.empty();
 		}
 		String text = line.strip();
+		// nearly every line is something else, the regexes only run for the few that start like a trade
+		if (!text.startsWith("[Bazaar]") && !text.startsWith("You sold") && !text.regionMatches(true, 0, "Cancelled", 0, 9)) {
+			return Optional.empty();
+		}
 		for (Kind kind : KINDS) {
 			Matcher matcher = kind.pattern().matcher(text);
 			if (matcher.matches()) {
