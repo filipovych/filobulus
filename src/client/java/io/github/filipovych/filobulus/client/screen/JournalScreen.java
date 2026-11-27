@@ -298,6 +298,10 @@ public final class JournalScreen extends FlatScreen {
 		chip(graphics, chipLeft, top - 3, "Shafts", !dayCoins, mouseX, mouseY, () -> dayCoins = false);
 		chip(graphics, chipLeft - 2 - buttonWidth("Coins"), top - 3, "Coins", dayCoins, mouseX, mouseY, () -> dayCoins = true);
 		List<JournalDays.Day> all = days.days();
+		// the tiles count every day, the bars only the last ones
+		if (all.size() > MAX_DAYS) {
+			all = all.subList(all.size() - MAX_DAYS, all.size());
+		}
 		if (all.isEmpty()) {
 			graphics.text(font, "Nothing in this period.", left, top + LIST_HEAD + 4, FAINT, true);
 			return;
@@ -654,7 +658,7 @@ public final class JournalScreen extends FlatScreen {
 		stats = JournalStats.of(inPeriod);
 		// a shaft that is not in this period can not stay picked, the log would be empty with no row to click
 		picked.retainAll(stats.groups().stream().map(Group::key).toList());
-		days = JournalDays.of(inPeriod, zone, MAX_DAYS);
+		days = JournalDays.of(inPeriod, zone, Integer.MAX_VALUE);
 		shown = view == View.DAYS ? inPeriod : view != View.CORPSES
 				? inPeriod.stream().filter(visit -> picked.isEmpty() || picked.contains(visit.key())).toList()
 				: inPeriod.stream().filter(visit -> !visit.corpses().isEmpty() && (pickedCorpses.isEmpty()
