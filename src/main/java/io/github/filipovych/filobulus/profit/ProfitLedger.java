@@ -45,7 +45,6 @@ public final class ProfitLedger {
 	private final List<Move> bought = new ArrayList<>();
 	// said to be sold, the inventory may not have shown it leaving yet
 	private final List<Move> sold = new ArrayList<>();
-	private long quietUntil;
 	// after a sale a sack line taking items out is the sale, not a craft
 	private long saleUntil;
 	private long pause = 60_000;
@@ -71,12 +70,6 @@ public final class ProfitLedger {
 		for (ProfitTotals each : totals) {
 			each.tick(now, pause);
 		}
-	}
-
-	// something was bought or claimed and we do not know what, what lands in the sacks in the next minute is not loot
-	public void quiet(long now) {
-		quietUntil = now + WINDOW;
-		saleUntil = now + WINDOW;
 	}
 
 	// a trade line we can not tie to an item, it costs no loot but items leaving the sacks are no craft for a minute
@@ -134,9 +127,6 @@ public final class ProfitLedger {
 	public void sack(String id, long amount, long now, long window) {
 		prune(now);
 		if (amount > 0) {
-			if (now < quietUntil) {
-				return;
-			}
 			long left = amount - take(fromCorpse, id, amount);
 			left -= take(leftInventory, id, left);
 			left -= take(bought, id, left);

@@ -90,15 +90,6 @@ class ProfitLedgerTest {
 	}
 
 	@Test
-	void whatLandsInTheSacksRightAfterBuyingIsNoLoot() {
-		ledger.quiet(SECOND);
-		ledger.sack(JASPER, 64, 30 * SECOND);
-		assertTrue(session.isEmpty());
-		ledger.sack(JASPER, 64, 62 * SECOND);
-		assertEquals(Map.of(JASPER, 64L), session.items());
-	}
-
-	@Test
 	void theClockRunsOnForAPauseAfterTheLastGainAndNeverGoesBack() {
 		ledger.pause(60 * SECOND);
 		ledger.sack(JASPER, 1, 0);
@@ -241,7 +232,7 @@ class ProfitLedgerTest {
 	void sellingTheInputFromTheSacksIsNoCraft() {
 		ledger.sack("ROUGH_RUBY_GEM", 8000, SECOND);
 		ledger.sack(FLAWED, 10, 30 * SECOND);
-		ledger.quiet(40 * SECOND);
+		ledger.traded(40 * SECOND);
 		ledger.sack("ROUGH_RUBY_GEM", -800, 45 * SECOND);
 		assertEquals(Map.of("ROUGH_RUBY_GEM", 8000L, FLAWED, 10L), session.items());
 	}
