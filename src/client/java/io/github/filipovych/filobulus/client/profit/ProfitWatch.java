@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.profit;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.client.corpse.BazaarPrices;
@@ -98,7 +99,7 @@ public final class ProfitWatch {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			// overlay is the action bar
 			if (!overlay && (active || late())) {
-				chat(message);
+				Guard.run("profit chat", () -> chat(message));
 			}
 		});
 	}

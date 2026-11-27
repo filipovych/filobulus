@@ -2,6 +2,8 @@ package io.github.filipovych.filobulus.client.journal;
 
 import io.github.filipovych.filobulus.alert.ShaftPortal;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.config.FilobulusConfig;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.CorpsesConfig;
 import io.github.filipovych.filobulus.client.config.JournalConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
@@ -35,11 +37,11 @@ public final class ShaftLog {
 
 	// only the one who found a shaft gets the portal line, so it tells our shafts from joined ones
 	public void register() {
-		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-			if (!overlay && ShaftPortal.spawned(LocationParser.stripColor(message.getString()))) {
+		ClientReceiveMessageEvents.GAME.register((message, overlay) -> Guard.run("shaft log chat", () -> {
+			if (!overlay && FilobulusConfig.enabled && ShaftPortal.spawned(LocationParser.stripColor(message.getString()))) {
 				join.portal(System.currentTimeMillis());
 			}
-		});
+		}));
 	}
 
 	public void tick(Minecraft minecraft) {

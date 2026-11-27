@@ -18,7 +18,6 @@ public final class ShaftAlert {
 	private ShaftType told;
 
 	public void tick() {
-		JasperHud.tick();
 		Location location = FilobulusClient.tracker().location();
 		if (location.area() != Area.MINESHAFT) {
 			told = null;

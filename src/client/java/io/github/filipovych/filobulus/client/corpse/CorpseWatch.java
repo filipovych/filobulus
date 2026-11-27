@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.corpse;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.CorpsesConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.JournalConfig;
@@ -40,14 +41,15 @@ public final class CorpseWatch {
 			if (overlay || !on() || FilobulusClient.tracker().location().area() != Area.MINESHAFT) {
 				return;
 			}
-			for (String line : LocationParser.stripColor(message.getString()).split("\n")) {
-				read(line);
-			}
+			Guard.run("corpse chat", () -> {
+				for (String line : LocationParser.stripColor(message.getString()).split("\n")) {
+					read(line);
+				}
+			});
 		});
 	}
 
 	public void tick(Minecraft minecraft) {
-		CrackHud.tick();
 		if (minecraft.level != level) {
 			// a block cut off by a change of lobby is not finished by the next one
 			level = minecraft.level;

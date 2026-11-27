@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client.alert;
 
 import io.github.filipovych.filobulus.alert.ShaftPortal;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.detect.LocationParser;
@@ -21,12 +22,12 @@ public final class PortalWatch {
 	private ClientLevel level;
 
 	public void register() {
-		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+		ClientReceiveMessageEvents.GAME.register((message, overlay) -> Guard.run("portal chat", () -> {
 			if (!overlay && FilobulusConfig.enabled && AlertsConfig.portal
 					&& ShaftPortal.spawned(LocationParser.stripColor(message.getString()))) {
 				portal.spawn(System.currentTimeMillis());
 			}
-		});
+		}));
 	}
 
 	public ShaftPortal portal() {

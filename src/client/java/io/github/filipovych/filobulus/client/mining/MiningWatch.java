@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.mining;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.MiningConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
@@ -46,9 +47,11 @@ public final class MiningWatch {
 	public void register() {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			if (!overlay && FilobulusConfig.enabled) {
-				for (String line : LocationParser.stripColor(message.getString()).split("\n")) {
-					chat(line.strip());
-				}
+				Guard.run("mining chat", () -> {
+					for (String line : LocationParser.stripColor(message.getString()).split("\n")) {
+						chat(line.strip());
+					}
+				});
 			}
 		});
 	}
