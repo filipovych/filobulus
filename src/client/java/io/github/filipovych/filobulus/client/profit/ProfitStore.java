@@ -4,9 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.SafeFile;
 import io.github.filipovych.filobulus.profit.ProfitTotals;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -50,12 +50,8 @@ public final class ProfitStore {
 					root.has("corpses") ? root.get("corpses").getAsInt() : 0,
 					root.has("corpseCoins") ? root.get("corpseCoins").getAsDouble() : 0);
 		} catch (IOException | RuntimeException e) {
-			FilobulusClient.LOGGER.error("Could not read {}, it is kept as profit.json.broken", file, e);
-			try {
-				Files.move(file, file.resolveSibling("profit.json.broken"), StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException ignored) {
-				// nothing more we can do about it
-			}
+			FilobulusClient.LOGGER.error("Could not read {}, a copy is kept next to it", file, e);
+			SafeFile.moveBroken(file);
 			return new ProfitTotals();
 		}
 	}
@@ -78,10 +74,7 @@ public final class ProfitStore {
 		root.add("items", items);
 		root.add("names", kept);
 		try {
-			Files.createDirectories(file.getParent());
-			Path temp = file.resolveSibling("profit.json.tmp");
-			Files.writeString(temp, root + "\n", StandardCharsets.UTF_8);
-			Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+			SafeFile.write(file, root + "\n");
 		} catch (IOException e) {
 			FilobulusClient.LOGGER.error("Could not save {}", file, e);
 		}

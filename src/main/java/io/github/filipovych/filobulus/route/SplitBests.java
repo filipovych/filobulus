@@ -3,6 +3,7 @@ package io.github.filipovych.filobulus.route;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -52,20 +53,22 @@ public final class SplitBests {
 	}
 
 	// throws a runtime exception on anything that is not what toJson writes
+	// read in full before anything is replaced, so a bad file throws and leaves the bests as they were
 	public void readJson(JsonObject root) {
+		Map<String, long[]> read = new HashMap<>();
+		if (root.has("version") && root.get("version").getAsInt() >= VERSION) {
+			for (Map.Entry<String, JsonElement> entry : root.getAsJsonObject("bests").entrySet()) {
+				JsonArray array = entry.getValue().getAsJsonArray();
+				long[] times = new long[array.size()];
+				for (int i = 0; i < times.length; i++) {
+					times[i] = array.get(i).getAsLong();
+				}
+				if (times.length > 0) {
+					read.put(entry.getKey(), times);
+				}
+			}
+		}
 		bests.clear();
-		if (!root.has("version") || root.get("version").getAsInt() < VERSION) {
-			return;
-		}
-		for (Map.Entry<String, JsonElement> entry : root.getAsJsonObject("bests").entrySet()) {
-			JsonArray array = entry.getValue().getAsJsonArray();
-			long[] times = new long[array.size()];
-			for (int i = 0; i < times.length; i++) {
-				times[i] = array.get(i).getAsLong();
-			}
-			if (times.length > 0) {
-				bests.put(entry.getKey(), times);
-			}
-		}
+		bests.putAll(read);
 	}
 }

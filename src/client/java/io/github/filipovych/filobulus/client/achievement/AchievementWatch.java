@@ -7,6 +7,7 @@ import io.github.filipovych.filobulus.achievement.Achievement;
 import io.github.filipovych.filobulus.achievement.AchievementBook;
 import io.github.filipovych.filobulus.achievement.AchievementFacts;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.SafeFile;
 import io.github.filipovych.filobulus.client.alert.Alerts;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
@@ -15,10 +16,8 @@ import io.github.filipovych.filobulus.client.config.JournalConfig;
 import io.github.filipovych.filobulus.journal.ShaftJournal;
 import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +54,9 @@ public final class AchievementWatch {
 			}
 			book = AchievementBook.of(saved);
 		} catch (IOException | RuntimeException e) {
-			FilobulusClient.LOGGER.error("Could not read {}", file, e);
+			// what the journal earned is unlocked again quietly, the old dates stay in the copy
+			FilobulusClient.LOGGER.error("Could not read {}, a copy is kept next to it", file, e);
+			SafeFile.copyBroken(file);
 		}
 	}
 
@@ -120,10 +121,7 @@ public final class AchievementWatch {
 		JsonObject root = new JsonObject();
 		book.saved().forEach(root::addProperty);
 		try {
-			Files.createDirectories(file.getParent());
-			Path temp = file.resolveSibling("achievements.json.tmp");
-			Files.writeString(temp, root + "\n", StandardCharsets.UTF_8);
-			Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+			SafeFile.write(file, root + "\n");
 		} catch (IOException e) {
 			FilobulusClient.LOGGER.error("Could not save {}", file, e);
 		}

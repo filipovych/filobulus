@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.SafeFile;
 import io.github.filipovych.filobulus.route.CollectionCodec;
 import io.github.filipovych.filobulus.route.CustomRoute;
 import io.github.filipovych.filobulus.route.CustomRoutes;
@@ -20,7 +21,6 @@ import io.github.filipovych.filobulus.route.Waypoint;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -208,10 +208,7 @@ public final class RouteStore {
 				+ "\n],\n\"routes\": [\n" + String.join(",\n", routes)
 				+ "\n],\n\"custom\": [\n" + String.join(",\n", own) + "\n]\n}\n";
 		try {
-			Files.createDirectories(file.getParent());
-			Path temp = file.resolveSibling("routes.json.tmp");
-			Files.writeString(temp, text, StandardCharsets.UTF_8);
-			Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+			SafeFile.write(file, text);
 		} catch (IOException e) {
 			FilobulusClient.LOGGER.error("Could not save {}", file, e);
 		}

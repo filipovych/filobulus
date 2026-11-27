@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.journal;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.SafeFile;
 import io.github.filipovych.filobulus.journal.JournalCodec;
 import io.github.filipovych.filobulus.journal.ShaftJournal;
 import io.github.filipovych.filobulus.journal.ShaftVisit;
@@ -8,7 +9,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +34,11 @@ public final class JournalStore {
 	}
 
 	public void load() {
+		try {
+			Files.createDirectories(file.getParent());
+		} catch (IOException e) {
+			FilobulusClient.LOGGER.error("Could not make the folder of {}", file, e);
+		}
 		if (!Files.exists(file)) {
 			return;
 		}
@@ -49,7 +54,7 @@ public final class JournalStore {
 			}
 			if (bad > 0) {
 				// the lines we could not read stay in a copy, tidying would drop them
-				Files.copy(file, file.resolveSibling("journal.jsonl.broken"), StandardCopyOption.REPLACE_EXISTING);
+				SafeFile.copyBroken(file);
 				FilobulusClient.LOGGER.warn("Skipped {} lines of {} that could not be read", bad, file);
 			}
 			if (lines.size() != journal.visits().size()) {
@@ -64,7 +69,6 @@ public final class JournalStore {
 	public void record(ShaftVisit visit) {
 		journal.put(visit);
 		try {
-			Files.createDirectories(file.getParent());
 			Files.writeString(file, JournalCodec.write(visit) + "\n", StandardCharsets.UTF_8,
 					StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 		} catch (IOException e) {
@@ -78,8 +82,6 @@ public final class JournalStore {
 		for (ShaftVisit visit : journal.visits()) {
 			text.append(JournalCodec.write(visit)).append('\n');
 		}
-		Path temp = file.resolveSibling("journal.jsonl.tmp");
-		Files.writeString(temp, text, StandardCharsets.UTF_8);
-		Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+		SafeFile.write(file, text.toString());
 	}
 }

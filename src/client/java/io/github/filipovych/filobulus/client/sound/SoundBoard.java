@@ -1,15 +1,14 @@
 package io.github.filipovych.filobulus.client.sound;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.SafeFile;
 import io.github.filipovych.filobulus.client.config.SoundsConfig;
 import io.github.filipovych.filobulus.sound.SoundChoices;
 import io.github.filipovych.filobulus.sound.SoundChoices.Choice;
 import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -43,10 +42,7 @@ public final class SoundBoard {
 
 	public void save() {
 		try {
-			Files.createDirectories(file.getParent());
-			Path temp = file.resolveSibling("sounds.json.tmp");
-			Files.writeString(temp, choices.toJson() + "\n", StandardCharsets.UTF_8);
-			Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+			SafeFile.write(file, choices.toJson() + "\n");
 		} catch (IOException e) {
 			FilobulusClient.LOGGER.error("Could not save {}", file, e);
 		}

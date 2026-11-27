@@ -3,6 +3,7 @@ package io.github.filipovych.filobulus.client.mining;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.SafeFile;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.MiningConfig;
 import io.github.filipovych.filobulus.mining.BlockStrength;
@@ -14,10 +15,8 @@ import io.github.filipovych.filobulus.mining.SwapCombo.Timing;
 import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -82,10 +81,7 @@ public final class ComboWatch {
 		root.addProperty("best", combo.best());
 		root.addProperty("at", System.currentTimeMillis());
 		try {
-			Files.createDirectories(file.getParent());
-			Path temp = file.resolveSibling("combo.json.tmp");
-			Files.writeString(temp, root + "\n", StandardCharsets.UTF_8);
-			Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+			SafeFile.write(file, root + "\n");
 		} catch (IOException e) {
 			FilobulusClient.LOGGER.error("Could not save {}", file, e);
 		}
