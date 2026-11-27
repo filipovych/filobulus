@@ -37,6 +37,17 @@ class CollectionCodecTest {
 	}
 
 	@Test
+	void aStopKeepsItsAim() throws Exception {
+		List<Waypoint> stops = List.of(new Waypoint(45, 119, 280, "180 (346 pity)", java.util.Optional.of(new Waypoint.Aim(45, 118, 280))),
+				new Waypoint(1, 2, 3, "2", java.util.Optional.of(new Waypoint.Aim(4, 5, 6))));
+		assertEquals("[[45,119,280,\"180 (346 pity)\",[45,118,280]],[1,2,3,\"2\",[4,5,6]]]", CollectionCodec.stopsToJson(stops).toString());
+		assertEquals(stops, CollectionCodec.stopsFromJson(CollectionCodec.stopsToJson(stops)));
+		// a fifth entry that is not a position is left alone
+		assertEquals(List.of(new Waypoint(1, 2, 3, "x")), CollectionCodec.stopsFromJson(
+				com.google.gson.JsonParser.parseString("[[1,2,3,\"x\",7]]")));
+	}
+
+	@Test
 	void routesForUnknownShaftsAreLeftOut() throws Exception {
 		RouteCollection read = CollectionCodec.parse("{\"routes\":["
 				+ "{\"shaft\":\"NOPE_9\",\"stops\":[[1,2,3]]},{\"shaft\":\"JASP_1\",\"stops\":[[1,2,3]]}]}");

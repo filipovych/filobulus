@@ -19,6 +19,7 @@ import java.util.zip.GZIPOutputStream;
 
 // our own format for a whole set of routes: the prefix, then base64 of gzipped json
 // {"name":"..","routes":[{"shaft":"JASP_1","name":"..","author":"..","stops":[[x,y,z],..]}]}
+// a stop can carry a label and after it an aim, [x,y,z,"label",[x,y,z]]
 public final class CollectionCodec {
 	public static final String PREFIX = "[Filobulus-Routes-V1]";
 
@@ -95,10 +96,17 @@ public final class CollectionCodec {
 			point.add(stop.x());
 			point.add(stop.y());
 			point.add(stop.z());
-			// most routes are just numbered in order, only a label of its own is written
-			if (!stop.label().equals(Integer.toString(i + 1))) {
+			// most routes are just numbered in order, only a label of its own is written, and the aim after it
+			if (!stop.label().equals(Integer.toString(i + 1)) || stop.aim().isPresent()) {
 				point.add(stop.label());
 			}
+			stop.aim().ifPresent(aim -> {
+				JsonArray target = new JsonArray();
+				target.add(aim.x());
+				target.add(aim.y());
+				target.add(aim.z());
+				point.add(target);
+			});
 			stops.add(point);
 		}
 		return stops;
@@ -160,7 +168,12 @@ public final class CollectionCodec {
 			}
 			JsonArray xyz = point.getAsJsonArray();
 			String label = xyz.size() > 3 ? text(xyz.get(3)) : Integer.toString(i + 1);
-			stops.add(new Waypoint(whole(xyz.get(0)), whole(xyz.get(1)), whole(xyz.get(2)), label));
+			Optional<Waypoint.Aim> aim = Optional.empty();
+			if (xyz.size() > 4 && xyz.get(4).isJsonArray() && xyz.get(4).getAsJsonArray().size() == 3) {
+				JsonArray target = xyz.get(4).getAsJsonArray();
+				aim = Optional.of(new Waypoint.Aim(whole(target.get(0)), whole(target.get(1)), whole(target.get(2))));
+			}
+			stops.add(new Waypoint(whole(xyz.get(0)), whole(xyz.get(1)), whole(xyz.get(2)), label, aim));
 		}
 		return stops;
 	}

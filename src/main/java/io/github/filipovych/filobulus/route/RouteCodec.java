@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.zip.GZIPInputStream;
 
 // coleweight json (read + write) and skyblocker export strings (read only)
@@ -50,11 +51,19 @@ public final class RouteCodec {
 			int y = coordinate(entry.get("y"), where, "y");
 			int z = coordinate(entry.get("z"), where, "z");
 			String label = null;
+			Optional<Waypoint.Aim> aim = Optional.empty();
 			JsonElement options = entry.get("options");
 			if (options != null && options.isJsonObject()) {
 				label = label(options.getAsJsonObject().get("name"));
+				// our own addition, other mods leave unknown options alone
+				JsonElement target = options.getAsJsonObject().get("aim");
+				if (target != null && target.isJsonObject()) {
+					JsonObject at = target.getAsJsonObject();
+					aim = Optional.of(new Waypoint.Aim(coordinate(at.get("x"), where, "aim x"),
+							coordinate(at.get("y"), where, "aim y"), coordinate(at.get("z"), where, "aim z")));
+				}
 			}
-			stops.add(new Waypoint(x, y, z, label == null ? Integer.toString(i + 1) : label));
+			stops.add(new Waypoint(x, y, z, label == null ? Integer.toString(i + 1) : label, aim));
 		}
 		if (stops.isEmpty()) {
 			throw new RouteFormatException("The route has no stops.");
@@ -75,6 +84,13 @@ public final class RouteCodec {
 			entry.addProperty("b", 0.0);
 			JsonObject options = new JsonObject();
 			options.addProperty("name", stop.label());
+			stop.aim().ifPresent(aim -> {
+				JsonObject at = new JsonObject();
+				at.addProperty("x", aim.x());
+				at.addProperty("y", aim.y());
+				at.addProperty("z", aim.z());
+				options.add("aim", at);
+			});
 			entry.add("options", options);
 			array.add(entry);
 		}

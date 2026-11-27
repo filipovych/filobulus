@@ -21,6 +21,9 @@ public final class RouteRenderer {
 	private static final int LATER_ALPHA = 0xB0;
 	private static final int LATER_FADE = 0x26;
 	private static final int FAINTEST = 0x30;
+	// amber for the block the next stop aims at
+	private static final int AIM = 0xFFFFB347;
+	private static final int AIM_FILL = 0x40FFB347;
 	private static final float STROKE = 2.5f;
 	// labels keep their size on screen past this many blocks
 	private static final double LABEL_FULL_SIZE_RANGE = 8;
@@ -40,6 +43,7 @@ public final class RouteRenderer {
 			CameraRenderState camera = context.levelState().cameraRenderState;
 			Waypoint next = stops.get(0);
 			drawStop(next, camera.pos, GizmoStyle.strokeAndFill(NEXT, STROKE, NEXT_FILL), NEXT);
+			next.aim().ifPresent(aim -> drawAim(next, aim));
 			for (int i = 1; i < stops.size() && i < RoutesConfig.stopsShown; i++) {
 				int later = Math.max(FAINTEST, LATER_ALPHA - (i - 1) * LATER_FADE) << 24 | LATER;
 				drawStop(stops.get(i), camera.pos, GizmoStyle.stroke(later, STROKE), later);
@@ -64,6 +68,13 @@ public final class RouteRenderer {
 				* (float) Math.max(1, camera.distanceTo(above) / LABEL_FULL_SIZE_RANGE);
 		Gizmos.billboardText(stop.label(), above, TextGizmo.Style.forColorAndCentered(labelColor).withScale(scale))
 				.setAlwaysOnTop();
+	}
+
+	// the block to point at from the stop, with a line from the stop to it
+	private static void drawAim(Waypoint stop, Waypoint.Aim aim) {
+		Gizmos.cuboid(new AABB(aim.x(), aim.y(), aim.z(), aim.x() + 1, aim.y() + 1, aim.z() + 1),
+				GizmoStyle.strokeAndFill(AIM, STROKE, AIM_FILL)).setAlwaysOnTop();
+		Gizmos.line(centre(stop), new Vec3(aim.x() + 0.5, aim.y() + 0.5, aim.z() + 0.5), AIM, STROKE).setAlwaysOnTop();
 	}
 
 	private static Vec3 centre(Waypoint stop) {

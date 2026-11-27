@@ -36,6 +36,15 @@ class RouteCodecTest {
 	}
 
 	@Test
+	void anAimTravelsInTheOptions() throws Exception {
+		List<Waypoint> stops = List.of(new Waypoint(45, 119, 280, "spot", java.util.Optional.of(new Waypoint.Aim(45, 118, 280))));
+		String json = RouteCodec.toColeweight(stops);
+		assertEquals(stops, RouteCodec.parseColeweight(json));
+		assertEquals("{\"name\":\"spot\",\"aim\":{\"x\":45,\"y\":118,\"z\":280}}",
+				com.google.gson.JsonParser.parseString(json).getAsJsonArray().get(0).getAsJsonObject().get("options").toString());
+	}
+
+	@Test
 	void floorsFractionalCoordinates() throws Exception {
 		List<Waypoint> stops = RouteCodec.parseColeweight("[{\"x\":-0.5,\"y\":10.9,\"z\":3.0}]");
 		assertEquals(new Waypoint(-1, 10, 3, "1"), stops.get(0));
