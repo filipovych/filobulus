@@ -16,6 +16,8 @@ Needs JDK 25.
 ./gradlew build
 ```
 
+If you just want the mod check the releases tab and that's it, you can do /filobulus to configure the mod settings and check the features.
+
 ## Thanks
 
 spazmuz, for the help with some ideas. 
