@@ -11,3 +11,9 @@ Needs JDK 25.
 ```
 ./gradlew build
 ```
+
+## Thanks
+
+spazmuz, for the help.
+
+SoSeaL1, for the Glacite Tunnels Pickobulus waypoints that ship with the mod.
