@@ -166,6 +166,14 @@ public final class RouteTracker {
 				progress = new RouteProgress(active.stops());
 				splits = new RouteSplits(active.stops().size(), System.currentTimeMillis());
 				upcoming = List.copyOf(progress.remaining());
+			} else if (custom().isPresent()) {
+				// a route of the player's own goes again once they are back at its first stop
+				if (active.stops().size() > 1 && RouteProgress.nearest(active.stops(), minecraft.player.getX(),
+						minecraft.player.getY(), minecraft.player.getZ()) == 0) {
+					progress = new RouteProgress(active.stops());
+					splits = new RouteSplits(active.stops().size(), System.currentTimeMillis());
+					upcoming = List.copyOf(progress.remaining());
+				}
 			} else {
 				// gemstones do not respawn in a shaft, so a finished route is cleared instead of looped
 				selector.unload();
@@ -180,13 +188,15 @@ public final class RouteTracker {
 			return;
 		}
 		// a loop is picked up at the stop nearest to where we stand, that first part round is not timed
-		int first = custom().filter(CustomRoute::loop).isPresent()
+		// even from the first stop, a lap starts when the last one is reached and is a leg longer than this
+		boolean loop = custom().filter(CustomRoute::loop).isPresent();
+		int first = loop
 				? RouteProgress.nearest(route.stops(), minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ())
 				: 0;
 		progress = new RouteProgress(route.stops(), first);
 		// in a shaft the run is timed from the moment it was entered, the same clock the panel shows
 		long startedAt = shaftEnteredAt > 0 ? shaftEnteredAt : System.currentTimeMillis();
-		splits = first == 0 ? new RouteSplits(route.stops().size(), startedAt) : null;
+		splits = loop ? null : new RouteSplits(route.stops().size(), startedAt);
 	}
 
 	// a finished run is kept when it beats the best, and chat says how it went
