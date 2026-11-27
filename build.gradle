@@ -50,7 +50,7 @@ dependencies {
 }
 
 processResources {
-	def values = [version: project.version, minecraft: mc, resourceful_config: resourcefulVersion]
+	def values = [version: project.version, minecraft: mc, fabric_api: fabricApi, resourceful_config: resourcefulVersion]
 	inputs.properties values
 
 	filesMatching("fabric.mod.json") {
