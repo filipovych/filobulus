@@ -7,25 +7,8 @@ import com.teamresourceful.resourcefulconfig.api.annotations.ConfigInfo;
 import com.teamresourceful.resourcefulconfig.api.annotations.ConfigOption;
 
 @Category("tracker")
-@ConfigInfo(title = "Profit tracker", description = "What you gained and what it sells for. Move it with /filo hud.", icon = "coins")
+@ConfigInfo(title = "Profit tracker", description = "What your mining gained and what it sells for. Move it with /filo hud.", icon = "coins")
 public final class TrackerConfig {
-	// what counts as loot
-	public enum Items {
-		MINING("Mining"),
-		EVERYTHING("Everything");
-
-		private final String title;
-
-		Items(String title) {
-			this.title = title;
-		}
-
-		@Override
-		public String toString() {
-			return title;
-		}
-	}
-
 	public enum Price {
 		INSTANT_SELL("Instant sell"),
 		SELL_ORDER("Sell order"),
@@ -60,19 +43,15 @@ public final class TrackerConfig {
 	}
 
 	@ConfigEntry(id = "profit", translation = "filobulus.config.tracker.profit")
-	@Comment("Count what you gain, from your sack messages and your inventory, and show what it sells for at the bazaar. /filo profit reset starts over.")
+	@Comment("Count the ores and gemstones you gain on the mining islands, from your sack messages and your inventory, and show what they sell for at the bazaar. Corpses count once they are opened, with the key taken off. /filo profit reset starts over.")
 	public static boolean profit = true;
-
-	@ConfigEntry(id = "items", translation = "filobulus.config.tracker.items")
-	@Comment("Mining counts ores, gemstones and the other things mining gives, on the mining islands. Everything counts any item that has a price, on every island, for the other skills, and downloads Hypixel's public item list once to know the items by name.")
-	public static Items items = Items.MINING;
 
 	@ConfigEntry(id = "price", translation = "filobulus.config.tracker.price")
 	@Comment("The price an item is valued at: what the bazaar pays at once, what a sell order would get, or what an NPC pays. NPC downloads Hypixel's public item list once for its prices.")
 	public static Price price = Price.INSTANT_SELL;
 
 	@ConfigEntry(id = "period", translation = "filobulus.config.tracker.period")
-	@Comment("Session is since the game was started or since the last reset. All time is kept between sessions.")
+	@Comment("Session is since the game was started or since the last reset. All time is kept between sessions, per profile.")
 	public static Period period = Period.SESSION;
 
 	@ConfigEntry(id = "lines", translation = "filobulus.config.tracker.lines")

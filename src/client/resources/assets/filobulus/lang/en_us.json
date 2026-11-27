@@ -18,7 +18,6 @@
 	"filobulus.config.hud.panel": "Panel background",
 	"filobulus.config.hud.sessionHud": "Session rows",
 	"filobulus.config.tracker.profit": "Profit tracker",
-	"filobulus.config.tracker.items": "Count",
 	"filobulus.config.tracker.price": "Price",
 	"filobulus.config.tracker.period": "Period",
 	"filobulus.config.tracker.lines": "Items listed",

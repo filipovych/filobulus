@@ -32,7 +32,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
-// counts what the player gains: it reads the sack lines in chat and watches what the inventory holds
+// counts what the player gains while mining: it reads the sack lines in chat and watches what the inventory holds
 // it only reads, nothing is clicked, moved or sent
 public final class ProfitWatch {
 	private static final Set<String> MINING_ISLANDS = Set.of(
@@ -136,7 +136,7 @@ public final class ProfitWatch {
 
 	public String name(String id) {
 		String seen = names.get(id);
-		return seen != null ? seen : catalog.name(id).orElseGet(() -> MiningItems.label(id));
+		return seen != null ? seen : MiningItems.label(id);
 	}
 
 	// the price of one item the way the settings ask for it
@@ -167,7 +167,7 @@ public final class ProfitWatch {
 	public void tick(Minecraft minecraft) {
 		Player player = minecraft.player;
 		long now = System.currentTimeMillis();
-		if (here()) {
+		if (mining()) {
 			hereAt = now;
 		}
 		// a warp leaves the island unknown for a moment, that is no reason to hide the panel
@@ -178,8 +178,8 @@ public final class ProfitWatch {
 			return;
 		}
 		prices.refresh();
-		// the item list is only needed for names we have no table for and for npc prices, so it is not asked for by default
-		if (TrackerConfig.items == TrackerConfig.Items.EVERYTHING || TrackerConfig.price == TrackerConfig.Price.NPC) {
+		// the item list is only needed for npc prices, so it is not asked for by default
+		if (TrackerConfig.price == TrackerConfig.Price.NPC) {
 			catalog.refresh();
 		}
 		ledger.idle(idle());
@@ -223,20 +223,10 @@ public final class ProfitWatch {
 		return TrackerConfig.idle * 1000L;
 	}
 
-	// the mining islands, or all of skyblock when everything is counted
-	// the tunnels and the shafts are known from the mod's own location read
-	private static boolean here() {
-		String area = FilobulusClient.tracker().areaName();
-		return mining() || TrackerConfig.items == TrackerConfig.Items.EVERYTHING && !area.isEmpty();
-	}
-
+	// the mining islands, the tunnels and the shafts are known from the mod's own location read
 	private static boolean mining() {
 		return FilobulusClient.tracker().location().area() != Area.ELSEWHERE
 				|| MINING_ISLANDS.contains(FilobulusClient.tracker().areaName());
-	}
-
-	private static boolean tracked(String id) {
-		return TrackerConfig.items == TrackerConfig.Items.EVERYTHING || MiningItems.isMining(id);
 	}
 
 	private void chat(Component message) {
@@ -260,8 +250,8 @@ public final class ProfitWatch {
 		for (String hover : hovers) {
 			long window = Math.min(SackReader.windowMillis(hover), idle());
 			for (SackReader.Change change : SackReader.read(hover)) {
-				Optional<String> id = MiningItems.id(change.name()).or(() -> catalog.id(change.name()));
-				if (id.isPresent() && tracked(id.get())) {
+				Optional<String> id = MiningItems.id(change.name());
+				if (id.isPresent()) {
 					names.putIfAbsent(id.get(), change.name());
 					ledger.sack(id.get(), change.amount(), now, window);
 				}
@@ -270,15 +260,8 @@ public final class ProfitWatch {
 	}
 
 	private void trade(TradeLines.Trade trade, long now) {
-		Optional<String> id = MiningItems.id(trade.name()).or(() -> catalog.id(trade.name()));
+		Optional<String> id = MiningItems.id(trade.name());
 		if (id.isEmpty()) {
-			// with everything counted an item we can not name may still be tracked, then the sacks are left alone a minute
-			if (trade.bought() && TrackerConfig.items == TrackerConfig.Items.EVERYTHING) {
-				ledger.quiet(now);
-			} else {
-				ledger.traded(now);
-			}
-		} else if (!tracked(id.get())) {
 			ledger.traded(now);
 		} else if (trade.bought()) {
 			ledger.bought(id.get(), trade.amount(), now);
@@ -320,13 +303,16 @@ public final class ProfitWatch {
 		Map<String, Long> deltas = new HashMap<>();
 		for (String id : ids) {
 			long delta = counts.getOrDefault(id, 0L) - before.getOrDefault(id, 0L);
-			if (delta != 0 && tracked(id)) {
+			if (delta != 0) {
 				deltas.put(id, delta);
 			}
 		}
-		ledger.inventory(deltas, now, counted);
+		if (!deltas.isEmpty()) {
+			ledger.inventory(deltas, now, counted);
+		}
 	}
 
+	// only mining loot is counted, so other items are not even looked up
 	private void count(ItemStack stack, Map<String, Long> counts) {
 		if (stack.isEmpty()) {
 			return;
@@ -334,7 +320,7 @@ public final class ProfitWatch {
 		// skyblock items carry their id in the custom data
 		CustomData data = stack.get(DataComponents.CUSTOM_DATA);
 		String id = data == null ? "" : data.copyTag().getStringOr("id", "");
-		if (id.isEmpty()) {
+		if (id.isEmpty() || !MiningItems.isMining(id)) {
 			return;
 		}
 		counts.merge(id, (long) stack.getCount(), Long::sum);

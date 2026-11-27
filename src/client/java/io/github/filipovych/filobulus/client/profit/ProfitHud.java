@@ -58,9 +58,7 @@ public final class ProfitHud implements HudWidget {
 		}
 		ProfitValue value = watch.value();
 		List<Row> rows = new ArrayList<>();
-		boolean everything = TrackerConfig.items == TrackerConfig.Items.EVERYTHING;
-		// with everything counted the things nobody buys are left out of the list
-		List<ProfitValue.Line> lines = value.lines().stream().filter(line -> line.priced() || !everything).toList();
+		List<ProfitValue.Line> lines = value.lines();
 		long now = System.currentTimeMillis();
 		for (int i = 0; i < lines.size() && i < TrackerConfig.lines; i++) {
 			ProfitValue.Line line = lines.get(i);
@@ -107,9 +105,8 @@ public final class ProfitHud implements HudWidget {
 	}
 
 	private static Content panel(List<Row> rows) {
-		boolean mining = TrackerConfig.items == TrackerConfig.Items.MINING;
 		String period = TrackerConfig.period == TrackerConfig.Period.ALL_TIME ? ", all time" : "";
-		return new Content(ProfitIcons.coins(), (mining ? "Mining profit" : "Profit") + period, GOLD, rows);
+		return new Content(ProfitIcons.coins(), "Mining profit" + period, GOLD, rows);
 	}
 
 	// the sacks say Flawed Jasper Gemstone, on a narrow panel the last word is only in the way
