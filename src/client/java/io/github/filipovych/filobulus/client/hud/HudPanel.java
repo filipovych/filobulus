@@ -96,7 +96,11 @@ public final class HudPanel {
 	}
 
 	public static void draw(GuiGraphicsExtractor graphics, Font font, Content content, boolean background) {
-		int width = width(font, content);
+		draw(graphics, font, content, background, width(font, content));
+	}
+
+	// width is what width() gave for this content, the hud keeps it so it is not measured every frame
+	public static void draw(GuiGraphicsExtractor graphics, Font font, Content content, boolean background, int width) {
 		if (background) {
 			graphics.fill(0, 0, width, height(content), BACKGROUND);
 			graphics.outline(0, 0, width, height(content), OUTLINE);
@@ -129,7 +133,9 @@ public final class HudPanel {
 				x += ICON_SIZE + ICON_GAP;
 			}
 			graphics.text(font, row.label(), x, y, row.icon().isEmpty() ? LABEL : VALUE, true);
-			graphics.text(font, row.note(), x + font.width(row.label()) + NOTE_GAP, y, NOTE, true);
+			if (!row.note().isEmpty()) {
+				graphics.text(font, row.note(), x + font.width(row.label()) + NOTE_GAP, y, NOTE, true);
+			}
 			graphics.text(font, row.value(), width - PADDING - font.width(row.value()), y, row.color(), true);
 			y += ROW_HEIGHT;
 		}
