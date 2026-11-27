@@ -125,7 +125,7 @@ public final class RecapScreen extends FlatScreen {
 	private List<Tile> tiles(ShaftVisit visit, ShaftRecap recap) {
 		List<Tile> tiles = new ArrayList<>();
 		tiles.add(new Tile(visit.coins() == 0 ? "-" : CoinText.signed(visit.coins()), visit.coins() < 0 ? BAD : COINS, "Profit"));
-		tiles.add(new Tile(recap.perHour() > 0 ? CoinText.amount(recap.perHour()) : "-", COINS, "Per hour"));
+		tiles.add(new Tile(recap.perHour() == 0 ? "-" : CoinText.plain(recap.perHour()), recap.perHour() < 0 ? BAD : COINS, "Per hour"));
 		tiles.add(new Tile(visit.spentMillis() > 0 ? JournalText.duration(visit.spentMillis()) : "-", TEXT, "Time inside"));
 		CorpseTally corpses = visit.corpses();
 		tiles.add(new Tile(corpses.isEmpty() ? "-" : corpses.looted().length() + "/" + corpses.seen().length(), TEXT, "Corpses"));

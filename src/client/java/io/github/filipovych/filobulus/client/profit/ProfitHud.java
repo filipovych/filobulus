@@ -106,9 +106,9 @@ public final class ProfitHud implements HudWidget {
 	// the clock says so when it stands still, so a rate that stops moving is no surprise
 	private static List<Row> summary(double coins, double perHour, long active, boolean paused) {
 		return List.of(
-				new Row("Profit", CoinText.amount(coins), GOLD),
+				new Row("Profit", CoinText.plain(coins), coins < 0 ? LOSS : GOLD),
 				// the first minute says too little to give a rate
-				new Row("Per hour", perHour == 0 ? "..." : CoinText.amount(perHour), GOLD),
+				new Row("Per hour", active < ProfitValue.WARMUP_MILLIS ? "..." : CoinText.plain(perHour), perHour < 0 ? LOSS : GOLD),
 				new Row(ItemStack.EMPTY, "Time", paused ? "paused" : "", JournalText.duration(active), paused ? UNPRICED : TIME));
 	}
 

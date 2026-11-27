@@ -22,6 +22,11 @@ public final class CoinText {
 		return String.format(Locale.ROOT, "%.2fB", abs / 1e9);
 	}
 
+	// 1.2M or -850k, for a number that can go below zero
+	public static String plain(double coins) {
+		return (coins <= -0.5 ? "-" : "") + amount(coins);
+	}
+
 	// +1.2M or -850k
 	public static String signed(double coins) {
 		return (coins <= -0.5 ? "-" : "+") + amount(coins);
