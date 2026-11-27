@@ -81,7 +81,10 @@ public final class BreakHud implements HudWidget {
 			rows.add(new Row("Speed", number(speed) + (boosted ? " MSB" : ""), boosted ? BOOST : 0xFFFFFFFF));
 			Breakpoints.Next next = Breakpoints.next(strength, speed, block.plain());
 			if (next.ticks() > 0) {
-				rows.add(new Row(next.ticks() + " ticks", "+" + number(next.speed() - speed)));
+				// while boosted the panel speed is x3, what the player can add is base speed
+				float boost = boosted ? 1 + MiningConfig.msbBonus / 100f : 1;
+				int more = (int) Math.ceil(next.speed() / boost) - Math.round(speed / boost);
+				rows.add(new Row(next.ticks() + " ticks", "+" + number(Math.max(1, more))));
 			}
 			if (!boosted) {
 				int withBoost = Math.round(speed * (1 + MiningConfig.msbBonus / 100f));

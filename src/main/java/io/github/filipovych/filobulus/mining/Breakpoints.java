@@ -24,11 +24,8 @@ public final class Breakpoints {
 		if (ticks <= 1) {
 			return instamine(strength, plain);
 		}
-		if (ticks <= SOFT_CAP) {
-			return (int) Math.ceil(20d * strength / 3);
-		}
-		// round gives ticks while 30 * strength / speed is under ticks + 0.5
-		return (int) Math.floor(30d * strength / (ticks + 0.5)) + 1;
+		// round gives ticks while 30 * strength / speed is under ticks + 0.5, the cap is the same line at 4
+		return (int) Math.floor(30d * strength / (Math.max(SOFT_CAP, ticks) + 0.5)) + 1;
 	}
 
 	// the next tick count down from now and the speed it needs, ticks 0 once nothing is left to reach

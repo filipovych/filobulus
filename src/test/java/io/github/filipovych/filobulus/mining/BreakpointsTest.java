@@ -12,6 +12,10 @@ class BreakpointsTest {
 		assertEquals(61, Breakpoints.ticks(2500, 1239, false));
 		assertEquals(30, Breakpoints.ticks(2500, 2460, false));
 		assertEquals(1240, Breakpoints.speedFor(2500, 60, false));
+		// 20000 is still 5 ticks, 4.5 rounds up
+		assertEquals(20001, Breakpoints.speedFor(3000, 4, false));
+		assertEquals(5, Breakpoints.ticks(3000, 20000, false));
+		assertEquals(4, Breakpoints.ticks(3000, 20001, false));
 		assertEquals(2460, Breakpoints.speedFor(2500, 30, false));
 	}
 
