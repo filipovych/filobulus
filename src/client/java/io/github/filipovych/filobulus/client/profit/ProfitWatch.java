@@ -89,6 +89,8 @@ public final class ProfitWatch {
 	// the shaft we are in and what the session held when we got in
 	private long shaftAt;
 	private Map<String, Long> atShaftStart = Map.of();
+	// what the shaft had already paid when the session was reset in it
+	private long shaftBase;
 
 	public ProfitWatch(ProfitStore store, BazaarPrices prices) {
 		this.base = store;
@@ -148,6 +150,9 @@ public final class ProfitWatch {
 
 	// /filo profit reset, forgets what the period on show has counted
 	public void reset() {
+		if (totals() == session && shaftAt != 0) {
+			shaftBase += Math.round(ProfitValue.since(session.items(), atShaftStart, this::price).coins());
+		}
 		totals().clear();
 		if (totals() == session) {
 			atShaftStart = session.items();
@@ -396,12 +401,13 @@ public final class ProfitWatch {
 		if (open != null && open.enteredAt() != shaftAt) {
 			shaftAt = open.enteredAt();
 			atShaftStart = session.items();
+			shaftBase = 0;
 		}
 		// after leaving it goes on for a moment, the last sack message of a shaft comes late and the journal still takes it
 		if (shaftAt == 0) {
 			return;
 		}
 		ProfitValue mined = ProfitValue.since(session.items(), atShaftStart, this::price);
-		FilobulusClient.shaftLog().mined(Math.round(mined.coins()));
+		FilobulusClient.shaftLog().mined(shaftBase + Math.round(mined.coins()));
 	}
 }
