@@ -55,7 +55,7 @@ public record ShaftType(ShaftMaterial material, ShaftVariant variant) {
 			return Optional.empty();
 		}
 		String trimmed = line.strip();
-		int cut = Math.max(trimmed.lastIndexOf(' '), trimmed.lastIndexOf(' '));
+		int cut = Math.max(trimmed.lastIndexOf(' '), trimmed.lastIndexOf('\u00a0'));
 		return parse(trimmed.substring(cut + 1));
 	}
 

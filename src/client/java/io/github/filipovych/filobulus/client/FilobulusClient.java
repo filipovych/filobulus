@@ -15,8 +15,8 @@ import io.github.filipovych.filobulus.client.corpse.CrackHud;
 import io.github.filipovych.filobulus.client.hud.Hud;
 import io.github.filipovych.filobulus.client.journal.JournalStore;
 import io.github.filipovych.filobulus.client.journal.ShaftLog;
-import io.github.filipovych.filobulus.client.mining.ComboWatch;
 import io.github.filipovych.filobulus.client.journal.WrappedNotice;
+import io.github.filipovych.filobulus.client.mining.ComboWatch;
 import io.github.filipovych.filobulus.client.mining.MiningWatch;
 import io.github.filipovych.filobulus.client.profit.ProfitControls;
 import io.github.filipovych.filobulus.client.profit.ProfitStore;
@@ -33,13 +33,14 @@ import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteSelector;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -82,21 +83,21 @@ public final class FilobulusClient implements ClientModInitializer {
 			LOGGER.error("Could not load the bundled routes", e);
 		}
 		// the player's own routes and choices sit next to the settings file
-		store = new RouteStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("routes.json"), routes, bundled);
+		Path dir = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
+		store = new RouteStore(dir.resolve("routes.json"), routes, bundled);
 		store.load();
-		splits = new SplitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("splits.json"));
+		splits = new SplitStore(dir.resolve("splits.json"));
 		splits.load();
-		journal = new JournalStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("journal.jsonl"));
+		journal = new JournalStore(dir.resolve("journal.jsonl"));
 		journal.load();
 		shaftLog = new ShaftLog(journal);
 		shaftLog.register();
 		selector = new RouteSelector(routes, store.settings());
 		tracker = new RouteTracker(selector);
 
-		sounds = new SoundBoard(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds.json"),
-				FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("sounds"));
+		sounds = new SoundBoard(dir.resolve("sounds.json"), dir.resolve("sounds"));
 		sounds.load();
-		achievements = new AchievementWatch(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("achievements.json"));
+		achievements = new AchievementWatch(dir.resolve("achievements.json"));
 		achievements.load();
 		cold = new ColdWatch();
 		PortalWatch portal = new PortalWatch();
@@ -108,15 +109,14 @@ public final class FilobulusClient implements ClientModInitializer {
 		wisp.register();
 		CorpseWatch corpses = new CorpseWatch();
 		corpses.register();
-		profit = new ProfitWatch(
-				new ProfitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("profit.json")), PRICES);
+		profit = new ProfitWatch(new ProfitStore(dir.resolve("profit.json")), PRICES);
 		profit.register();
 		ProfitControls.register();
 		mining = new MiningWatch();
 		mining.register();
-		combo = new ComboWatch(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("combo.json"));
+		combo = new ComboWatch(dir.resolve("combo.json"));
 		combo.load();
-		WrappedNotice wrapped = new WrappedNotice(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("wrapped.txt"));
+		WrappedNotice wrapped = new WrappedNotice(dir.resolve("wrapped.txt"));
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			Guard.run("route tracker", () -> tracker.tick(minecraft));
 			Guard.run("shaft log", () -> shaftLog.tick(minecraft));

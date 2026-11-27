@@ -32,10 +32,6 @@ public final class RouteChoices implements RouteSettings {
 		}
 	}
 
-	public Set<String> autoLoadKeys() {
-		return Set.copyOf(autoLoad);
-	}
-
 	public void replaceAutoLoad(Iterable<String> routeKeys) {
 		autoLoad.clear();
 		routeKeys.forEach(autoLoad::add);
@@ -48,10 +44,6 @@ public final class RouteChoices implements RouteSettings {
 
 	public void pick(String routeKey, String routeId) {
 		picked.put(routeKey, routeId);
-	}
-
-	public Map<String, String> picks() {
-		return Map.copyOf(picked);
 	}
 
 	// for a new profile that starts out like this one

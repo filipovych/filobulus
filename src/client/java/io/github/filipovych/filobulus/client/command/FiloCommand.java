@@ -177,20 +177,20 @@ public final class FiloCommand {
 
 	// a month of the journal as cards, without a month the last full one
 	private static int wrapped(CommandContext<FabricClientCommandSource> context, String text) {
-		YearMonth month;
+		YearMonth parsed = null;
 		try {
-			month = text.isEmpty()
+			parsed = text.isEmpty()
 					? MonthlyWrapped.defaultMonth(FilobulusClient.journal().journal().visits(), System.currentTimeMillis(), ZoneId.systemDefault())
 					: YearMonth.parse(text);
-		} catch (DateTimeParseException e) {
-			fail(context, "\"" + text + "\" is not a month. Write it like " + YearMonth.now() + ".");
-			return 1;
+		} catch (DateTimeParseException ignored) {
+			// said below
 		}
 		// a far off year would overflow the date maths
-		if (month.getYear() < 2000 || month.getYear() > 9999) {
+		if (parsed == null || parsed.getYear() < 2000 || parsed.getYear() > 9999) {
 			fail(context, "\"" + text + "\" is not a month. Write it like " + YearMonth.now() + ".");
 			return 1;
 		}
+		YearMonth month = parsed;
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.schedule(() -> GameCompat.setScreen(minecraft, new WrappedScreen(null, month)));
 		return 1;

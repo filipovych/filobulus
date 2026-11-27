@@ -1,13 +1,11 @@
 package io.github.filipovych.filobulus.corpse;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 
 // turns the reward names of the loot block into bazaar product ids, all the item names we know are here
 public final class CorpseItems {
@@ -22,7 +20,6 @@ public final class CorpseItems {
 	// auction only and worth more than any key, the id is SHATTERED_PENDANT for the locket but we never ask a price for these
 	private static final Set<String> RARE = Set.of("shattered locket", "frostbitten dye", "caged wisp");
 	private static final Set<String> WORTHLESS = Set.of("glacite powder", "hotm experience", "dead man's chestplate");
-	private static final Set<String> PRICED = buildPriced();
 
 	private CorpseItems() {
 	}
@@ -57,19 +54,6 @@ public final class CorpseItems {
 		return Map.copyOf(table);
 	}
 
-	private static Set<String> buildPriced() {
-		Set<String> ids = new TreeSet<>(TABLE.values());
-		for (String tier : DROPPED_TIERS) {
-			for (String gem : DROPPED_GEMS) {
-				ids.add(gemId(tier, gem));
-			}
-		}
-		// the keys are in the table as rewards too, this is for what a corpse costs
-		for (CorpseType type : CorpseType.values()) {
-			type.keyId().ifPresent(ids::add);
-		}
-		return Collections.unmodifiableSet(ids);
-	}
 
 	// the bazaar product id, empty when the reward has no bazaar price
 	public static Optional<String> id(String rewardName) {
@@ -100,10 +84,6 @@ public final class CorpseItems {
 		return words.length == 2 && words[1].equals("crystal") && GEMS.contains(words[0]);
 	}
 
-	// every product id we may ask a price for
-	public static Set<String> pricedIds() {
-		return PRICED;
-	}
 
 	private static String gemId(String tier, String gem) {
 		return (tier + "_" + gem + "_GEM").toUpperCase(Locale.ROOT);

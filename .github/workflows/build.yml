@@ -1,6 +1,5 @@
-# Builds the mod for every supported game version and runs the tests,
-# on every push and pull request.
-# When a release is published on GitHub, the jars are attached to it.
+# builds the mod for every game version and runs the tests on every push and pull request
+# when a release is published on github the jars are attached to it
 
 name: build
 on:

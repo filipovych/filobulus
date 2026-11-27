@@ -66,7 +66,7 @@ public final class RouteProfiles {
 		return true;
 	}
 
-	// a route is gone, every profile that used it goes back to the default of that shaft
+	// a route is gone, every profile that used it goes back to the first route of that shaft, or none
 	public void unpick(String routeKey, String routeId) {
 		for (RouteChoices choices : profiles.values()) {
 			if (choices.preferredRouteId(routeKey).equals(routeId)) {

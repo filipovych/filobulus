@@ -152,7 +152,7 @@ public final class RouteCodec {
 	}
 
 	private static String stripBom(String text) {
-		return !text.isEmpty() && text.charAt(0) == '﻿' ? text.substring(1) : text;
+		return !text.isEmpty() && text.charAt(0) == '\ufeff' ? text.substring(1) : text;
 	}
 
 	private static JsonArray parseArray(String json, String what) throws RouteFormatException {

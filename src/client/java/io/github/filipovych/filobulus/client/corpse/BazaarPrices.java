@@ -27,11 +27,6 @@ public final class BazaarPrices implements PriceSource {
 	private volatile long nextFetch;
 	private boolean failed;
 
-	// false until the first download came in
-	public boolean loaded() {
-		return !prices.isEmpty();
-	}
-
 	// cheap enough to call every tick, it only starts a download when the prices are old
 	public void refresh() {
 		if (System.currentTimeMillis() < nextFetch || !running.compareAndSet(false, true)) {

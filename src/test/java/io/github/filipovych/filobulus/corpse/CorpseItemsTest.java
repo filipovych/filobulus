@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class CorpseItemsTest {
@@ -94,14 +93,4 @@ class CorpseItemsTest {
 		}
 	}
 
-	@Test
-	void pricedIdsCoverTheKeysTheTableAndTheGemsCorpsesDrop() {
-		Set<String> ids = CorpseItems.pricedIds();
-		assertTrue(ids.containsAll(Set.of("TUNGSTEN_KEY", "UMBER_KEY", "SKELETON_KEY")));
-		assertTrue(ids.containsAll(Set.of("FLAWED_ONYX_GEM", "FINE_PERIDOT_GEM", "FLAWLESS_CITRINE_GEM", "FINE_AQUAMARINE_GEM")));
-		assertTrue(ids.containsAll(Set.of("UMBER_PLATE", "GOBLIN_EGG_RED", "ENCHANTMENT_ICE_COLD_1", "SUSPICIOUS_SCRAP")));
-		assertFalse(ids.contains("FINE_JASPER_GEM"));
-		assertFalse(ids.contains("SHATTERED_PENDANT"));
-		assertEquals(35, ids.size());
-	}
 }

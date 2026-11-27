@@ -186,7 +186,7 @@ public final class ProfitWatch {
 		return totals().paused(System.currentTimeMillis(), pause());
 	}
 
-	// the dev client only, puts a gain in as if a sack message said so, to look at the panel
+	// only the shots tool uses this, it puts a gain in so the panel has something to show
 	public void pretend(String id, long amount) {
 		names.putIfAbsent(id, MiningItems.label(id));
 		ledger.sack(id, amount, System.currentTimeMillis(), 30_000);
