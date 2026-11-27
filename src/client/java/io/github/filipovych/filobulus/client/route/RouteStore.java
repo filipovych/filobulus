@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.SafeFile;
+import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.route.CollectionCodec;
 import io.github.filipovych.filobulus.route.CustomRoute;
 import io.github.filipovych.filobulus.route.CustomRoutes;
@@ -28,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.client.Minecraft;
 
 // the routes the player imported and what they picked on the routes screen, kept in config/filobulus/routes.json
 // the routes that ship with the mod are put in on every load, the file only keeps what the player set on them
@@ -38,6 +40,7 @@ public final class RouteStore {
 	private final RouteProfiles profiles = new RouteProfiles();
 	private final CustomRoutes custom = new CustomRoutes();
 	private boolean readOnly;
+	private boolean toldReadOnly;
 
 	// what the selector asks, always answered by the profile in use
 	private final RouteSettings settings = new RouteSettings() {
@@ -139,6 +142,21 @@ public final class RouteStore {
 		apply.forEach(Runnable::run);
 	}
 
+	// true when routes.json could not be read or moved away, changes are not saved so it is not written over
+	public boolean readOnly() {
+		return readOnly;
+	}
+
+	private void tellReadOnly() {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (toldReadOnly || minecraft.player == null) {
+			return;
+		}
+		toldReadOnly = true;
+		GameCompat.say(minecraft, FilobulusClient.chatLine(
+				"Route changes can not be saved this session, routes.json could not be read and is left as it was."));
+	}
+
 	private static JsonArray array(JsonObject json, String key) {
 		return json.has(key) && json.get(key).isJsonArray() ? json.getAsJsonArray(key) : new JsonArray();
 	}
@@ -190,6 +208,7 @@ public final class RouteStore {
 
 	public void save() {
 		if (readOnly) {
+			tellReadOnly();
 			return;
 		}
 		List<String> saved = new ArrayList<>();

@@ -37,6 +37,9 @@ abstract class RoutesFrame extends FlatScreen {
 	protected RoutesFrame(Screen parent) {
 		super(Component.literal("Filobulus routes"));
 		this.parent = parent;
+		if (store.readOnly()) {
+			say("Changes are not saved, routes.json could not be read.", BAD);
+		}
 	}
 
 	protected abstract boolean shafts();
