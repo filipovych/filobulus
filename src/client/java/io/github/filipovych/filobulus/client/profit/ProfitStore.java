@@ -30,6 +30,17 @@ public final class ProfitStore {
 		return Files.exists(file);
 	}
 
+	// the totals from before profiles were known went into one profile, so no other profile picks them up too
+	public void retire() {
+		try {
+			if (Files.exists(file)) {
+				Files.move(file, file.resolveSibling(file.getFileName() + ".adopted"), StandardCopyOption.REPLACE_EXISTING);
+			}
+		} catch (IOException e) {
+			FilobulusClient.LOGGER.error("Could not move {} aside", file, e);
+		}
+	}
+
 	// names gets the saved item names put into it, a file that can not be read gives empty totals
 	public ProfitTotals load(Map<String, String> names) {
 		if (!Files.exists(file)) {

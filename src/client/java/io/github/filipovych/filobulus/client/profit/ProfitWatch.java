@@ -124,7 +124,8 @@ public final class ProfitWatch {
 			return;
 		}
 		ProfitStore next = base.forProfile(id);
-		if (!profile.isEmpty() || next.exists()) {
+		boolean adopt = profile.isEmpty() && !next.exists();
+		if (!adopt) {
 			save();
 			allTime.replaceWith(next.load(names));
 			savedVersion = allTime.version();
@@ -132,6 +133,9 @@ public final class ProfitWatch {
 		profile = id;
 		store = next;
 		save();
+		if (adopt) {
+			base.retire();
+		}
 	}
 
 	// /filo profit reset, forgets what the period on show has counted
