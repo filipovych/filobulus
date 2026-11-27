@@ -156,8 +156,16 @@ public final class ProfitLedger {
 			long part = Math.min(left, move.amount);
 			move.amount -= part;
 			left -= part;
-			// it came out of the sack, so it was not made either
-			take(made, id, part);
+			// it came out of the sack, so it was not made either, first off what this very gain put in made
+			long own = 0;
+			for (Move waiting : made) {
+				if (waiting.arrival == move && own < part) {
+					long piece = Math.min(part - own, waiting.amount);
+					waiting.amount -= piece;
+					own += piece;
+				}
+			}
+			take(made, id, part - own);
 			if (move.counted) {
 				credit(id, -part, now, now);
 			}
@@ -248,14 +256,21 @@ public final class ProfitLedger {
 
 	// a sack line took out an input after its output was gained, so it went into that output
 	// gives back how much of the line is left over
+	// the outputs that were not counted go first, a pristine gain in the sacks is counted already and must not
+	// take the input line off a craft that is still waiting for it
 	private long usedFor(String input, long amount, long now) {
+		long left = usedFor(input, amount, now, false);
+		return usedFor(input, left, now, true);
+	}
+
+	private long usedFor(String input, long amount, long now, boolean counted) {
 		long left = amount;
 		for (Move move : made) {
 			if (left == 0) {
 				break;
 			}
 			Compaction.Recipe recipe = Compaction.of(move.id).orElse(null);
-			if (recipe == null || !recipe.input().equals(input) || move.amount <= 0) {
+			if (recipe == null || !recipe.input().equals(input) || move.amount <= 0 || move.counted != counted) {
 				continue;
 			}
 			long outputs = Math.min(move.amount, Math.ceilDiv(left, recipe.count()));

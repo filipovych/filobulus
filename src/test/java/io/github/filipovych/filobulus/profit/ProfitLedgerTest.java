@@ -203,6 +203,16 @@ class ProfitLedgerTest {
 	}
 
 	@Test
+	void aPristineGainDoesNotTakeTheInputLineOffACraft() {
+		ledger.sack(FLAWED, 40, SECOND);
+		ledger.sack("ROUGH_RUBY_GEM", 6400, 2 * SECOND);
+		// the craft lands in the inventory with the menu open, then the sack line says what it took
+		ledger.inventory(FLAWED, 80, 10 * SECOND, false);
+		ledger.sack("ROUGH_RUBY_GEM", -6400, 12 * SECOND);
+		assertEquals(Map.of(FLAWED, 120L), session.items());
+	}
+
+	@Test
 	void anInventoryCompactorTakesBackOnlyWhatWentIn() {
 		ledger.inventory(FLAWED, 200, SECOND, true);
 		ledger.inventory(FLAWED, -160, 2 * SECOND, true);
