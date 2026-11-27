@@ -76,7 +76,8 @@ public final class ComboWatch {
 			JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
 			combo = new SwapCombo(root.has("best") ? root.get("best").getAsInt() : 0);
 		} catch (IOException | RuntimeException e) {
-			FilobulusClient.LOGGER.error("Could not read {}", file, e);
+			FilobulusClient.LOGGER.error("Could not read {}, a copy is kept next to it", file, e);
+			SafeFile.copyBroken(file);
 		}
 	}
 

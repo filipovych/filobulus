@@ -31,11 +31,17 @@ public final class SoundBoard {
 	public void load() {
 		try {
 			Files.createDirectories(folder);
-			if (Files.exists(file)) {
-				choices = SoundChoices.fromJson(Files.readString(file));
-			}
 		} catch (IOException e) {
-			FilobulusClient.LOGGER.error("Could not read {}", file, e);
+			FilobulusClient.LOGGER.error("Could not make {}", folder, e);
+		}
+		if (Files.exists(file)) {
+			try {
+				choices = SoundChoices.parse(Files.readString(file));
+			} catch (IOException | RuntimeException e) {
+				// the defaults play until the player picks again, the old picks stay in the copy
+				FilobulusClient.LOGGER.error("Could not read {}, a copy is kept next to it", file, e);
+				SafeFile.copyBroken(file);
+			}
 		}
 		rescan();
 	}

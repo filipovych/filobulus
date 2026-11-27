@@ -51,20 +51,25 @@ public final class SoundChoices {
 
 	// an unknown slot is skipped, a bad file gives the defaults
 	public static SoundChoices fromJson(String json) {
-		SoundChoices choices = new SoundChoices();
 		try {
-			JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-			for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
-				for (SoundSlot slot : SoundSlot.values()) {
-					if (slot.name().equalsIgnoreCase(entry.getKey()) && entry.getValue().isJsonObject()) {
-						JsonObject value = entry.getValue().getAsJsonObject();
-						choices.set(slot, new Choice(value.has("sound") ? value.get("sound").getAsString() : slot.fallback(),
-								value.has("volume") ? value.get("volume").getAsInt() : FULL));
-					}
-				}
-			}
+			return parse(json);
 		} catch (RuntimeException e) {
 			return new SoundChoices();
+		}
+	}
+
+	// same but a bad file throws, so the caller can keep a copy of it
+	public static SoundChoices parse(String json) {
+		SoundChoices choices = new SoundChoices();
+		JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+			for (SoundSlot slot : SoundSlot.values()) {
+				if (slot.name().equalsIgnoreCase(entry.getKey()) && entry.getValue().isJsonObject()) {
+					JsonObject value = entry.getValue().getAsJsonObject();
+					choices.set(slot, new Choice(value.has("sound") ? value.get("sound").getAsString() : slot.fallback(),
+							value.has("volume") ? value.get("volume").getAsInt() : FULL));
+				}
+			}
 		}
 		return choices;
 	}

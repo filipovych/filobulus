@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.sound;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.filipovych.filobulus.sound.SoundChoices.Choice;
@@ -30,5 +31,11 @@ class SoundChoicesTest {
 		assertEquals(100, new Choice("bell", 300).volume());
 		assertEquals("none", new Choice("", 50).key());
 		assertEquals(new Choice("pling", 100), SoundChoices.fromJson("not json").get(SoundSlot.WISP_GONE));
+	}
+
+	@Test
+	void parseThrowsOnABadFile() {
+		assertThrows(RuntimeException.class, () -> SoundChoices.parse("not json"));
+		assertThrows(RuntimeException.class, () -> SoundChoices.parse("{\"portal\": {\"volume\": \"loud\"}}"));
 	}
 }
