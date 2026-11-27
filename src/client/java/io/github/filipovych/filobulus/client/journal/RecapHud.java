@@ -33,6 +33,10 @@ public final class RecapHud implements HudWidget {
 	// the shaft the card is about, by the moment it was entered, and when the card came up
 	private static long visitAt;
 	private static long shownAt;
+	// the card as last built, and the journal state it came from
+	private Content card;
+	private int cardVersion = -1;
+	private long cardVisit;
 
 	// called when a shaft is left
 	public static void show(long enteredAt) {
@@ -60,14 +64,21 @@ public final class RecapHud implements HudWidget {
 		if (!JournalConfig.recap || System.currentTimeMillis() - shownAt > JournalConfig.recapSeconds * 1000L) {
 			return Optional.empty();
 		}
-		List<ShaftVisit> journal = FilobulusClient.journal().journal().visits();
-		// nearly always the newest one
-		for (int i = journal.size() - 1; i >= 0 && journal.get(i).enteredAt() >= visitAt; i--) {
-			if (journal.get(i).enteredAt() == visitAt) {
-				return Optional.of(card(ShaftRecap.of(journal.get(i), journal)));
+		int version = FilobulusClient.journal().journal().version();
+		if (version != cardVersion || visitAt != cardVisit) {
+			cardVersion = version;
+			cardVisit = visitAt;
+			card = null;
+			List<ShaftVisit> journal = FilobulusClient.journal().journal().visits();
+			// nearly always the newest one
+			for (int i = journal.size() - 1; i >= 0 && journal.get(i).enteredAt() >= visitAt; i--) {
+				if (journal.get(i).enteredAt() == visitAt) {
+					card = card(ShaftRecap.of(journal.get(i), journal));
+					break;
+				}
 			}
 		}
-		return Optional.empty();
+		return Optional.ofNullable(card);
 	}
 
 	@Override

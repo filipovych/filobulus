@@ -43,6 +43,7 @@ public final class MiningWatch {
 	private BlockPos mining;
 	private int startedTick;
 	private int clientTicks;
+	private Optional<BlockStrength> target = Optional.empty();
 
 	public void register() {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
@@ -77,9 +78,11 @@ public final class MiningWatch {
 				&& FilobulusClient.tracker().location().area() != Area.ELSEWHERE;
 		if (!here) {
 			mining = null;
+			target = Optional.empty();
 			return;
 		}
 		watchBlock(minecraft);
+		target = findTarget(minecraft);
 		if (ticks++ % INTERVAL != 0) {
 			return;
 		}
@@ -107,7 +110,12 @@ public final class MiningWatch {
 	}
 
 	// the block under the crosshair as a skyblock block, else the gemstone of the shaft we are in
+	// the game picks the block once a tick, so the panels read what the tick found
 	public Optional<BlockStrength> target(Minecraft minecraft) {
+		return target;
+	}
+
+	private static Optional<BlockStrength> findTarget(Minecraft minecraft) {
 		if (minecraft.hitResult instanceof BlockHitResult block && block.getType() == HitResult.Type.BLOCK
 				&& minecraft.level != null) {
 			String id = BuiltInRegistries.BLOCK.getKey(minecraft.level.getBlockState(block.getBlockPos()).getBlock()).getPath();

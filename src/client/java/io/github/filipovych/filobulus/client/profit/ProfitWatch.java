@@ -65,6 +65,10 @@ public final class ProfitWatch {
 	private final ProfitLedger ledger;
 	// what the inventory held at the last look, null when the next look only takes stock
 	private Map<String, Long> held;
+	// the item data and id seen in each slot, the cursor is the last one
+	private static final int SLOTS = 64;
+	private final CustomData[] slotData = new CustomData[SLOTS];
+	private final String[] slotId = new String[SLOTS];
 	private ClientLevel level;
 	private long settledAt;
 	// when the tracker last knew it was somewhere it counts
@@ -324,11 +328,12 @@ public final class ProfitWatch {
 
 	private void lookAtInventory(Player player, long now) {
 		Map<String, Long> counts = new HashMap<>();
-		for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-			count(stack, counts);
+		List<ItemStack> slots = player.getInventory().getNonEquipmentItems();
+		for (int i = 0; i < slots.size() && i < SLOTS - 1; i++) {
+			count(i, slots.get(i), counts);
 		}
 		// an item on the cursor is still ours, so moving things around is no loss
-		count(player.containerMenu.getCarried(), counts);
+		count(SLOTS - 1, player.containerMenu.getCarried(), counts);
 		Map<String, Long> before = held;
 		held = counts;
 		if (before == null) {
@@ -353,13 +358,20 @@ public final class ProfitWatch {
 	}
 
 	// only mining loot is counted, so other items are not even looked up
-	private void count(ItemStack stack, Map<String, Long> counts) {
+	// reading the id copies the whole item data, so a slot that still holds the same data is not read again
+	private void count(int slot, ItemStack stack, Map<String, Long> counts) {
 		if (stack.isEmpty()) {
 			return;
 		}
-		// skyblock items carry their id in the custom data
 		CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-		String id = data == null ? "" : data.copyTag().getStringOr("id", "");
+		if (data == null) {
+			return;
+		}
+		if (data != slotData[slot]) {
+			slotData[slot] = data;
+			slotId[slot] = data.copyTag().getStringOr("id", "");
+		}
+		String id = slotId[slot];
 		if (id.isEmpty() || !MiningItems.isMining(id)) {
 			return;
 		}
