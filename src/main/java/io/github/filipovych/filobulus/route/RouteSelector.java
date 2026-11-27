@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.route;
 
 import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.shaft.ShaftType;
+import java.util.List;
 import java.util.Optional;
 
 // picks the one route that is on screen, knows nothing about minecraft
@@ -39,9 +40,8 @@ public final class RouteSelector {
 	public Optional<LibraryRoute> active() {
 		return switch (location.area()) {
 			case MINESHAFT -> Optional.ofNullable(shaftRoute);
-			case GLACITE_TUNNELS -> settings.tunnelsRouteId().flatMap(library::byId)
-					.or(() -> settings.customRoute(areaName));
-			case ELSEWHERE -> settings.customRoute(areaName);
+			case GLACITE_TUNNELS -> settings.customRoute(List.of(CustomRoute.TUNNELS, areaName));
+			case ELSEWHERE -> settings.customRoute(List.of(areaName));
 		};
 	}
 

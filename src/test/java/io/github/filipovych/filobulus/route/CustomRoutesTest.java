@@ -71,6 +71,21 @@ class CustomRoutesTest {
 	}
 
 	@Test
+	void theTunnelsAreAPlaceOfTheirOwnInsideTheDwarvenMines() {
+		CustomRoutes routes = new CustomRoutes();
+		CustomRoute coal = add(routes, "Coal", "Dwarven Mines");
+		CustomRoute glacite = add(routes, "Glacite", CustomRoute.TUNNELS);
+		routes.use(coal.id(), true);
+		routes.use(glacite.id(), true);
+		// both stay on, they are different places
+		assertTrue(routes.byId(coal.id()).orElseThrow().on());
+		assertEquals(Optional.of(glacite.id()), routes.activeIn(List.of(CustomRoute.TUNNELS, "Dwarven Mines")).map(CustomRoute::id));
+		assertEquals(Optional.of(coal.id()), routes.activeIn(List.of("Dwarven Mines")).map(CustomRoute::id));
+		routes.use(glacite.id(), false);
+		assertEquals(Optional.of(coal.id()), routes.activeIn(List.of(CustomRoute.TUNNELS, "Dwarven Mines")).map(CustomRoute::id));
+	}
+
+	@Test
 	void switchingARouteOnKeepsItsRouteObject() {
 		CustomRoutes routes = new CustomRoutes();
 		CustomRoute ruby = add(routes, "Ruby", "");

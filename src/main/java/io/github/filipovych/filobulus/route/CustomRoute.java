@@ -2,11 +2,15 @@ package io.github.filipovych.filobulus.route;
 
 import java.util.List;
 
-// a route of the player's own that is not for a shaft, like a loop in the crystal hollows
+// a route that is not for a shaft, like a loop in the crystal hollows or the glacite spots in the tunnels
 // icon is a key of the icon list, area is the island it shows on as the tab list names it, empty means everywhere
+// the glacite tunnels count as a place of their own although the tab list calls them dwarven mines
 // loop starts it over after the last stop, on is whether it is the one in use for its area
 public record CustomRoute(LibraryRoute route, String icon, String area, boolean loop, boolean on) {
 	public static final String KEY = "CUSTOM";
+	public static final String TUNNELS = "Glacite Tunnels";
+	// the places a route can be made for, in the order they are offered
+	public static final List<String> PLACES = List.of(TUNNELS, "Dwarven Mines", "Crystal Hollows");
 
 	public CustomRoute {
 		icon = icon == null ? "" : icon;

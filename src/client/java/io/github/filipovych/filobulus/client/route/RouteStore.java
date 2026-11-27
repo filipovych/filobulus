@@ -50,13 +50,8 @@ public final class RouteStore {
 		}
 
 		@Override
-		public Optional<String> tunnelsRouteId() {
-			return Optional.empty();
-		}
-
-		@Override
-		public Optional<LibraryRoute> customRoute(String area) {
-			return custom.activeIn(area).map(CustomRoute::route);
+		public Optional<LibraryRoute> customRoute(List<String> places) {
+			return custom.activeIn(places).map(CustomRoute::route);
 		}
 	};
 

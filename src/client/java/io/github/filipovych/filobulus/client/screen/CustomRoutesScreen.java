@@ -4,6 +4,7 @@ import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.hud.RouteIcons;
 import io.github.filipovych.filobulus.route.CustomRoute;
 import io.github.filipovych.filobulus.route.CustomRoutes;
+import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.route.RouteCodec;
 import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteImport;
@@ -12,8 +13,8 @@ import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
-// the second tab of /filo routes: the player's routes for everything that is not a shaft, each with a name and an icon
-// one route per island can be in use, that one is drawn while the player is there
+// the second tab of /filo routes: the routes for everything that is not a shaft, each with a name and an icon
+// one route per place can be in use, that one is drawn while the player is there
 public final class CustomRoutesScreen extends RoutesFrame {
 	private static final String MINESHAFT = "Mineshaft";
 
@@ -42,7 +43,7 @@ public final class CustomRoutesScreen extends RoutesFrame {
 
 		if (routes.isEmpty()) {
 			int middle = (listTop + listBottom) / 2;
-			graphics.centeredText(font, "No Crystal Hollows routes yet.", width / 2, middle - 16, MUTED);
+			graphics.centeredText(font, "No island routes yet.", width / 2, middle - 16, MUTED);
 			graphics.centeredText(font, "Copy a route in any waypoint mod, coal, gemstones, powder, anything,", width / 2,
 					middle - 2, FAINT);
 			graphics.centeredText(font, "then press Import and give it a name and an icon.", width / 2, middle + 9, FAINT);
@@ -77,8 +78,11 @@ public final class CustomRoutesScreen extends RoutesFrame {
 		}
 	}
 
-	// the island we are on, a route of our own is never for a shaft
+	// where we are, the tunnels count as a place of their own, a route of our own is never for a shaft
 	private static String here() {
+		if (FilobulusClient.tracker().location().area() == Area.GLACITE_TUNNELS) {
+			return CustomRoute.TUNNELS;
+		}
 		String area = FilobulusClient.tracker().areaName();
 		return area.equals(MINESHAFT) ? "" : area;
 	}

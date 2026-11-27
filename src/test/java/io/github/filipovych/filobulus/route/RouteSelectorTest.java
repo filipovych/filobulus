@@ -22,7 +22,8 @@ class RouteSelectorTest {
 	private static class FakeSettings implements RouteSettings {
 		Set<ShaftMaterial> autoLoad = EnumSet.of(ShaftMaterial.JASPER, ShaftMaterial.TUNGSTEN);
 		String preferred = "";
-		Optional<String> tunnels = Optional.empty();
+		// a route of the player's own for the tunnels
+		Optional<LibraryRoute> tunnels = Optional.empty();
 
 		@Override
 		public boolean autoLoad(ShaftType type) {
@@ -35,8 +36,8 @@ class RouteSelectorTest {
 		}
 
 		@Override
-		public Optional<String> tunnelsRouteId() {
-			return tunnels;
+		public Optional<LibraryRoute> customRoute(List<String> places) {
+			return places.contains(CustomRoute.TUNNELS) ? tunnels : Optional.empty();
 		}
 	}
 
@@ -44,11 +45,11 @@ class RouteSelectorTest {
 	private RouteSelector selector;
 
 	@BeforeEach
-	void setUp() throws Exception {
-		List<LibraryRoute> routes = new java.util.ArrayList<>(TestRoutes.library().all());
-		routes.add(new LibraryRoute("my_tunnels", "My tunnels route", "TUNNELS", List.of(new Waypoint(0, 100, 0, "1"))));
+	void setUp() {
 		settings = new FakeSettings();
-		selector = new RouteSelector(new RouteLibrary(routes), settings);
+		settings.tunnels = Optional.of(new LibraryRoute("my_tunnels", "My tunnels route", CustomRoute.KEY,
+				List.of(new Waypoint(0, 100, 0, "1"))));
+		selector = new RouteSelector(TestRoutes.library(), settings);
 	}
 
 	private String activeId() {
@@ -62,20 +63,19 @@ class RouteSelectorTest {
 
 	@Test
 	void tunnelsShowTheSelectedTunnelsRoute() {
-		settings.tunnels = Optional.of("my_tunnels");
 		selector.onLocation(Location.glaciteTunnels());
 		assertEquals("my_tunnels", activeId());
 	}
 
 	@Test
 	void tunnelsShowNothingWithoutASelection() {
+		settings.tunnels = Optional.empty();
 		selector.onLocation(Location.glaciteTunnels());
 		assertEquals(null, activeId());
 	}
 
 	@Test
 	void enteringAShaftWithAutoLoadOnLoadsItsRoute() {
-		settings.tunnels = Optional.of("my_tunnels");
 		selector.onLocation(Location.glaciteTunnels());
 		Optional<LibraryRoute> loaded = selector.onLocation(Location.mineshaft(JASPER));
 		assertEquals("jasper", loaded.orElseThrow().id());
@@ -84,7 +84,6 @@ class RouteSelectorTest {
 
 	@Test
 	void enteringAShaftWithAutoLoadOffShowsNothing() {
-		settings.tunnels = Optional.of("my_tunnels");
 		selector.onLocation(Location.glaciteTunnels());
 		assertEquals(Optional.empty(), selector.onLocation(Location.mineshaft(RUBY)));
 		assertEquals(null, activeId());
@@ -141,6 +140,7 @@ class RouteSelectorTest {
 
 	@Test
 	void loadingByCommandOutsideAShaftIsRefused() {
+		settings.tunnels = Optional.empty();
 		assertInstanceOf(LoadResult.NotInMineshaft.class, selector.load("jasper"));
 		selector.onLocation(Location.glaciteTunnels());
 		assertInstanceOf(LoadResult.NotInMineshaft.class, selector.load("jasper"));
@@ -168,7 +168,6 @@ class RouteSelectorTest {
 
 	@Test
 	void leavingTheShaftClearsItsRouteAndBringsTheTunnelsRouteBack() {
-		settings.tunnels = Optional.of("my_tunnels");
 		selector.onLocation(Location.glaciteTunnels());
 		selector.onLocation(Location.mineshaft(JASPER));
 		selector.load("ruby_1");
@@ -181,7 +180,6 @@ class RouteSelectorTest {
 
 	@Test
 	void nothingIsShownAnywhereElse() {
-		settings.tunnels = Optional.of("my_tunnels");
 		selector.onLocation(Location.mineshaft(JASPER));
 		selector.onLocation(Location.elsewhere());
 		assertEquals(null, activeId());
@@ -200,8 +198,8 @@ class RouteSelectorTest {
 		LibraryRoute own = new LibraryRoute("custom_ruby", "Ruby", CustomRoute.KEY, List.of(new Waypoint(0, 100, 0, "1")));
 		RouteSettings settings = new FakeSettings() {
 			@Override
-			public Optional<LibraryRoute> customRoute(String area) {
-				return area.equals("Crystal Hollows") ? Optional.of(own) : Optional.empty();
+			public Optional<LibraryRoute> customRoute(List<String> places) {
+				return places.contains("Crystal Hollows") ? Optional.of(own) : Optional.empty();
 			}
 		};
 		RouteSelector selector = new RouteSelector(new RouteLibrary(List.of()), settings);

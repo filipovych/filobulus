@@ -58,22 +58,25 @@ public final class CustomRoutes {
 		}
 	}
 
-	// the route to show on an island: one made for it wins over one that shows everywhere
-	public Optional<CustomRoute> activeIn(String area) {
-		String here = area == null ? "" : area.strip();
-		Optional<CustomRoute> everywhere = Optional.empty();
-		for (CustomRoute route : routes) {
-			if (!route.on()) {
+	// the route to show where the player is: places is where they are from the smallest out, the tunnels and then the island
+	// one made for the first place wins, then one for the next, then one that shows everywhere
+	public Optional<CustomRoute> activeIn(List<String> places) {
+		for (String place : places) {
+			String here = place == null ? "" : place.strip();
+			if (here.isEmpty()) {
 				continue;
 			}
-			if (!here.isEmpty() && route.area().equalsIgnoreCase(here)) {
-				return Optional.of(route);
-			}
-			if (route.everywhere() && everywhere.isEmpty()) {
-				everywhere = Optional.of(route);
+			for (CustomRoute route : routes) {
+				if (route.on() && route.area().equalsIgnoreCase(here)) {
+					return Optional.of(route);
+				}
 			}
 		}
-		return everywhere;
+		return routes.stream().filter(route -> route.on() && route.everywhere()).findFirst();
+	}
+
+	public Optional<CustomRoute> activeIn(String area) {
+		return activeIn(List.of(area == null ? "" : area));
 	}
 
 	private String freeId(String name) {

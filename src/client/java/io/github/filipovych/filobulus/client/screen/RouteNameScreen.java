@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client.screen;
 
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.hud.RouteIcons;
+import io.github.filipovych.filobulus.route.CustomRoute;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -159,7 +160,8 @@ public final class RouteNameScreen extends FlatScreen {
 		String where = area.isEmpty() ? "Everywhere" : area;
 		int whereLeft = left + font.width("Shows in") + 6;
 		if (button(graphics, whereLeft, y, buttonWidth(where), where, TEXT, mouseX, mouseY, this::nextArea)) {
-			tooltip(graphics, "The island this route is drawn on. Click to switch between the island you are on and everywhere. "
+			tooltip(graphics, "Where this route is drawn: the Glacite Tunnels, the Dwarven Mines (the tunnels are part of them, "
+					+ "a tunnels route wins there), the Crystal Hollows, the island you are on, or everywhere. "
 					+ "It never shows inside a mineshaft.", mouseX, mouseY);
 		}
 		int loopLeft = left + panelWidth() - 20 - PILL_WIDTH;
@@ -167,15 +169,22 @@ public final class RouteNameScreen extends FlatScreen {
 		pill(graphics, loopLeft, y + 1, loop, () -> loop = !loop);
 	}
 
-	// everywhere, the island the route was made for, the island we stand on
+	// everywhere, the places a route can be made for, then the island the route was made for and the one we stand on
 	private void nextArea() {
 		List<String> areas = new ArrayList<>(List.of(""));
+		areas.addAll(CustomRoute.PLACES);
 		for (String each : List.of(own.area(), own.here())) {
-			if (!each.isEmpty() && !areas.contains(each)) {
+			if (!each.isEmpty() && areas.stream().noneMatch(each::equalsIgnoreCase)) {
 				areas.add(each);
 			}
 		}
-		area = areas.get((areas.indexOf(area) + 1) % areas.size());
+		int at = 0;
+		for (int i = 0; i < areas.size(); i++) {
+			if (areas.get(i).equalsIgnoreCase(area)) {
+				at = i;
+			}
+		}
+		area = areas.get((at + 1) % areas.size());
 	}
 
 	private void save() {

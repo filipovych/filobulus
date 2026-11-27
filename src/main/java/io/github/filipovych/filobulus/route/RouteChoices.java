@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 // what the player set on the routes screen: which shafts load a route by themselves and which route each one uses
@@ -61,11 +60,5 @@ public final class RouteChoices implements RouteSettings {
 		copy.replaceAutoLoad(autoLoad);
 		copy.picked.putAll(picked);
 		return copy;
-	}
-
-	@Override
-	public Optional<String> tunnelsRouteId() {
-		// no tunnels routes yet
-		return Optional.empty();
 	}
 }

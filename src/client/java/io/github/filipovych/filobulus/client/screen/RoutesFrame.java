@@ -63,7 +63,7 @@ abstract class RoutesFrame extends FlatScreen {
 		graphics.text(font, title, left + 8, top + 7, ACCENT, true);
 		int x = left + 16 + font.width(title);
 		x += tab(graphics, x, top + 4, "Shafts", shafts(), mouseX, mouseY, () -> open(new RoutesScreen(parent)));
-		tab(graphics, x, top + 4, "Crystal Hollows", !shafts(), mouseX, mouseY, () -> open(new CustomRoutesScreen(parent)));
+		tab(graphics, x, top + 4, "Islands", !shafts(), mouseX, mouseY, () -> open(new CustomRoutesScreen(parent)));
 		graphics.text(font, clip(status, panelWidth - 16), left + 8, listBottom + 5, statusColor, true);
 		int y = height - MARGIN - BUTTON_HEIGHT - 6;
 		int doneWidth = buttonWidth("Done");
