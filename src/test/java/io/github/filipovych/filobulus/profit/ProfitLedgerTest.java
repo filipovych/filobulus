@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.profit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -98,19 +99,36 @@ class ProfitLedgerTest {
 	}
 
 	@Test
-	void theClockOnlyRunsWhileGainsKeepComing() {
-		ledger.idle(60 * SECOND);
+	void theClockRunsOnForAPauseAfterTheLastGainAndNeverGoesBack() {
+		ledger.pause(60 * SECOND);
 		ledger.sack(JASPER, 1, 0);
 		ledger.sack(JASPER, 1, 30 * SECOND);
 		ledger.sack(JASPER, 1, 50 * SECOND);
 		assertEquals(50 * SECOND, session.activeMillis(50 * SECOND, 60 * SECOND));
-		// the time since the last gain counts for now
+		// the time since the last gain counts, up to a pause of it
 		assertEquals(80 * SECOND, session.activeMillis(80 * SECOND, 60 * SECOND));
-		// and is dropped again once it turns out to be a break
-		assertEquals(50 * SECOND, session.activeMillis(500 * SECOND, 60 * SECOND));
+		assertEquals(110 * SECOND, session.activeMillis(500 * SECOND, 60 * SECOND));
+		assertTrue(session.paused(500 * SECOND, 60 * SECOND));
+		// the next gain goes on from there
 		ledger.sack(JASPER, 1, 600 * SECOND);
+		assertFalse(session.paused(600 * SECOND, 60 * SECOND));
 		ledger.sack(JASPER, 1, 610 * SECOND);
-		assertEquals(60 * SECOND, session.activeMillis(610 * SECOND, 60 * SECOND));
+		assertEquals(120 * SECOND, session.activeMillis(610 * SECOND, 60 * SECOND));
+	}
+
+	@Test
+	void theClockFollowsTheTicksAndSaysWhenItPaused() {
+		ledger.pause(60 * SECOND);
+		ledger.active(0);
+		for (long at = 1; at <= 100; at++) {
+			ledger.tick(at * SECOND);
+		}
+		assertEquals(60 * SECOND, session.activeMillis(100 * SECOND, 60 * SECOND));
+		assertTrue(session.paused(100 * SECOND, 60 * SECOND));
+		ledger.active(100 * SECOND);
+		assertFalse(session.paused(100 * SECOND, 60 * SECOND));
+		ledger.tick(130 * SECOND);
+		assertEquals(90 * SECOND, session.activeMillis(130 * SECOND, 60 * SECOND));
 	}
 
 	@Test
@@ -220,7 +238,7 @@ class ProfitLedgerTest {
 
 	@Test
 	void miningKeepsTheClockRunningWithoutAddingItems() {
-		ledger.idle(60 * SECOND);
+		ledger.pause(60 * SECOND);
 		ledger.sack(JASPER, 1, 0);
 		for (long at = 30; at <= 150; at += 30) {
 			ledger.active(at * SECOND);
@@ -237,9 +255,9 @@ class ProfitLedgerTest {
 		totals.active(20 * SECOND, 60 * SECOND);
 		assertTrue(totals.isEmpty());
 		assertEquals(10 * SECOND, totals.activeMillis(20 * SECOND, 60 * SECOND));
-		// a break still stops it
+		// a break still stops it, after a pause of it was counted
 		totals.active(200 * SECOND, 60 * SECOND);
-		assertEquals(10 * SECOND, totals.activeMillis(200 * SECOND, 60 * SECOND));
+		assertEquals(70 * SECOND, totals.activeMillis(200 * SECOND, 60 * SECOND));
 	}
 
 	@Test

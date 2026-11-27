@@ -21,7 +21,7 @@
 	"filobulus.config.tracker.price": "Price",
 	"filobulus.config.tracker.period": "Period",
 	"filobulus.config.tracker.lines": "Items listed",
-	"filobulus.config.tracker.idle": "Idle after",
+	"filobulus.config.tracker.pause": "Pause after",
 	"filobulus.config.tracker.hideEmpty": "Hide while empty",
 	"filobulus.config.alerts.alerts": "Alerts",
 	"filobulus.config.alerts.shaftType": "Shaft type alert",

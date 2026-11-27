@@ -47,8 +47,8 @@ public final class ProfitWatch {
 	private static final long SAVE_MILLIS = 60_000;
 	// while warping the tab list has no island for a few seconds, the tracker stays up that long
 	private static final long WARP_MILLIS = 20_000;
-	// mining keeps the clock running, it is told at most this often
-	private static final long MINING_MILLIS = 1000;
+	// mining and moving keep the clock running, the ledger is told at most this often
+	private static final long ACTIVE_MILLIS = 1000;
 	// the last sack message adds up the half minute before it, it still counts a little after leaving
 	private static final long LATE_SACKS_MILLIS = 30_000;
 
@@ -74,7 +74,13 @@ public final class ProfitWatch {
 	private int ticks;
 	private int savedVersion;
 	private long savedAt;
-	private long minedAt;
+	private long activeAt;
+	// where the player stood and looked at the last tick, a change is activity
+	private double x;
+	private double y;
+	private double z;
+	private float yaw;
+	private float pitch;
 	// the shaft we are in and what the session held when we got in
 	private long shaftAt;
 	private Map<String, Long> atShaftStart = Map.of();
@@ -161,7 +167,18 @@ public final class ProfitWatch {
 	}
 
 	public long activeMillis() {
-		return totals().activeMillis(System.currentTimeMillis(), idle());
+		return totals().activeMillis(System.currentTimeMillis(), pause());
+	}
+
+	// true while the clock stands still because nothing happened for a while
+	public boolean paused() {
+		return totals().paused(System.currentTimeMillis(), pause());
+	}
+
+	// the dev client only, puts a gain in as if a sack message said so, to look at the panel
+	public void pretend(String id, long amount) {
+		names.putIfAbsent(id, MiningItems.label(id));
+		ledger.sack(id, amount, System.currentTimeMillis(), 30_000);
 	}
 
 	public void tick(Minecraft minecraft) {
@@ -182,14 +199,16 @@ public final class ProfitWatch {
 		if (TrackerConfig.price == TrackerConfig.Price.NPC) {
 			catalog.refresh();
 		}
-		ledger.idle(idle());
+		ledger.pause(pause());
+		ledger.tick(now);
 		if (minecraft.level != level) {
 			// the counts from before the warp are kept, once the new world settled they are compared again
 			level = minecraft.level;
 			settledAt = now + SETTLE_MILLIS;
 		}
-		if (now - minedAt >= MINING_MILLIS && minecraft.gameMode != null && minecraft.gameMode.isDestroying() && mining()) {
-			minedAt = now;
+		boolean mining = minecraft.gameMode != null && minecraft.gameMode.isDestroying();
+		if ((moved(player) || mining) && now - activeAt >= ACTIVE_MILLIS) {
+			activeAt = now;
 			ledger.active(now);
 		}
 		if (player.containerMenu != player.inventoryMenu) {
@@ -206,6 +225,18 @@ public final class ProfitWatch {
 		}
 	}
 
+	// the player walked or looked around since the last tick
+	private boolean moved(Player player) {
+		boolean moved = player.getX() != x || player.getY() != y || player.getZ() != z
+				|| player.getYRot() != yaw || player.getXRot() != pitch;
+		x = player.getX();
+		y = player.getY();
+		z = player.getZ();
+		yaw = player.getYRot();
+		pitch = player.getXRot();
+		return moved;
+	}
+
 	// the game is closing
 	public void close() {
 		if (allTime.version() != savedVersion) {
@@ -216,11 +247,11 @@ public final class ProfitWatch {
 	private void save() {
 		savedVersion = allTime.version();
 		savedAt = System.currentTimeMillis();
-		store.save(allTime, names, allTime.activeMillis(savedAt, idle()));
+		store.save(allTime, names, allTime.activeMillis(savedAt, pause()));
 	}
 
-	private static long idle() {
-		return TrackerConfig.idle * 1000L;
+	private static long pause() {
+		return TrackerConfig.pause * 1000L;
 	}
 
 	// the mining islands, the tunnels and the shafts are known from the mod's own location read
@@ -248,7 +279,7 @@ public final class ProfitWatch {
 		Set<String> hovers = new LinkedHashSet<>();
 		collectHovers(message, hovers, 0);
 		for (String hover : hovers) {
-			long window = Math.min(SackReader.windowMillis(hover), idle());
+			long window = Math.min(SackReader.windowMillis(hover), pause());
 			for (SackReader.Change change : SackReader.read(hover)) {
 				Optional<String> id = MiningItems.id(change.name());
 				if (id.isPresent()) {

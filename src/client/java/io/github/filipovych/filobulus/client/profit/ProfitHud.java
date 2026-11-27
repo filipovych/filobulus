@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.world.item.ItemStack;
 
 // the profit tracker on screen: the items gained with what each sells for, then the total, the rate and the time
 public final class ProfitHud implements HudWidget {
@@ -80,7 +81,7 @@ public final class ProfitHud implements HudWidget {
 		}
 		long active = watch.activeMillis();
 		rows.add(HudPanel.SPACER);
-		rows.addAll(summary(value.coins(), value.perHour(active), active));
+		rows.addAll(summary(value.coins(), value.perHour(active), active, watch.paused()));
 		return Optional.of(panel(rows));
 	}
 
@@ -92,16 +93,17 @@ public final class ProfitHud implements HudWidget {
 		rows.add(new Row(ShaftIcons.of(ShaftMaterial.LITTLEFOOT), "Glacite", "x4,512", "310k", GOLD));
 		rows.add(new Row(ShaftIcons.of(ShaftMaterial.TUNGSTEN), "Corpses", "x3", "+2.4M", GOLD));
 		rows.add(HudPanel.SPACER);
-		rows.addAll(summary(13_610_000, 41_200_000, 19 * 60_000 + 22_000));
+		rows.addAll(summary(13_610_000, 41_200_000, 19 * 60_000 + 22_000, false));
 		return panel(rows);
 	}
 
-	private static List<Row> summary(double coins, double perHour, long active) {
+	// the clock says so when it stands still, so a rate that stops moving is no surprise
+	private static List<Row> summary(double coins, double perHour, long active, boolean paused) {
 		return List.of(
 				new Row("Profit", CoinText.amount(coins), GOLD),
 				// the first minute says too little to give a rate
 				new Row("Per hour", perHour == 0 ? "..." : CoinText.amount(perHour), GOLD),
-				new Row("Time", JournalText.duration(active), TIME));
+				new Row(ItemStack.EMPTY, "Time", paused ? "paused" : "", JournalText.duration(active), paused ? UNPRICED : TIME));
 	}
 
 	private static Content panel(List<Row> rows) {

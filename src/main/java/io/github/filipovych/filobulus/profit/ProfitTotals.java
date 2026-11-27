@@ -11,8 +11,10 @@ public final class ProfitTotals {
 	// corpses opened and what they paid with the keys taken off, in coins at the time they were opened
 	private int corpses;
 	private double corpseCoins;
-	// when the last gain or activity came in, counting is false until there was one
-	private long lastGain;
+	// when the player last did something, and up to when the clock has counted
+	// the clock runs on for the pause after the last activity and then stands still, it never goes back
+	private long lastActivity;
+	private long countedUntil;
 	private boolean counting;
 	private int version;
 
@@ -35,14 +37,14 @@ public final class ProfitTotals {
 		this.activeMillis = Math.max(0, activeMillis);
 	}
 
-	public void add(String id, long amount, long now, long idle) {
-		add(id, amount, now, idle, now);
+	public void add(String id, long amount, long now, long pause) {
+		add(id, amount, now, pause, now);
 	}
 
 	// amount can be negative, to take back something that turned out to be no gain
-	// idle is how long after a gain the clock keeps running without another one
+	// pause is how long after the last activity the clock keeps running
 	// since is when the gain started, a sack message adds up the last 30 seconds, so the first one does not count as 0 seconds
-	public void add(String id, long amount, long now, long idle, long since) {
+	public void add(String id, long amount, long now, long pause, long since) {
 		if (amount == 0) {
 			return;
 		}
@@ -54,31 +56,42 @@ public final class ProfitTotals {
 			items.remove(id);
 		}
 		if (amount > 0) {
-			activity(now, idle, since);
+			activity(now, pause, since);
 		}
 	}
 
 	// a corpse was opened, coins is its loot with the key taken off
-	public void corpse(double coins, long now, long idle) {
+	public void corpse(double coins, long now, long pause) {
 		version++;
 		corpses++;
 		corpseCoins += coins;
-		activity(now, idle, now);
+		activity(now, pause, now);
 	}
 
-	// the player is busy without gaining anything, like mining a block, the clock keeps running but nothing is added
-	public void active(long now, long idle) {
-		version++;
-		activity(now, idle, now);
+	// the player is busy without gaining anything, mining or moving, the clock keeps running but nothing is added
+	public void active(long now, long pause) {
+		activity(now, pause, now);
 	}
 
-	private void activity(long now, long idle, long since) {
-		if (counting && now - lastGain <= idle) {
-			activeMillis += Math.max(0, now - lastGain);
-		} else {
-			activeMillis += Math.min(idle, Math.max(0, now - since));
+	// moves the clock on, called often so the time on show grows smoothly
+	public void tick(long now, long pause) {
+		if (!counting) {
+			return;
 		}
-		lastGain = now;
+		long until = Math.min(now, lastActivity + pause);
+		if (until > countedUntil) {
+			activeMillis += until - countedUntil;
+			countedUntil = until;
+		}
+	}
+
+	private void activity(long now, long pause, long since) {
+		tick(now, pause);
+		// the part of what the activity covers that the clock did not count, at most a pause of it
+		long from = counting ? Math.max(since, countedUntil) : since;
+		activeMillis += Math.min(pause, Math.max(0, now - from));
+		lastActivity = now;
+		countedUntil = Math.max(countedUntil, now);
 		counting = true;
 	}
 
@@ -98,11 +111,17 @@ public final class ProfitTotals {
 		return items.isEmpty() && corpses == 0;
 	}
 
-	// the time since the last gain counts while it is short, and is dropped again when nothing more comes
-	// so standing around does not pull the coins per hour down
-	public long activeMillis(long now, long idle) {
-		boolean running = counting && now - lastGain <= idle;
-		return activeMillis + (running ? Math.max(0, now - lastGain) : 0);
+	// the time the player was at it, with the clock still running for a pause after the last activity
+	public long activeMillis(long now, long pause) {
+		if (!counting) {
+			return activeMillis;
+		}
+		return activeMillis + Math.max(0, Math.min(now, lastActivity + pause) - countedUntil);
+	}
+
+	// true once nothing happened for a pause, the clock stands still then
+	public boolean paused(long now, long pause) {
+		return counting && now - lastActivity > pause;
 	}
 
 	// goes up with every change, for saving and for counting again

@@ -48,20 +48,28 @@ public final class ProfitLedger {
 	private long quietUntil;
 	// after a sale a sack line taking items out is the sale, not a craft
 	private long saleUntil;
-	private long idle = 60_000;
+	private long pause = 60_000;
 
 	public ProfitLedger(List<ProfitTotals> totals) {
 		this.totals = List.copyOf(totals);
 	}
 
-	public void idle(long millis) {
-		idle = millis;
+	// how long the clock keeps running after the last gain, mining or move
+	public void pause(long millis) {
+		pause = millis;
 	}
 
-	// the player is mining, the clock keeps running even when no gain came in for a while
+	// the player is mining or moving, the clock keeps running even when no gain came in for a while
 	public void active(long now) {
 		for (ProfitTotals each : totals) {
-			each.active(now, idle);
+			each.active(now, pause);
+		}
+	}
+
+	// moves the clocks on, once a tick is enough
+	public void tick(long now) {
+		for (ProfitTotals each : totals) {
+			each.tick(now, pause);
 		}
 	}
 
@@ -117,7 +125,7 @@ public final class ProfitLedger {
 			}
 		}
 		for (ProfitTotals each : totals) {
-			each.corpse(coins, now, idle);
+			each.corpse(coins, now, pause);
 		}
 	}
 
@@ -294,7 +302,7 @@ public final class ProfitLedger {
 			return;
 		}
 		for (ProfitTotals each : totals) {
-			each.add(id, amount, now, idle, since);
+			each.add(id, amount, now, pause, since);
 		}
 	}
 
