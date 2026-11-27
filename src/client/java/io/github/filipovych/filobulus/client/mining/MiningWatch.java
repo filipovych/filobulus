@@ -7,6 +7,7 @@ import io.github.filipovych.filobulus.client.config.MiningConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
 import io.github.filipovych.filobulus.detect.LocationParser;
 import io.github.filipovych.filobulus.mining.BlockStrength;
+import io.github.filipovych.filobulus.mining.BreakTimes;
 import io.github.filipovych.filobulus.mining.Breakpoints;
 import io.github.filipovych.filobulus.mining.ColdRate;
 import io.github.filipovych.filobulus.mining.MiningText;
@@ -44,6 +45,8 @@ public final class MiningWatch {
 	private int startedTick;
 	private int clientTicks;
 	private Optional<BlockStrength> target = Optional.empty();
+	// what the server really took for the blocks we saw go, fed by the combo watch
+	private final BreakTimes times = new BreakTimes();
 
 	public void register() {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
@@ -73,6 +76,7 @@ public final class MiningWatch {
 			cold.clear();
 			msbAt = 0;
 			mining = null;
+			times.clear();
 		}
 		boolean here = FilobulusConfig.enabled && minecraft.player != null
 				&& FilobulusClient.tracker().location().area() != Area.ELSEWHERE;
@@ -128,20 +132,36 @@ public final class MiningWatch {
 				.flatMap(material -> BlockStrength.ofGem(material.name()));
 	}
 
-	// true from the moment the server should have the block broken until the client shows it gone
+	// true from the tick the server should have the block broken until the client shows it gone
+	// the ping is not in it, a swap sent now reaches the server after the break whatever the ping is
 	public boolean swapNow(Minecraft minecraft) {
-		if (mining == null || speed.isEmpty() || minecraft.player == null || minecraft.getConnection() == null) {
+		if (mining == null || speed.isEmpty() || minecraft.player == null) {
 			return false;
 		}
 		Optional<BlockStrength> block = target(minecraft);
 		if (block.isEmpty()) {
 			return false;
 		}
-		int ticks = Breakpoints.ticks(block.get().strength(MiningConfig.alphaStrengths), speedNow(), block.get().plain());
+		int ticks = breakTicks(block.get(), speedNow());
+		return ticks > 1 && clientTicks - startedTick >= ticks;
+	}
+
+	// the ticks the server takes for the block: what was seen for it when there is enough, else the sum
+	public int breakTicks(BlockStrength block, int speed) {
+		int sum = Breakpoints.ticks(block.strength(MiningConfig.alphaStrengths), speed, block.plain());
+		return sum <= 1 ? sum : times.learned(BreakTimes.key(block, speed)).orElse(sum);
+	}
+
+	public BreakTimes times() {
+		return times;
+	}
+
+	public int ping(Minecraft minecraft) {
+		if (minecraft.getConnection() == null || minecraft.player == null) {
+			return 0;
+		}
 		PlayerInfo info = minecraft.getConnection().getPlayerInfo(minecraft.player.getUUID());
-		int ping = info == null ? 0 : info.getLatency();
-		int elapsed = clientTicks - startedTick;
-		return ticks > 1 && elapsed >= Breakpoints.swapTick(ticks, ping) && elapsed <= ticks;
+		return info == null ? 0 : info.getLatency();
 	}
 
 	// the tab list speed, with mining speed boost added while it runs

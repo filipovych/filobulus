@@ -25,11 +25,11 @@ public final class MiningConfig {
 	public static int msbBonus = 200;
 
 	@ConfigEntry(id = "swapCue", translation = "filobulus.config.mining.swapCue")
-	@Comment("Ping gliding: a small cue near the crosshair when the server should already have the block broken, half your ping before the animation ends, so you can move to the next one.")
+	@Comment("Ping gliding: a small cue near the crosshair from the tick the server breaks the block, before you see it go, so you can move to the next one. The tick count is learned from the blocks you break, so it stays right after Hypixel's high-ping mining changes.")
 	public static boolean swapCue = true;
 
 	@ConfigEntry(id = "swapCombo", translation = "filobulus.config.mining.swapCombo")
-	@Comment("A style meter for ping gliding: every block you leave in its glide window that breaks adds to the combo and climbs the ranks, leaving one too early breaks it, and a few seconds without a swap lets it fall. Only in the Glacite Tunnels and mineshafts.")
+	@Comment("A style meter for ping gliding: every block you leave between its server break and the moment you see it go adds to the combo and climbs the ranks, leaving one too early breaks it, and a few seconds without a swap lets it fall. Needs the Stats widget in /tab. Only in the Glacite Tunnels and mineshafts.")
 	public static boolean swapCombo = true;
 
 	@ConfigEntry(id = "comboSounds", translation = "filobulus.config.mining.comboSounds")

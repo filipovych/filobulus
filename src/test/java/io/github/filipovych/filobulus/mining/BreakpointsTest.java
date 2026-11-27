@@ -37,9 +37,10 @@ class BreakpointsTest {
 	}
 
 	@Test
-	void halfThePingComesOffForTheSwap() {
-		assertEquals(18, Breakpoints.swapTick(20, 200));
-		assertEquals(1, Breakpoints.swapTick(2, 400));
+	void theGlideWindowRunsFromTheBreakUntilThePingIsOver() {
+		assertEquals(24, Breakpoints.glideEnd(20, 200));
+		assertEquals(20, Breakpoints.glideEnd(20, 0));
+		assertEquals(3, Breakpoints.pingTicks(101));
 	}
 
 	@Test

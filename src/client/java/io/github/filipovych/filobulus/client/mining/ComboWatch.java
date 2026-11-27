@@ -3,10 +3,12 @@ package io.github.filipovych.filobulus.client.mining;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.SafeFile;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.MiningConfig;
 import io.github.filipovych.filobulus.mining.BlockStrength;
+import io.github.filipovych.filobulus.mining.BreakTimes;
 import io.github.filipovych.filobulus.mining.Breakpoints;
 import io.github.filipovych.filobulus.mining.SwapCombo;
 import io.github.filipovych.filobulus.mining.SwapCombo.Event;
@@ -23,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.state.BlockState;
@@ -38,10 +39,11 @@ public final class ComboWatch {
 	private static final int GRACE_TICKS = 6;
 
 	// a block being mined, with the glide window worked out when it was started
-	private record Mined(BlockPos pos, BlockState state, int started, int swapTick, int ticks) {
+	// ticks is when the server breaks it, end when it should show gone, key is what the measurement is filed under
+	private record Mined(BlockPos pos, BlockState state, int started, int ticks, int end, String key) {
 	}
 
-	private record Left(BlockPos pos, BlockState state, Timing timing, int deadline) {
+	private record Left(Mined block, Timing timing, int deadline) {
 	}
 
 	// what the hud shows, kept a moment after the combo ended so it can fade out
@@ -56,6 +58,8 @@ public final class ComboWatch {
 	private int ticks;
 	private Shown last;
 	private boolean demo;
+	// said once per game start when the stats widget is missing, the combo can not time anything without it
+	private boolean askedForSpeed;
 	private long goodAt;
 	private long rankUpAt;
 	private long endedAt;
@@ -110,7 +114,7 @@ public final class ComboWatch {
 			mining = pos == null ? null : start(minecraft, pos);
 		}
 		demo = false;
-		resolve();
+		resolve(minecraft);
 		handle(combo.tick(ticks));
 	}
 
@@ -144,34 +148,59 @@ public final class ComboWatch {
 		BlockState state = level.getBlockState(pos);
 		String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
 		Optional<BlockStrength> block = BlockStrength.ofBlock(id);
-		int speed = FilobulusClient.mining().speedNow();
-		if (block.isEmpty() || speed <= 0) {
-			return new Mined(pos, state, ticks, 0, 0);
+		MiningWatch watch = FilobulusClient.mining();
+		int speed = watch.speedNow();
+		if (block.isPresent() && speed <= 0 && !askedForSpeed) {
+			askedForSpeed = true;
+			GameCompat.say(minecraft, FilobulusClient.chatLine(
+					"The swap combo needs your Mining Speed: switch the Stats widget on in /tab"));
 		}
-		int blockTicks = Breakpoints.ticks(block.get().strength(MiningConfig.alphaStrengths), speed, block.get().plain());
-		return new Mined(pos, state, ticks, Breakpoints.swapTick(blockTicks, ping(minecraft)), blockTicks);
+		if (block.isEmpty() || speed <= 0) {
+			return new Mined(pos, state, ticks, 0, 0, "");
+		}
+		int blockTicks = watch.breakTicks(block.get(), speed);
+		return new Mined(pos, state, ticks, blockTicks, Breakpoints.glideEnd(blockTicks, watch.ping(minecraft)),
+				BreakTimes.key(block.get(), speed));
 	}
 
 	private void leave(Minecraft minecraft, Mined block) {
-		Timing timing = SwapCombo.timing(ticks - block.started(), block.swapTick(), block.ticks());
-		if (timing == Timing.EARLY || timing == Timing.GLIDE) {
-			int wait = (int) Math.ceil(ping(minecraft) / 50d) + GRACE_TICKS;
-			left.add(new Left(block.pos(), block.state(), timing, ticks + wait));
+		int elapsed = ticks - block.started();
+		Timing timing = SwapCombo.timing(elapsed, block.ticks(), block.end());
+		if (gone(block)) {
+			// it went while we were still on it, that is how long the server really took
+			learn(block, elapsed, minecraft);
+			if (timing == Timing.GLIDE) {
+				handle(combo.good(ticks));
+			}
+		} else if (timing == Timing.EARLY || timing == Timing.GLIDE) {
+			left.add(new Left(block, timing, block.end() + GRACE_TICKS + block.started()));
+		}
+	}
+
+	private boolean gone(Mined block) {
+		// the block itself, a glass pane also changes state when a neighbour breaks
+		return level.getBlockState(block.pos()).getBlock() != block.state().getBlock();
+	}
+
+	// the tick it showed gone less the ping is about when the server broke it
+	private void learn(Mined block, int elapsed, Minecraft minecraft) {
+		if (!block.key().isEmpty()) {
+			FilobulusClient.mining().times().record(block.key(), elapsed - Breakpoints.pingTicks(FilobulusClient.mining().ping(minecraft)));
 		}
 	}
 
 	// a glided block that is gone counts, an early one that stays breaks the combo, an early one that broke anyway is let go
-	private void resolve() {
+	private void resolve(Minecraft minecraft) {
 		Iterator<Left> each = left.iterator();
 		while (each.hasNext()) {
-			Left block = each.next();
-			// the block itself, a glass pane also changes state when a neighbour breaks
-			if (level.getBlockState(block.pos()).getBlock() != block.state().getBlock()) {
+			Left left = each.next();
+			if (gone(left.block())) {
 				each.remove();
-				if (block.timing() == Timing.GLIDE) {
+				learn(left.block(), ticks - left.block().started(), minecraft);
+				if (left.timing() == Timing.GLIDE) {
 					handle(combo.good(ticks));
 				}
-			} else if (ticks > block.deadline()) {
+			} else if (ticks > left.deadline()) {
 				each.remove();
 				handle(combo.broken());
 			}
@@ -215,14 +244,6 @@ public final class ComboWatch {
 		if (combo.active()) {
 			last = new Shown(combo.rank(), combo.meter(), combo.count(), combo.best(), false);
 		}
-	}
-
-	private static int ping(Minecraft minecraft) {
-		if (minecraft.getConnection() == null || minecraft.player == null) {
-			return 0;
-		}
-		PlayerInfo info = minecraft.getConnection().getPlayerInfo(minecraft.player.getUUID());
-		return info == null ? 0 : info.getLatency();
 	}
 
 	public boolean active() {

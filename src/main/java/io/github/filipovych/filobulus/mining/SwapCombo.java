@@ -89,15 +89,15 @@ public final class SwapCombo {
 		this.best = Math.max(0, best);
 	}
 
-	// elapsed is how long the block was mined, swapTick and ticks are its glide window from Breakpoints
-	public static Timing timing(int elapsed, int swapTick, int ticks) {
-		if (ticks <= 1 || swapTick <= 0) {
+	// elapsed is how long the block was mined, ticks is when the server breaks it and end when it shows gone
+	public static Timing timing(int elapsed, int ticks, int end) {
+		if (ticks <= 1) {
 			return Timing.NONE;
 		}
-		if (elapsed < swapTick - TOLERANCE) {
+		if (elapsed < ticks - TOLERANCE) {
 			return Timing.EARLY;
 		}
-		return elapsed <= ticks + TOLERANCE ? Timing.GLIDE : Timing.LATE;
+		return elapsed <= end + TOLERANCE ? Timing.GLIDE : Timing.LATE;
 	}
 
 	// a glided block is gone, the swap counts

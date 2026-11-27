@@ -45,8 +45,13 @@ public final class Breakpoints {
 		return (plain ? 30 : 60) * strength + 1;
 	}
 
-	// ping gliding: the server has the block broken about half the ping before the client sees it go
-	public static int swapTick(int ticks, int pingMillis) {
-		return Math.max(1, ticks - (int) Math.round(pingMillis / 2d / 50d));
+	// ping gliding: the server breaks the block that many ticks after it got our start, so a swap sent from
+	// tick ticks lands after the break, the block only shows gone about a ping later and that is the end of the window
+	public static int glideEnd(int ticks, int pingMillis) {
+		return ticks + pingTicks(pingMillis);
+	}
+
+	public static int pingTicks(int pingMillis) {
+		return (int) Math.ceil(Math.max(0, pingMillis) / 50d);
 	}
 }

@@ -12,18 +12,19 @@ import org.junit.jupiter.api.Test;
 class SwapComboTest {
 	@Test
 	void theWindowHasOneTickOfSlackEachSide() {
-		// a 10 tick block with the swap at tick 7
-		assertEquals(Timing.EARLY, SwapCombo.timing(5, 7, 10));
-		assertEquals(Timing.GLIDE, SwapCombo.timing(6, 7, 10));
-		assertEquals(Timing.GLIDE, SwapCombo.timing(9, 7, 10));
-		assertEquals(Timing.GLIDE, SwapCombo.timing(11, 7, 10));
-		assertEquals(Timing.LATE, SwapCombo.timing(12, 7, 10));
+		// a 10 tick block that shows gone at tick 12 with the ping
+		assertEquals(Timing.EARLY, SwapCombo.timing(8, 10, 12));
+		assertEquals(Timing.GLIDE, SwapCombo.timing(9, 10, 12));
+		assertEquals(Timing.GLIDE, SwapCombo.timing(10, 10, 12));
+		assertEquals(Timing.GLIDE, SwapCombo.timing(13, 10, 12));
+		assertEquals(Timing.LATE, SwapCombo.timing(14, 10, 12));
 	}
 
 	@Test
 	void instaminesAndUnknownBlocksHaveNoWindow() {
 		assertEquals(Timing.NONE, SwapCombo.timing(1, 1, 1));
 		assertEquals(Timing.NONE, SwapCombo.timing(5, 0, 0));
+		assertEquals(Timing.GLIDE, SwapCombo.timing(5, 4, 4));
 	}
 
 	@Test

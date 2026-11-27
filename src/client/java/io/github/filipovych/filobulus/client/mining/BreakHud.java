@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 
 // the block you look at, or the shaft's gemstone: ticks at your mining speed and what the next breakpoint needs
 // one small sum per frame, the speed itself is read once a second
@@ -31,6 +32,7 @@ public final class BreakHud implements HudWidget {
 	// the last answer, worked out again only when the block or the speed changed
 	private BlockStrength lastBlock;
 	private int lastSpeed = -1;
+	private int lastSeen = -1;
 	private boolean lastAlpha;
 	private Content last;
 
@@ -60,16 +62,20 @@ public final class BreakHud implements HudWidget {
 			return Optional.empty();
 		}
 		int speed = watch.speedNow();
-		if (block.get() != lastBlock || speed != lastSpeed || MiningConfig.alphaStrengths != lastAlpha || last == null) {
+		int seen = watch.breakTicks(block.get(), speed);
+		if (block.get() != lastBlock || speed != lastSpeed || seen != lastSeen || MiningConfig.alphaStrengths != lastAlpha
+				|| last == null) {
 			lastBlock = block.get();
 			lastSpeed = speed;
+			lastSeen = seen;
 			lastAlpha = MiningConfig.alphaStrengths;
-			last = panel(block.get(), speed, watch.speed().isPresent(), watch.msbActive());
+			last = panel(block.get(), speed, seen, watch.speed().isPresent(), watch.msbActive());
 		}
 		return Optional.of(last);
 	}
 
-	private static Content panel(BlockStrength block, int speed, boolean known, boolean boosted) {
+	// seen is what the server really took when that is known, the sum otherwise
+	private static Content panel(BlockStrength block, int speed, int seen, boolean known, boolean boosted) {
 		int strength = block.strength(MiningConfig.alphaStrengths);
 		List<Row> rows = new ArrayList<>();
 		if (!known) {
@@ -77,7 +83,9 @@ public final class BreakHud implements HudWidget {
 			rows.add(new Row("Speed", "? Stats in /tab", FAINT));
 		} else {
 			int ticks = Breakpoints.ticks(strength, speed, block.plain());
-			rows.add(new Row("Ticks", ticks + (ticks == 1 ? " (instant)" : ""), boosted ? BOOST : GOOD));
+			// the blocks we saw go say the sum is off, the stats widget, the boost or the strength table
+			String note = seen == ticks ? "" : "seen " + seen;
+			rows.add(new Row(ItemStack.EMPTY, "Ticks", note, ticks + (ticks == 1 ? " (instant)" : ""), boosted ? BOOST : GOOD));
 			rows.add(new Row("Speed", number(speed) + (boosted ? " MSB" : ""), boosted ? BOOST : 0xFFFFFFFF));
 			Breakpoints.Next next = Breakpoints.next(strength, speed, block.plain());
 			if (next.ticks() > 0) {
@@ -112,7 +120,8 @@ public final class BreakHud implements HudWidget {
 
 	@Override
 	public HudDrawable sample() {
-		return panel(BlockStrength.JASPER, 4200, true, false);
+		return panel(BlockStrength.JASPER, 4200,
+				Breakpoints.ticks(BlockStrength.JASPER.strength(MiningConfig.alphaStrengths), 4200, false), true, false);
 	}
 
 	@Override
