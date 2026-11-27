@@ -62,6 +62,9 @@ public final class EffectReader {
 		long millis = 0;
 		Matcher part = PART.matcher(text.replace(" ", ""));
 		while (part.find()) {
+			if (part.group(1).length() > 9) {
+				return 0;
+			}
 			long amount = Long.parseLong(part.group(1));
 			millis += amount * switch (part.group(2)) {
 				case "d" -> 86_400_000L;
@@ -77,6 +80,9 @@ public final class EffectReader {
 	static long clock(String text) {
 		long seconds = 0;
 		for (String part : text.split(":")) {
+			if (part.isEmpty() || part.length() > 9) {
+				return 0;
+			}
 			seconds = seconds * 60 + Long.parseLong(part);
 		}
 		return seconds * 1000;

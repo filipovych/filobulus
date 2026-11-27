@@ -93,7 +93,7 @@ public final class SoundBoard {
 		}
 		if (key.startsWith(SoundChoices.FILE)) {
 			String name = key.substring(SoundChoices.FILE.length());
-			return name.substring(0, name.length() - ".ogg".length());
+			return name.toLowerCase(Locale.ROOT).endsWith(".ogg") ? name.substring(0, name.length() - ".ogg".length()) : name;
 		}
 		BuiltInSounds.BuiltIn builtIn = BuiltInSounds.get(key);
 		return builtIn == null ? "?" : builtIn.title();

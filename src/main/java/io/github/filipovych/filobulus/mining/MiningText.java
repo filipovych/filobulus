@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.mining;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.regex.Matcher;
@@ -32,7 +33,11 @@ public final class MiningText {
 		for (String line : tab) {
 			Matcher matcher = PITY.matcher(line.strip());
 			if (matcher.matches()) {
-				return Optional.of(new Pity(number(matcher.group(1)), number(matcher.group(2))));
+				OptionalInt now = number(matcher.group(1));
+				OptionalInt full = number(matcher.group(2));
+				if (now.isPresent() && full.isPresent()) {
+					return Optional.of(new Pity(now.getAsInt(), full.getAsInt()));
+				}
 			}
 		}
 		return Optional.empty();
@@ -40,7 +45,7 @@ public final class MiningText {
 
 	public static Optional<String> profileId(String chat) {
 		Matcher matcher = PROFILE.matcher(chat.strip());
-		return matcher.matches() ? Optional.of(matcher.group(1).replace("-", "").toLowerCase()) : Optional.empty();
+		return matcher.matches() ? Optional.of(matcher.group(1).replace("-", "").toLowerCase(Locale.ROOT)) : Optional.empty();
 	}
 
 	public static OptionalInt miningSpeed(List<String> tab) {
@@ -51,13 +56,15 @@ public final class MiningText {
 		for (String line : lines) {
 			Matcher matcher = pattern.matcher(line.strip());
 			if (matcher.find()) {
-				return OptionalInt.of(number(matcher.group(1)));
+				return number(matcher.group(1));
 			}
 		}
 		return OptionalInt.empty();
 	}
 
-	private static int number(String text) {
-		return Integer.parseInt(text.replace(",", ""));
+	// the patterns allow commas, so a group can be commas only
+	private static OptionalInt number(String text) {
+		String digits = text.replace(",", "");
+		return digits.isEmpty() ? OptionalInt.empty() : OptionalInt.of(Integer.parseInt(digits));
 	}
 }

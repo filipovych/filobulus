@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client.sound;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
@@ -35,9 +36,21 @@ public final class FileSoundInstance extends AbstractSoundInstance implements Fa
 
 	@Override
 	public CompletableFuture<AudioStream> getAudioStream(SoundBufferLibrary loader, Identifier id, boolean repeatInstantly) {
+		InputStream in;
 		try {
-			return CompletableFuture.completedFuture(new JOrbisAudioStream(new BufferedInputStream(Files.newInputStream(file))));
+			in = new BufferedInputStream(Files.newInputStream(file));
 		} catch (IOException e) {
+			return CompletableFuture.failedFuture(e);
+		}
+		try {
+			return CompletableFuture.completedFuture(new JOrbisAudioStream(in));
+		} catch (IOException | RuntimeException e) {
+			// not an ogg after all, the file must not stay open or windows keeps it locked
+			try {
+				in.close();
+			} catch (IOException ignored) {
+				// the first error is the one worth telling
+			}
 			return CompletableFuture.failedFuture(e);
 		}
 	}

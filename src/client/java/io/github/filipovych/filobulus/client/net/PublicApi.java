@@ -44,6 +44,9 @@ public final class PublicApi {
 				// or closing the client would wait for the dead request
 				http.shutdownNow();
 				throw new IOException(e instanceof TimeoutException ? "no answer in time" : String.valueOf(e.getCause()));
+			} catch (InterruptedException e) {
+				http.shutdownNow();
+				throw e;
 			}
 			if (response.statusCode() != 200) {
 				throw new IOException("status " + response.statusCode());
