@@ -9,6 +9,7 @@ import io.github.filipovych.filobulus.client.hud.HudPanel.Content;
 import io.github.filipovych.filobulus.client.hud.HudPanel.Row;
 import io.github.filipovych.filobulus.client.hud.HudWidget;
 import io.github.filipovych.filobulus.client.hud.ShaftIcons;
+import io.github.filipovych.filobulus.client.hud.TickCache;
 import io.github.filipovych.filobulus.corpse.CoinText;
 import io.github.filipovych.filobulus.hud.HudAnchor;
 import io.github.filipovych.filobulus.hud.HudPlacement;
@@ -35,6 +36,7 @@ public final class ProfitHud implements HudWidget {
 	private static final long FLASH_MILLIS = 800;
 	private final Map<String, Long> seen = new HashMap<>();
 	private final Map<String, Long> grewAt = new HashMap<>();
+	private final TickCache<Optional<HudDrawable>> cache = new TickCache<>();
 
 	@Override
 	public String name() {
@@ -53,6 +55,10 @@ public final class ProfitHud implements HudWidget {
 
 	@Override
 	public Optional<HudDrawable> content() {
+		return cache.get(this::build);
+	}
+
+	private Optional<HudDrawable> build() {
 		ProfitWatch watch = FilobulusClient.profit();
 		if (!watch.active() || TrackerConfig.hideEmpty && watch.totals().isEmpty()) {
 			return Optional.empty();

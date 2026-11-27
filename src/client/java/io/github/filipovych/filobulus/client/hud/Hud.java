@@ -35,11 +35,22 @@ public final class Hud {
 	}
 
 	private static boolean failed;
+	// client ticks since the game started, the panels work themselves out once per tick
+	private static long ticks;
 	// a panel keeps its widest size for a few seconds, so it does not jitter while numbers change
 	private static final long STEADY_MILLIS = 3000;
 	private static final Map<HudWidget, long[]> WIDEST = new IdentityHashMap<>();
 
 	private Hud() {
+	}
+
+	// called at the end of every client tick
+	public static void tick() {
+		ticks++;
+	}
+
+	public static long ticks() {
+		return ticks;
 	}
 
 	public static void register() {

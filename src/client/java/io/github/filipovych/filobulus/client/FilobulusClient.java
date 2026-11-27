@@ -124,6 +124,7 @@ public final class FilobulusClient implements ClientModInitializer {
 			mining.tick(minecraft);
 			combo.tick(minecraft);
 			wrapped.tick(minecraft);
+			Hud.tick();
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			shaftLog.close();

@@ -40,6 +40,7 @@ public final class RouteHud implements HudWidget {
 	private static final int GONE = 0xFFFF5555;
 	private static final long LOW_MILLIS = 30_000;
 	private static final int VALUE = 0xFFFFFFFF;
+	private final TickCache<Optional<HudDrawable>> cache = new TickCache<>();
 
 	@Override
 	public String name() {
@@ -58,6 +59,10 @@ public final class RouteHud implements HudWidget {
 
 	@Override
 	public Optional<HudDrawable> content() {
+		return cache.get(this::build);
+	}
+
+	private Optional<HudDrawable> build() {
 		if (!HudConfig.routeHud) {
 			return Optional.empty();
 		}
