@@ -38,13 +38,19 @@ public record CustomRoute(LibraryRoute route, String icon, String area, boolean 
 		return area.isEmpty();
 	}
 
+	// shipped with the mod, it can be switched and moved about but not deleted
+	public boolean bundled() {
+		return route.bundled();
+	}
+
 	// the same route object is kept, so switching it on does not start it over
 	public CustomRoute withOn(boolean on) {
 		return new CustomRoute(route, icon, area, loop, on);
 	}
 
+	// a bundled route keeps its name and author
 	public CustomRoute edited(String name, String author, String icon, String area, boolean loop) {
-		boolean same = name.equals(route.name()) && author.equals(route.author());
+		boolean same = bundled() || name.equals(route.name()) && author.equals(route.author());
 		LibraryRoute kept = same ? route : new LibraryRoute(route.id(), name, KEY, route.stops(), name, author, false);
 		return new CustomRoute(kept, icon, area, loop, on);
 	}

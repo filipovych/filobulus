@@ -24,9 +24,13 @@ import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.client.route.SplitStore;
 import io.github.filipovych.filobulus.client.sound.SoundBoard;
+import io.github.filipovych.filobulus.route.BundledRoutes;
+import io.github.filipovych.filobulus.route.CustomRoute;
+import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteSelector;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
+import java.io.IOException;
 import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -68,8 +72,15 @@ public final class FilobulusClient implements ClientModInitializer {
 
 		// the mod ships no shaft routes, every one of those is the player's own
 		RouteLibrary routes = new RouteLibrary(List.of());
+		List<CustomRoute> bundled = List.of();
+		try {
+			bundled = BundledRoutes.load();
+		} catch (IOException | RouteFormatException e) {
+			// the mod still loads, without them
+			LOGGER.error("Could not load the bundled routes", e);
+		}
 		// the player's own routes and choices sit next to the settings file
-		store = new RouteStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("routes.json"), routes);
+		store = new RouteStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("routes.json"), routes, bundled);
 		store.load();
 		splits = new SplitStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("splits.json"));
 		splits.load();

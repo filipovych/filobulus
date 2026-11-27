@@ -31,9 +31,11 @@ import java.util.Map;
 import java.util.Optional;
 
 // the routes the player imported and what they picked on the routes screen, kept in config/filobulus/routes.json
+// the routes that ship with the mod are put in on every load, the file only keeps what the player set on them
 public final class RouteStore {
 	private final Path file;
 	private final RouteLibrary library;
+	private final List<CustomRoute> bundled;
 	private final RouteProfiles profiles = new RouteProfiles();
 	private final CustomRoutes custom = new CustomRoutes();
 
@@ -55,9 +57,10 @@ public final class RouteStore {
 		}
 	};
 
-	public RouteStore(Path file, RouteLibrary library) {
+	public RouteStore(Path file, RouteLibrary library, List<CustomRoute> bundled) {
 		this.file = file;
 		this.library = library;
+		this.bundled = List.copyOf(bundled);
 	}
 
 	public RouteLibrary library() {
@@ -82,9 +85,13 @@ public final class RouteStore {
 	}
 
 	public void load() {
-		if (!Files.exists(file)) {
-			return;
+		if (Files.exists(file)) {
+			read();
 		}
+		bundled.forEach(custom::bundle);
+	}
+
+	private void read() {
 		try {
 			JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
 			for (JsonElement element : root.getAsJsonArray("routes")) {

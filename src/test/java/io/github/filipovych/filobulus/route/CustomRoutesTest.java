@@ -86,6 +86,36 @@ class CustomRoutesTest {
 	}
 
 	@Test
+	void aBundledRouteComesFirstKeepsWhatWasSavedAndCanNotGo() {
+		CustomRoutes routes = new CustomRoutes();
+		CustomRoute mine = add(routes, "Mine", "");
+		// what the file had for it, switched on and moved
+		routes.add("Old name", "Someone", "coal", "Crystal Hollows", false, STOPS, "glacite_pickobulus");
+		routes.use("glacite_pickobulus", true);
+		LibraryRoute shipped = new LibraryRoute("glacite_pickobulus", "Glacite Pickobulus", CustomRoute.KEY, STOPS,
+				"Glacite Pickobulus", "SoSeaL1", true);
+		routes.bundle(new CustomRoute(shipped, "littlefoot", CustomRoute.TUNNELS, true, false));
+		CustomRoute bundled = routes.all().get(0);
+		assertEquals("glacite_pickobulus", bundled.id());
+		assertEquals("Glacite Pickobulus", bundled.name());
+		assertEquals("SoSeaL1", bundled.route().author());
+		assertEquals("Crystal Hollows", bundled.area());
+		assertFalse(bundled.loop());
+		assertTrue(bundled.on());
+		assertTrue(bundled.bundled());
+		assertEquals(List.of("glacite_pickobulus", mine.id()), routes.all().stream().map(CustomRoute::id).toList());
+		assertFalse(routes.remove("glacite_pickobulus"));
+		// an edit keeps its name and author
+		routes.replace(bundled.edited("Other", "Me", "coal", CustomRoute.TUNNELS, true));
+		assertEquals("Glacite Pickobulus", routes.byId("glacite_pickobulus").orElseThrow().name());
+		assertEquals(CustomRoute.TUNNELS, routes.byId("glacite_pickobulus").orElseThrow().area());
+		// one the file did not have comes in switched off
+		CustomRoutes fresh = new CustomRoutes();
+		fresh.bundle(new CustomRoute(shipped, "littlefoot", CustomRoute.TUNNELS, true, false));
+		assertFalse(fresh.all().get(0).on());
+	}
+
+	@Test
 	void switchingARouteOnKeepsItsRouteObject() {
 		CustomRoutes routes = new CustomRoutes();
 		CustomRoute ruby = add(routes, "Ruby", "");

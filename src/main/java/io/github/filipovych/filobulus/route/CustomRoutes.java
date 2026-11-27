@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-// the player's routes for everything that is not a shaft, in the order they were added
+// the routes for everything that is not a shaft, the bundled ones first and then the player's in the order they were added
 public final class CustomRoutes {
 	private static final String FALLBACK_NAME = "Route";
 
@@ -38,8 +38,20 @@ public final class CustomRoutes {
 		}
 	}
 
+	// a bundled route stays
 	public boolean remove(String id) {
-		return routes.removeIf(route -> route.id().equals(id));
+		return routes.removeIf(route -> route.id().equals(id) && !route.bundled());
+	}
+
+	// puts a route that ships with the mod in, its stops and name come from the mod
+	// what the player saved for it, the icon, the place, the loop and whether it is on, is kept
+	public void bundle(CustomRoute bundled) {
+		Optional<CustomRoute> saved = byId(bundled.id());
+		routes.removeIf(route -> route.id().equals(bundled.id()));
+		CustomRoute route = saved
+				.map(kept -> new CustomRoute(bundled.route(), kept.icon(), kept.area(), kept.loop(), kept.on()))
+				.orElse(bundled);
+		routes.add(0, route);
 	}
 
 	// only one route is in use per area, switching one on switches the others of that area off

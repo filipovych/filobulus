@@ -14,7 +14,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 // the second tab of /filo routes: the routes for everything that is not a shaft, each with a name and an icon
-// one route per place can be in use, that one is drawn while the player is there
+// the ones that ship with the mod first, then the player's own, one route per place can be in use
 public final class CustomRoutesScreen extends RoutesFrame {
 	private static final String MINESHAFT = "Mineshaft";
 
@@ -58,6 +58,9 @@ public final class CustomRoutesScreen extends RoutesFrame {
 			boolean hot = rowHovered(graphics, y, mouseX, mouseY);
 			graphics.item(RouteIcons.of(route.icon()), left + 6, y + 2);
 			graphics.text(font, clip(route.name(), areaLeft - left - 32), left + 26, y + 6, route.on() ? TEXT : MUTED, true);
+			if (hot && mouseX < areaLeft && !route.route().author().isEmpty()) {
+				tooltip(graphics, "By " + route.route().author() + ".", mouseX, mouseY);
+			}
 			graphics.text(font, clip(route.everywhere() ? "Everywhere" : route.area(), stopsRight - 30 - areaLeft),
 					areaLeft, y + 6, route.everywhere() ? FAINT : MUTED, true);
 			String stops = route.stops().size() + (route.loop() ? "" : " once");
@@ -67,7 +70,9 @@ public final class CustomRoutesScreen extends RoutesFrame {
 				tooltip(graphics, "Copy this route in the Coleweight format, which every waypoint mod reads.", mouseX, mouseY);
 			}
 			if (hot && button(graphics, editLeft, y + 3, buttonWidth("Edit"), "Edit", MUTED, mouseX, mouseY, () -> edit(route))) {
-				tooltip(graphics, "Change the name, the icon and where it shows, or delete it.", mouseX, mouseY);
+				tooltip(graphics, route.bundled()
+						? "Change the icon, where it shows and the loop. This route comes with the mod and stays."
+						: "Change the name, the icon and where it shows, or delete it.", mouseX, mouseY);
 			}
 		}
 		graphics.disableScissor();
@@ -100,7 +105,9 @@ public final class CustomRoutesScreen extends RoutesFrame {
 	}
 
 	private void edit(CustomRoute route) {
-		open(new RouteNameScreen(this, "Edit route", route.stops().size() + " stops", route.name(), route.route().author(),
+		String author = route.route().author();
+		String about = route.stops().size() + " stops" + (author.isEmpty() ? "" : ", by " + author);
+		open(new RouteNameScreen(this, "Edit route", about, route.name(), author,
 				new RouteNameScreen.Own(route.icon(), route.area(), route.loop(), here()), answer -> {
 					CustomRoutes custom = store.custom();
 					String name = answer.name().isEmpty() ? route.name() : answer.name();
@@ -111,7 +118,7 @@ public final class CustomRoutesScreen extends RoutesFrame {
 					}
 					store.save();
 					say("Saved " + name + ".", GOOD);
-				}, () -> {
+				}, route.bundled() ? null : () -> {
 					store.custom().remove(route.id());
 					FilobulusClient.splits().bests().forget(route.id());
 					FilobulusClient.splits().save();
