@@ -169,10 +169,8 @@ public final class ComboWatch {
 		Timing timing = SwapCombo.timing(elapsed, block.ticks(), block.end());
 		if (gone(block)) {
 			// it went while we were still on it, that is how long the server really took
+			// no glide though, holding on a block until it goes is no swap so the combo does not count it
 			learn(block, elapsed, minecraft);
-			if (timing == Timing.GLIDE) {
-				handle(combo.good(ticks));
-			}
 		} else if (timing == Timing.EARLY || timing == Timing.GLIDE) {
 			left.add(new Left(block, timing, block.end() + GRACE_TICKS + block.started()));
 		}
@@ -190,7 +188,7 @@ public final class ComboWatch {
 		}
 	}
 
-	// a glided block that is gone counts, an early one that stays breaks the combo, an early one that broke anyway is let go
+	// a block left before it showed gone and then went counts, an early one that stays breaks the combo, an early one that broke anyway is let go
 	private void resolve(Minecraft minecraft) {
 		Iterator<Left> each = left.iterator();
 		while (each.hasNext()) {
