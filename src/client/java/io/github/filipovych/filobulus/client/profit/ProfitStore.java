@@ -9,7 +9,6 @@ import io.github.filipovych.filobulus.profit.ProfitTotals;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -34,7 +33,12 @@ public final class ProfitStore {
 	public void retire() {
 		try {
 			if (Files.exists(file)) {
-				Files.move(file, file.resolveSibling(file.getFileName() + ".adopted"), StandardCopyOption.REPLACE_EXISTING);
+				Path adopted = file.resolveSibling(file.getFileName() + ".adopted");
+				// an older one stays, this one gets the time in its name
+				if (Files.exists(adopted)) {
+					adopted = file.resolveSibling(file.getFileName() + ".adopted-" + System.currentTimeMillis());
+				}
+				Files.move(file, adopted);
 			}
 		} catch (IOException e) {
 			FilobulusClient.LOGGER.error("Could not move {} aside", file, e);

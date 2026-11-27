@@ -129,15 +129,19 @@ public final class ProfitWatch {
 		}
 		ProfitStore next = base.forProfile(id);
 		boolean adopt = profile.isEmpty() && !next.exists();
+		// nothing counted before the join line is no reason to write profit.json again
+		boolean nothingYet = profile.isEmpty() && allTime.isEmpty();
 		if (!adopt) {
-			save();
+			if (!nothingYet) {
+				save();
+			}
 			allTime.replaceWith(next.load(names));
 			savedVersion = allTime.version();
 		}
 		profile = id;
 		store = next;
 		save();
-		if (adopt) {
+		if (adopt && !nothingYet) {
 			base.retire();
 		}
 	}
