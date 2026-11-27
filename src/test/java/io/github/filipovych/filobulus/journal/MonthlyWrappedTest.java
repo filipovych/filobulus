@@ -67,10 +67,6 @@ class MonthlyWrappedTest {
 		assertEquals(8_000_000, day.number());
 		assertEquals("Tue 3 Nov, 1 shaft", day.line());
 
-		Card corpses = card(wrapped, Kind.MOST_CORPSES).orElseThrow();
-		assertEquals(4, corpses.number());
-		assertEquals("opened in a Jasper Crystal on 3 Nov", corpses.line());
-
 		Card favourite = card(wrapped, Kind.FAVOURITE).orElseThrow();
 		assertEquals("Ruby 1", favourite.value());
 		assertEquals("3 of your 6 shafts", favourite.line());

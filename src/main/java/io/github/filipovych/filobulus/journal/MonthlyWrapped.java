@@ -20,7 +20,7 @@ public record MonthlyWrapped(YearMonth month, int shafts, List<Card> cards) {
 	private static final DateTimeFormatter WEEKDAY = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
 
 	public enum Kind {
-		SHAFTS, TIME, JASPER, COINS, BEST_SHAFT, BEST_DAY, MOST_CORPSES, DRY, FAVOURITE, CORPSE_TYPES, VERSUS
+		SHAFTS, TIME, JASPER, COINS, BEST_SHAFT, BEST_DAY, DRY, FAVOURITE, CORPSE_TYPES, VERSUS
 	}
 
 	public enum Unit {
@@ -97,14 +97,9 @@ public record MonthlyWrapped(YearMonth month, int shafts, List<Card> cards) {
 		}
 
 		ShaftVisit best = null;
-		ShaftVisit mostCorpses = null;
 		for (ShaftVisit visit : inMonth) {
 			if (visit.coins() > 0 && (best == null || visit.coins() > best.coins())) {
 				best = visit;
-			}
-			int looted = visit.corpses().looted().length();
-			if (looted > 0 && (mostCorpses == null || looted > mostCorpses.corpses().looted().length())) {
-				mostCorpses = visit;
 			}
 		}
 		if (best != null) {
@@ -117,13 +112,6 @@ public record MonthlyWrapped(YearMonth month, int shafts, List<Card> cards) {
 			cards.add(Card.of(Kind.BEST_DAY, "Best day", Unit.COINS, bestDay.coins(),
 					date(bestDay.start(), WEEKDAY, zone) + ", " + plural(bestDay.shafts(), "shaft")));
 		}
-		if (mostCorpses != null) {
-			cards.add(Card.of(Kind.MOST_CORPSES, "Most corpses in one shaft", Unit.COUNT,
-					mostCorpses.corpses().looted().length(),
-					"opened in " + article(name(mostCorpses)) + " on " + date(mostCorpses.enteredAt(), DATE, zone))
-					.withCode(mostCorpses.code()));
-		}
-
 		addDry(cards, inMonth, YearMonth.from(Instant.ofEpochMilli(now).atZone(zone)).equals(month), zone);
 
 		stats.groups().stream().filter(group -> !group.key().isEmpty()).findFirst().ifPresent(group -> {
