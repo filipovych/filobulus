@@ -11,7 +11,6 @@ import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
 import io.github.filipovych.filobulus.client.config.SoundsConfig;
-import io.github.filipovych.filobulus.client.hud.Frost;
 import io.github.filipovych.filobulus.client.hud.HudDrawable;
 import io.github.filipovych.filobulus.client.hud.HudWidget;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
@@ -102,7 +101,6 @@ public final class JasperHud implements HudWidget {
 		startedAt = System.currentTimeMillis();
 		heard = 0;
 		FilobulusClient.sounds().play(SoundSlot.JASPER_SHAFT);
-		Frost.glint(Frost.ALL, PINK);
 	}
 
 	// stays on that one moment until the next play, to look at a frame for as long as it takes

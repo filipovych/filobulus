@@ -3,7 +3,6 @@ package io.github.filipovych.filobulus.client.corpse;
 import io.github.filipovych.filobulus.client.FilobulusClient;
 import io.github.filipovych.filobulus.client.config.CorpsesConfig;
 import io.github.filipovych.filobulus.client.config.HudConfig;
-import io.github.filipovych.filobulus.client.hud.Frost;
 import io.github.filipovych.filobulus.client.hud.HudDrawable;
 import io.github.filipovych.filobulus.client.hud.HudWidget;
 import io.github.filipovych.filobulus.client.hud.ShaftColors;
@@ -121,9 +120,6 @@ public final class CrackHud implements HudWidget {
 		show(new Scene(verdict, -1));
 		startedAt = System.currentTimeMillis();
 		heard = -1;
-		if (verdict.tier() == CrackTier.JASPER) {
-			Frost.glint(Frost.ALL, colorOf(CrackTier.JASPER));
-		}
 	}
 
 	// stays on that one moment until the next play, to look at a frame for as long as it takes

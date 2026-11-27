@@ -18,10 +18,6 @@ public final class HudConfig {
 	@Comment("Draw a dark panel behind the text. Off shows only the text over the game.")
 	public static boolean panel = false;
 
-	@ConfigEntry(id = "frosted", translation = "filobulus.config.hud.frosted")
-	@Comment("Give the panels a frosted look: a bit of ice along their edges, and a glint of light over them on a new best run, a jasper shaft or corpse, and a new achievement.")
-	public static boolean frosted = false;
-
 	@ConfigEntry(id = "splits", translation = "filobulus.config.hud.splits")
 	@Comment("Time your run of a shaft route against your best, from its first stop to its last.")
 	public static boolean splits = true;

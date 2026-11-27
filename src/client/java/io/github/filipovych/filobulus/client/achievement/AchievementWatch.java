@@ -12,7 +12,6 @@ import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.JournalConfig;
-import io.github.filipovych.filobulus.client.hud.Frost;
 import io.github.filipovych.filobulus.journal.ShaftJournal;
 import io.github.filipovych.filobulus.sound.SoundSlot;
 import java.io.IOException;
@@ -102,7 +101,6 @@ public final class AchievementWatch {
 			String more = fresh.size() > 1 ? " (+" + (fresh.size() - 1) + " more)" : "";
 			Alerts.show("achievement", best.rarity().displayName().toUpperCase(Locale.ROOT) + " ACHIEVEMENT",
 					best.title() + more, best.rarity().color(), 3, Alerts.LONG, SoundSlot.ACHIEVEMENT);
-			Frost.glint(Frost.ALL, best.rarity().color());
 		}
 		if (AlertsConfig.achievementChat) {
 			for (Achievement achievement : fresh) {

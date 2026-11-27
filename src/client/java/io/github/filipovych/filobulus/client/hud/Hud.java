@@ -96,9 +96,6 @@ public final class Hud {
 			graphics.pose().translate(box.left(), box.top());
 			graphics.pose().scale(scale, scale);
 			content.draw(graphics, font);
-			if (content instanceof HudPanel.Content) {
-				Frost.draw(graphics, widget.name(), content.width(font), content.height());
-			}
 		} finally {
 			// a widget that throws must not leave its matrix on what is drawn after it
 			graphics.pose().popMatrix();
