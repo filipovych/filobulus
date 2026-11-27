@@ -127,9 +127,9 @@ class JournalStatsTest {
 				new ShaftVisit(20 * minute, "RUBY_1", 4 * minute, 0),
 				new ShaftVisit(200 * minute, "RUBY_1", 2 * minute, 0),
 				new ShaftVisit(210 * minute, "RUBY_1", 6 * minute, 0)));
-		// 10 + 10 + 4 + 10 + 6 minutes of shafting, three gaps of ten minutes between shafts
+		// 10 + 10 + 4 + 10 + 6 minutes of shafting, but the rate only goes by the three ten minute gaps
 		assertEquals(40 * minute, stats.activeMillis());
-		assertEquals(4.5, stats.perHour(), 0.001);
+		assertEquals(6.0, stats.perHour(), 0.001);
 		assertEquals(0, JournalStats.of(List.of(ShaftVisit.entered(5, "RUBY_1"))).perHour());
 	}
 }
