@@ -44,7 +44,7 @@ public final class JournalConfig {
 
 	@ConfigEntry(id = "wrapped", translation = "filobulus.config.journal.wrapped")
 	@Comment("On the first start of a new month, say in chat that your Wrapped for the month before is ready. /filo wrapped works either way.")
-	public static boolean wrapped = false;
+	public static boolean wrapped = true;
 
 	@ConfigButton(title = "Shaft recap", text = "Open")
 	@Comment("The last shaft you were in, and the ones before it. Also at /filo recap.")

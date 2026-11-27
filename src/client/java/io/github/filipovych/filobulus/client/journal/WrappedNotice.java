@@ -13,39 +13,45 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import net.minecraft.client.Minecraft;
 
-// on the first game start of a new month, says in chat that last month's wrapped is ready
-// config/filobulus/wrapped.txt keeps the month it last looked, like 2026-11, so it only says it once
+// the first time the player is in game in a new month, says in chat that last month's wrapped is ready
+// also when the month turns while the game is open, it keeps looking once a minute
+// config/filobulus/wrapped.txt keeps the month it last said it for, like 2026-11, so it only says it once
 public final class WrappedNotice {
 	// the server fills the chat on join, so wait a bit after the player is in
 	private static final int WAIT_TICKS = 200;
+	private static final int CHECK_TICKS = 1200;
 
 	private final Path file;
 	private int ticksIn;
-	private boolean done;
+	private String seen;
 
 	public WrappedNotice(Path file) {
 		this.file = file;
 	}
 
 	public void tick(Minecraft minecraft) {
-		if (done || !FilobulusConfig.enabled || !JournalConfig.wrapped || minecraft.player == null) {
+		if (!FilobulusConfig.enabled || !JournalConfig.wrapped || minecraft.player == null) {
 			ticksIn = 0;
 			return;
 		}
-		if (++ticksIn < WAIT_TICKS) {
+		ticksIn++;
+		if (ticksIn < WAIT_TICKS || (ticksIn - WAIT_TICKS) % CHECK_TICKS != 0) {
 			return;
 		}
-		done = true;
+		if (seen == null) {
+			seen = read();
+		}
 		YearMonth now = YearMonth.now(ZoneId.systemDefault());
-		if (now.toString().equals(read())) {
+		if (now.toString().equals(seen)) {
 			return;
 		}
+		seen = now.toString();
 		YearMonth last = now.minusMonths(1);
 		if (MonthlyWrapped.hasShafts(FilobulusClient.journal().journal().visits(), last, ZoneId.systemDefault())) {
 			GameCompat.say(minecraft, FilobulusClient.chatLine(
 					"Your " + MonthlyWrapped.monthName(last) + " Wrapped is ready: /filo wrapped"));
 		}
-		write(now.toString());
+		write(seen);
 	}
 
 	private String read() {
