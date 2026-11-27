@@ -32,6 +32,7 @@ public final class ColdWatch {
 
 	// wall clock time it runs out, 0 while not known
 	private long until;
+	private static final long UNKNOWN = -1;
 	// true when the game showed the effects and cold resistance was not among them
 	private boolean none;
 	private int ticks;
@@ -44,7 +45,12 @@ public final class ColdWatch {
 		if (none) {
 			return OptionalLong.of(0);
 		}
-		return until == 0 ? OptionalLong.empty() : OptionalLong.of(Math.max(0, until - System.currentTimeMillis()));
+		return until <= 0 ? OptionalLong.empty() : OptionalLong.of(Math.max(0, until - System.currentTimeMillis()));
+	}
+
+	// the potion is on but the line did not say for how long
+	public boolean onForUnknown() {
+		return until == UNKNOWN;
 	}
 
 	public void tick(Minecraft minecraft) {
@@ -56,8 +62,8 @@ public final class ColdWatch {
 		EffectReader.Read read = EffectReader.read(GameText.tabLines(minecraft), GameText.sidebarLines(minecraft));
 		if (read.millis().isPresent()) {
 			none = false;
-			// a line without a time keeps what we knew
-			until = read.millis().getAsLong() > 0 ? now + read.millis().getAsLong() : Math.max(until, now + 1000);
+			// a line without a time keeps what we knew, or says it is on without a time
+			until = read.millis().getAsLong() > 0 ? now + read.millis().getAsLong() : until > now ? until : UNKNOWN;
 		} else if (read.widget()) {
 			none = true;
 			until = 0;
