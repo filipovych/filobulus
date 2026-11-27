@@ -23,7 +23,6 @@ import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +37,7 @@ public final class RouteStore {
 	private final List<CustomRoute> bundled;
 	private final RouteProfiles profiles = new RouteProfiles();
 	private final CustomRoutes custom = new CustomRoutes();
+	private boolean readOnly;
 
 	// what the selector asks, always answered by the profile in use
 	private final RouteSettings settings = new RouteSettings() {
@@ -91,75 +91,107 @@ public final class RouteStore {
 		bundled.forEach(custom::bundle);
 	}
 
+	// the whole file is read before anything goes into the live lists, so a bad file leaves them empty
+	// and is kept under another name, one entry that can not be read is skipped and the rest stays
 	private void read() {
+		List<Runnable> apply = new ArrayList<>();
 		try {
 			JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
-			for (JsonElement element : root.getAsJsonArray("routes")) {
-				JsonObject entry = element.getAsJsonObject();
-				Optional<SharedRoute> route = CollectionCodec.routeFromJson(entry);
-				if (route.isPresent()) {
-					ShaftLayout layout = ShaftLayout.byKey(route.get().shaft()).orElseThrow();
-					library.addUser(layout, route.get().name(), route.get().author(), route.get().stops(),
-							entry.get("id").getAsString());
+			for (JsonElement element : array(root, "routes")) {
+				try {
+					JsonObject entry = element.getAsJsonObject();
+					Optional<SharedRoute> route = CollectionCodec.routeFromJson(entry);
+					if (route.isPresent()) {
+						ShaftLayout layout = ShaftLayout.byKey(route.get().shaft()).orElseThrow();
+						String id = text(entry, "id");
+						apply.add(() -> library.addUser(layout, route.get().name(), route.get().author(),
+								route.get().stops(), id.isEmpty() ? null : id));
+					}
+				} catch (RuntimeException | RouteFormatException e) {
+					FilobulusClient.LOGGER.warn("Skipped a route in {} that could not be read", file, e);
 				}
 			}
 			Map<String, RouteChoices> saved = new LinkedHashMap<>();
 			if (root.has("profiles")) {
-				for (JsonElement element : root.getAsJsonArray("profiles")) {
+				for (JsonElement element : array(root, "profiles")) {
 					JsonObject profile = element.getAsJsonObject();
-					saved.put(profile.get("name").getAsString(), choices(profile));
+					saved.put(text(profile, "name"), choices(profile));
 				}
 			} else {
 				// a file from before there were profiles
 				saved.put(RouteProfiles.FIRST, choices(root));
 			}
-			profiles.restore(saved, root.has("profile") ? root.get("profile").getAsString() : RouteProfiles.FIRST);
-			if (root.has("custom")) {
-				for (JsonElement element : root.getAsJsonArray("custom")) {
-					readCustom(element.getAsJsonObject());
+			String active = root.has("profile") ? text(root, "profile") : RouteProfiles.FIRST;
+			apply.add(() -> profiles.restore(saved, active));
+			for (JsonElement element : array(root, "custom")) {
+				try {
+					readCustom(element.getAsJsonObject()).ifPresent(apply::add);
+				} catch (RuntimeException | RouteFormatException e) {
+					FilobulusClient.LOGGER.warn("Skipped a route in {} that could not be read", file, e);
 				}
 			}
-		} catch (IOException | RuntimeException | RouteFormatException e) {
-			// the bad file is kept under another name so the next save does not wipe what was in it
-			FilobulusClient.LOGGER.error("Could not read {}, it is kept as routes.json.broken", file, e);
-			try {
-				Files.move(file, file.resolveSibling("routes.json.broken"), StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException ignored) {
-				// nothing more we can do about it
-			}
+		} catch (IOException | RuntimeException e) {
+			FilobulusClient.LOGGER.error("Could not read {}, a copy is kept next to it", file, e);
+			// when it can not be moved away the next save would write over it, so saving stays off
+			readOnly = !SafeFile.moveBroken(file);
+			return;
 		}
+		apply.forEach(Runnable::run);
+	}
+
+	private static JsonArray array(JsonObject json, String key) {
+		return json.has(key) && json.get(key).isJsonArray() ? json.getAsJsonArray(key) : new JsonArray();
 	}
 
 	private static RouteChoices choices(JsonObject json) {
 		RouteChoices choices = new RouteChoices();
 		List<String> autoLoad = new ArrayList<>();
-		for (JsonElement key : json.getAsJsonArray("autoLoad")) {
-			autoLoad.add(key.getAsString());
+		for (JsonElement key : array(json, "autoLoad")) {
+			if (key.isJsonPrimitive()) {
+				autoLoad.add(key.getAsString());
+			}
 		}
 		choices.replaceAutoLoad(autoLoad);
-		for (Map.Entry<String, JsonElement> pick : json.getAsJsonObject("picked").entrySet()) {
-			choices.pick(pick.getKey(), pick.getValue().getAsString());
+		if (json.has("picked") && json.get("picked").isJsonObject()) {
+			for (Map.Entry<String, JsonElement> pick : json.getAsJsonObject("picked").entrySet()) {
+				if (pick.getValue().isJsonPrimitive()) {
+					choices.pick(pick.getKey(), pick.getValue().getAsString());
+				}
+			}
 		}
 		return choices;
 	}
 
-	private void readCustom(JsonObject entry) throws RouteFormatException {
+	private Optional<Runnable> readCustom(JsonObject entry) throws RouteFormatException {
 		List<Waypoint> stops = CollectionCodec.stopsFromJson(entry.get("stops"));
 		if (stops.isEmpty()) {
-			return;
+			return Optional.empty();
 		}
-		CustomRoute route = custom.add(text(entry, "name"), text(entry, "author"), text(entry, "icon"),
-				text(entry, "area"), !entry.has("loop") || entry.get("loop").getAsBoolean(), stops, text(entry, "id"));
-		if (entry.has("on") && entry.get("on").getAsBoolean()) {
-			custom.use(route.id(), true);
-		}
+		boolean loop = flag(entry, "loop").orElse(true);
+		boolean on = flag(entry, "on").orElse(false);
+		return Optional.of(() -> {
+			CustomRoute route = custom.add(text(entry, "name"), text(entry, "author"), text(entry, "icon"),
+					text(entry, "area"), loop, stops, text(entry, "id"));
+			if (on) {
+				custom.use(route.id(), true);
+			}
+		});
 	}
 
 	private static String text(JsonObject entry, String key) {
 		return entry.has(key) && entry.get(key).isJsonPrimitive() ? entry.get(key).getAsString() : "";
 	}
 
+	private static Optional<Boolean> flag(JsonObject entry, String key) {
+		return entry.has(key) && entry.get(key).isJsonPrimitive() && entry.get(key).getAsJsonPrimitive().isBoolean()
+				? Optional.of(entry.get(key).getAsBoolean())
+				: Optional.empty();
+	}
+
 	public void save() {
+		if (readOnly) {
+			return;
+		}
 		List<String> saved = new ArrayList<>();
 		for (String name : profiles.names()) {
 			RouteChoices choices = profiles.choices(name).orElseThrow();
@@ -222,7 +254,7 @@ public final class RouteStore {
 		return added;
 	}
 
-	// the route goes from every profile, the ones that used it fall back to the default
+	// the route goes from every profile, the ones that used it fall back to the first one left
 	public void delete(LibraryRoute route) {
 		if (library.removeUser(route.id())) {
 			profiles.unpick(route.routeKey(), route.id());
