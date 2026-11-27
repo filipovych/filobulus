@@ -1,24 +1,22 @@
 package io.github.filipovych.filobulus.route;
 
-// one run of a route: when each stop was reached, counted from the first stop
-// the clock starts at the first stop and not on entering the shaft, so how fast the shaft was noticed does not matter
+// one run of a route: when each stop was reached, counted from when the run began
+// in a shaft that is the moment it was entered, so the time on the panel and the best run are one clock
 public final class RouteSplits {
 	private final long[] times;
+	private final long startedAt;
 	private int reached;
-	private long startedAt;
 	private boolean skipped;
 
-	public RouteSplits(int stops) {
+	public RouteSplits(int stops, long startedAt) {
 		times = new long[stops];
+		this.startedAt = startedAt;
 	}
 
 	// call when the route moves on to its next stop, now is in milliseconds
 	public void reached(long now) {
 		if (reached == times.length) {
 			return;
-		}
-		if (reached == 0) {
-			startedAt = now;
 		}
 		times[reached++] = Math.max(0, now - startedAt);
 	}
@@ -36,6 +34,7 @@ public final class RouteSplits {
 		return !skipped;
 	}
 
+	// true once the first stop was reached, before that there is nothing to compare with a best
 	public boolean started() {
 		return reached > 0;
 	}
@@ -46,9 +45,6 @@ public final class RouteSplits {
 
 	// time on the route so far, stands still once it is done
 	public long elapsed(long now) {
-		if (!started()) {
-			return 0;
-		}
 		return finished() ? times[reached - 1] : Math.max(0, now - startedAt);
 	}
 
@@ -59,10 +55,5 @@ public final class RouteSplits {
 	// how far behind the best run we were at the last stop, negative means ahead
 	public long behind(long[] best) {
 		return started() ? times[reached - 1] - best[reached - 1] : 0;
-	}
-
-	// time still to go if the rest goes like the best run did
-	public long left(long[] best, long now) {
-		return Math.max(0, best[best.length - 1] + behind(best) - elapsed(now));
 	}
 }

@@ -161,7 +161,7 @@ public final class RouteTracker {
 			if (custom().filter(CustomRoute::loop).isPresent()) {
 				// outside of a shaft the blocks grow back, so the route goes round again
 				progress = new RouteProgress(active.stops());
-				splits = new RouteSplits(active.stops().size());
+				splits = new RouteSplits(active.stops().size(), System.currentTimeMillis());
 				upcoming = List.copyOf(progress.remaining());
 			} else {
 				// gemstones do not respawn in a shaft, so a finished route is cleared instead of looped
@@ -181,7 +181,9 @@ public final class RouteTracker {
 				? RouteProgress.nearest(route.stops(), minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ())
 				: 0;
 		progress = new RouteProgress(route.stops(), first);
-		splits = first == 0 ? new RouteSplits(route.stops().size()) : null;
+		// in a shaft the run is timed from the moment it was entered, the same clock the panel shows
+		long startedAt = shaftEnteredAt > 0 ? shaftEnteredAt : System.currentTimeMillis();
+		splits = first == 0 ? new RouteSplits(route.stops().size(), startedAt) : null;
 	}
 
 	// a finished run is kept when it beats the best, and chat says how it went

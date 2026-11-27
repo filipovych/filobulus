@@ -8,7 +8,9 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 // the fastest finished run of every route, with the time at each stop
+// version 2 times a run from the shaft entrance, the first version from the first stop, those bests are not comparable and are dropped
 public final class SplitBests {
+	private static final int VERSION = 2;
 	private final Map<String, long[]> bests = new TreeMap<>();
 
 	// empty when the route has other stops now than when the best was set
@@ -35,21 +37,27 @@ public final class SplitBests {
 	}
 
 	public JsonObject toJson() {
-		JsonObject root = new JsonObject();
+		JsonObject runs = new JsonObject();
 		for (Map.Entry<String, long[]> entry : bests.entrySet()) {
 			JsonArray times = new JsonArray();
 			for (long time : entry.getValue()) {
 				times.add(time);
 			}
-			root.add(entry.getKey(), times);
+			runs.add(entry.getKey(), times);
 		}
+		JsonObject root = new JsonObject();
+		root.addProperty("version", VERSION);
+		root.add("bests", runs);
 		return root;
 	}
 
 	// throws a runtime exception on anything that is not what toJson writes
 	public void readJson(JsonObject root) {
 		bests.clear();
-		for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+		if (!root.has("version") || root.get("version").getAsInt() < VERSION) {
+			return;
+		}
+		for (Map.Entry<String, JsonElement> entry : root.getAsJsonObject("bests").entrySet()) {
 			JsonArray array = entry.getValue().getAsJsonArray();
 			long[] times = new long[array.size()];
 			for (int i = 0; i < times.length; i++) {

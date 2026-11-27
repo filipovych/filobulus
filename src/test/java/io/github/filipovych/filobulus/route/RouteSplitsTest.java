@@ -8,42 +8,42 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 class RouteSplitsTest {
-	private static final long[] BEST = {0, 4000, 9000};
+	private static final long[] BEST = {2000, 6000, 11_000};
 
 	@Test
-	void theClockStartsAtTheFirstStop() {
-		RouteSplits run = new RouteSplits(3);
+	void theClockRunsFromTheStartOfTheRun() {
+		RouteSplits run = new RouteSplits(3, 50_000);
 		assertFalse(run.started());
-		assertEquals(0, run.elapsed(50_000));
+		assertEquals(2500, run.elapsed(52_500));
 		run.reached(60_000);
 		assertTrue(run.started());
-		assertEquals(2500, run.elapsed(62_500));
+		assertEquals(12_500, run.elapsed(62_500));
 	}
 
 	@Test
-	void everyStopGetsItsTime() {
-		RouteSplits run = new RouteSplits(3);
+	void everyStopGetsItsTimeFromTheStart() {
+		RouteSplits run = new RouteSplits(3, 58_000);
 		run.reached(60_000);
 		run.reached(63_000);
 		assertFalse(run.finished());
 		run.reached(70_000);
 		assertTrue(run.finished());
-		assertArrayEquals(new long[] {0, 3000, 10_000}, run.times());
+		assertArrayEquals(new long[] {2000, 5000, 12_000}, run.times());
 	}
 
 	@Test
 	void theClockStopsWhenTheRouteIsDone() {
-		RouteSplits run = new RouteSplits(2);
+		RouteSplits run = new RouteSplits(2, 0);
 		run.reached(1000);
 		run.reached(5000);
 		run.reached(9000);
-		assertEquals(4000, run.elapsed(20_000));
-		assertArrayEquals(new long[] {0, 4000}, run.times());
+		assertEquals(5000, run.elapsed(20_000));
+		assertArrayEquals(new long[] {1000, 5000}, run.times());
 	}
 
 	@Test
 	void behindComparesTheLastStopWithTheBestRun() {
-		RouteSplits run = new RouteSplits(3);
+		RouteSplits run = new RouteSplits(3, 58_000);
 		assertEquals(0, run.behind(BEST));
 		run.reached(60_000);
 		assertEquals(0, run.behind(BEST));
@@ -52,31 +52,20 @@ class RouteSplitsTest {
 	}
 
 	@Test
-	void leftCountsDownFromWhatTheBestRunNeeded() {
-		RouteSplits run = new RouteSplits(3);
-		run.reached(60_000);
-		run.reached(63_000);
-		// a second ahead, so 8 seconds in total, 3 of them gone
-		assertEquals(5000, run.left(BEST, 63_000));
-		assertEquals(3000, run.left(BEST, 65_000));
-		assertEquals(0, run.left(BEST, 90_000));
-	}
-
-	@Test
 	void aRunWithSkippedStopsIsNotClean() {
-		RouteSplits run = new RouteSplits(4);
+		RouteSplits run = new RouteSplits(4, 0);
 		run.reached(1000, 1);
 		assertTrue(run.clean());
 		run.reached(5000, 2);
 		assertFalse(run.clean());
 		run.reached(9000, 1);
 		assertTrue(run.finished());
-		assertArrayEquals(new long[] {0, 4000, 4000, 8000}, run.times());
+		assertArrayEquals(new long[] {1000, 5000, 5000, 9000}, run.times());
 	}
 
 	@Test
 	void aRouteWithoutStopsNeverStarts() {
-		RouteSplits run = new RouteSplits(0);
+		RouteSplits run = new RouteSplits(0, 0);
 		run.reached(1000);
 		assertFalse(run.started());
 		assertFalse(run.finished());

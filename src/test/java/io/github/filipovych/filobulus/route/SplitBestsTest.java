@@ -60,4 +60,11 @@ class SplitBestsTest {
 		assertArrayEquals(new long[] {0, 4000, 9000}, read.best("jasper", 3).orElseThrow());
 		assertArrayEquals(new long[] {0, 1500}, read.best("ruby_2", 2).orElseThrow());
 	}
+
+	@Test
+	void bestsTimedFromTheFirstStopAreDropped() {
+		SplitBests read = new SplitBests();
+		read.readJson(JsonParser.parseString("{\"jasper\": [0, 4000, 9000]}").getAsJsonObject());
+		assertTrue(read.best("jasper", 3).isEmpty());
+	}
 }
