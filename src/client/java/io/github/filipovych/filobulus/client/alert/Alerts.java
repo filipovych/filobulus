@@ -2,8 +2,9 @@ package io.github.filipovych.filobulus.client.alert;
 
 import io.github.filipovych.filobulus.alert.AlertQueue;
 import io.github.filipovych.filobulus.alert.AlertQueue.Alert;
-import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.config.AlertsConfig;
+import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.sound.SoundSlot;
 
 // the one way to put a big alert on screen, AlertHud draws what is in the queue
@@ -17,7 +18,7 @@ public final class Alerts {
 
 	// sound may be null, color is rgb, what the sound is comes from the sounds screen
 	public static void show(String id, String title, String subtitle, int color, int priority, long millis, SoundSlot sound) {
-		if (!AlertsConfig.alerts) {
+		if (!FilobulusConfig.enabled || !AlertsConfig.alerts) {
 			return;
 		}
 		QUEUE.show(new Alert(id, title, subtitle, color & 0xFFFFFF, priority, millis), System.currentTimeMillis());

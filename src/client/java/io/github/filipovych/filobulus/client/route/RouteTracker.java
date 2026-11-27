@@ -112,6 +112,9 @@ public final class RouteTracker {
 			selector.onArea(areaName);
 			upcoming = List.of();
 			shaftEnteredAt = 0;
+			tracked = null;
+			progress = null;
+			splits = null;
 			return;
 		}
 		if (minecraft.level != level) {

@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.alert;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.compat.GameCompat;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.client.detect.GameText;
@@ -47,7 +48,7 @@ public final class ColdWatch {
 	}
 
 	public void tick(Minecraft minecraft) {
-		if (minecraft.player == null || ticks++ % INTERVAL != 0) {
+		if (!FilobulusConfig.enabled || minecraft.player == null || ticks++ % INTERVAL != 0) {
 			return;
 		}
 		long now = System.currentTimeMillis();

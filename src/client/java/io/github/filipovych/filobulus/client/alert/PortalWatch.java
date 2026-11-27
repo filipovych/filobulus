@@ -41,7 +41,7 @@ public final class PortalWatch {
 			portal.clear();
 			return;
 		}
-		if (portal.poll(System.currentTimeMillis(), LEAD) == ShaftPortal.Event.CLOSING && AlertsConfig.portal) {
+		if (portal.poll(System.currentTimeMillis(), LEAD) == ShaftPortal.Event.CLOSING && FilobulusConfig.enabled && AlertsConfig.portal) {
 			Alerts.show("portal", "PORTAL CLOSING", "5 seconds to get in", COLOR, 7, Alerts.LONG, SoundSlot.PORTAL);
 		}
 	}
