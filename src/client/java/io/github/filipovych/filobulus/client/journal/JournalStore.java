@@ -65,6 +65,11 @@ public final class JournalStore {
 		}
 	}
 
+	// keeps the visit without writing it, for a change that is written later anyway
+	public void keep(ShaftVisit visit) {
+		journal.put(visit);
+	}
+
 	// keeps the visit and writes it at once
 	public void record(ShaftVisit visit) {
 		journal.put(visit);

@@ -36,6 +36,9 @@ public final class AchievementWatch {
 	private AchievementFacts facts = AchievementFacts.NONE;
 	private int factsVersion = -1;
 	private int checkedVersion = -1;
+	private int checkedSize = -1;
+	private long checkedAt;
+	private static final long RECHECK_MILLIS = 20_000;
 	private boolean quiet = true;
 
 	public AchievementWatch(Path file) {
@@ -80,11 +83,20 @@ public final class AchievementWatch {
 			checkedVersion = -1;
 			return;
 		}
-		int version = FilobulusClient.journal().journal().version();
+		ShaftJournal journal = FilobulusClient.journal().journal();
+		int version = journal.version();
 		if (version == checkedVersion) {
 			return;
 		}
+		// every sack message changes the open shaft, that is looked at now and then, a shaft coming or going at once
+		long now = System.currentTimeMillis();
+		int size = journal.visits().size();
+		if (size == checkedSize && FilobulusClient.shaftLog().open() != null && now - checkedAt < RECHECK_MILLIS) {
+			return;
+		}
 		checkedVersion = version;
+		checkedSize = size;
+		checkedAt = now;
 		List<Achievement> fresh = book.update(facts(), System.currentTimeMillis());
 		if (!fresh.isEmpty()) {
 			if (!quiet) {

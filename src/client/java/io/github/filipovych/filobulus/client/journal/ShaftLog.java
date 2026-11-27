@@ -30,6 +30,8 @@ public final class ShaftLog {
 	private final ShaftJoin join = new ShaftJoin();
 	private final WarpFee fee = new WarpFee();
 	private int ticks;
+	private long minedWrittenAt;
+	private static final long MINED_WRITE_MILLIS = 60_000;
 
 	public ShaftLog(JournalStore store) {
 		this.store = store;
@@ -75,8 +77,19 @@ public final class ShaftLog {
 	}
 
 	// what was mined in the shaft we are in is worth this much so far
+	// it changes with every sack message, the file gets it once a minute and when the shaft is left
 	public void mined(long coins) {
-		write(visits.mined(coins, System.currentTimeMillis()));
+		long now = System.currentTimeMillis();
+		List<ShaftVisit> changed = visits.mined(coins, now);
+		if (changed.isEmpty()) {
+			return;
+		}
+		if (visits.open() == null || now - minedWrittenAt >= MINED_WRITE_MILLIS) {
+			minedWrittenAt = now;
+			write(changed);
+		} else {
+			changed.forEach(store::keep);
+		}
 	}
 
 	// the shaft we left last, null before the first one
