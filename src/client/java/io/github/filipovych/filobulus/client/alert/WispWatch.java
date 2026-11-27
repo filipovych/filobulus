@@ -2,6 +2,8 @@ package io.github.filipovych.filobulus.client.alert;
 
 import io.github.filipovych.filobulus.alert.WispTimer;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.detect.GameText;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.AlertsConfig;
 import io.github.filipovych.filobulus.route.Location.Area;
 import io.github.filipovych.filobulus.sound.SoundSlot;
@@ -28,11 +30,11 @@ public final class WispWatch {
 
 	public void register() {
 		UseItemCallback.EVENT.register((player, world, hand) -> {
-			used(player, hand);
+			Guard.run("wisp use", () -> used(player, hand));
 			return InteractionResult.PASS;
 		});
 		UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
-			used(player, hand);
+			Guard.run("wisp use", () -> used(player, hand));
 			return InteractionResult.PASS;
 		});
 	}

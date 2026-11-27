@@ -2,6 +2,7 @@ package io.github.filipovych.filobulus.client.profit;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.FilobulusConfig;
 import io.github.filipovych.filobulus.client.config.TrackerConfig;
 import io.github.filipovych.filobulus.client.hud.Hud;
@@ -47,20 +48,25 @@ public final class ProfitControls {
 			if (!(screen instanceof AbstractContainerScreen<?>)) {
 				return;
 			}
-			ScreenEvents.afterExtract(screen).register((shown, graphics, mouseX, mouseY, delta) -> draw(graphics, mouseX, mouseY));
+			ScreenEvents.afterExtract(screen).register((shown, graphics, mouseX, mouseY, delta) ->
+					Guard.run("profit buttons", () -> draw(graphics, mouseX, mouseY)));
 			ScreenMouseEvents.allowMouseClick(screen).register((shown, event) -> {
 				if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
 					return true;
 				}
-				for (Button button : buttons(Minecraft.getInstance().font)) {
-					if (button.contains(event.x(), event.y())) {
-						Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1f));
-						button.action().run();
-						FilobulusClient.configurator().saveConfig(FilobulusConfig.class);
-						return false;
+				boolean[] hit = new boolean[1];
+				Guard.run("profit buttons", () -> {
+					for (Button button : buttons(Minecraft.getInstance().font)) {
+						if (button.contains(event.x(), event.y())) {
+							Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1f));
+							button.action().run();
+							FilobulusClient.configurator().saveConfig(FilobulusConfig.class);
+							hit[0] = true;
+							return;
+						}
 					}
-				}
-				return true;
+				});
+				return !hit[0];
 			});
 		});
 	}

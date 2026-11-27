@@ -1,6 +1,7 @@
 package io.github.filipovych.filobulus.client.render;
 
 import io.github.filipovych.filobulus.client.FilobulusClient;
+import io.github.filipovych.filobulus.client.Guard;
 import io.github.filipovych.filobulus.client.config.RoutesConfig;
 import io.github.filipovych.filobulus.route.Waypoint;
 import java.util.List;
@@ -28,8 +29,6 @@ public final class RouteRenderer {
 	// labels keep their size on screen past this many blocks
 	private static final double LABEL_FULL_SIZE_RANGE = 8;
 
-	private static boolean failed;
-
 	private RouteRenderer() {
 	}
 
@@ -39,7 +38,7 @@ public final class RouteRenderer {
 		if (stops.isEmpty() || !RoutesConfig.showRoutes) {
 			return;
 		}
-		try {
+		Guard.run("route drawing", () -> {
 			CameraRenderState camera = context.levelState().cameraRenderState;
 			Waypoint next = stops.get(0);
 			drawStop(next, camera.pos, GizmoStyle.strokeAndFill(NEXT, STROKE, NEXT_FILL), NEXT);
@@ -51,13 +50,7 @@ public final class RouteRenderer {
 			// one block in front of the camera is where the crosshair points
 			Vec3 crosshair = camera.pos.add(Vec3.directionFromRotation(camera.xRot, camera.yRot));
 			Gizmos.line(crosshair, centre(next), NEXT, STROKE).setAlwaysOnTop();
-		} catch (RuntimeException e) {
-			// a drawing problem must never take the game down, say it once and carry on
-			if (!failed) {
-				failed = true;
-				FilobulusClient.LOGGER.error("Could not draw the route", e);
-			}
-		}
+		});
 	}
 
 	private static void drawStop(Waypoint stop, Vec3 camera, GizmoStyle style, int labelColor) {
