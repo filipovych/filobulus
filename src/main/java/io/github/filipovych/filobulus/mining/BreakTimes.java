@@ -19,8 +19,10 @@ public final class BreakTimes {
 		return block.name() + ":" + speed;
 	}
 
-	public void record(String key, int ticks) {
-		if (ticks < 1) {
+	// formula is what the sum says for the block, the real time is never far off that
+	// so anything under half or over double it is something else, a pickobulus, another player or time carried over
+	public void record(String key, int ticks, int formula) {
+		if (ticks < 1 || ticks * 2 < formula || ticks > formula * 2) {
 			return;
 		}
 		int[] ring = seen.computeIfAbsent(key, k -> new int[KEEP]);

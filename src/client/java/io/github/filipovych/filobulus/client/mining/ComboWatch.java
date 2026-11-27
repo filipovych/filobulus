@@ -40,7 +40,8 @@ public final class ComboWatch {
 
 	// a block being mined, with the glide window worked out when it was started
 	// ticks is when the server breaks it, end when it should show gone, key is what the measurement is filed under
-	private record Mined(BlockPos pos, BlockState state, int started, int ticks, int end, String key) {
+	// formula is the plain sum, a measurement far off it is thrown away
+	private record Mined(BlockPos pos, BlockState state, int started, int ticks, int end, String key, int formula) {
 	}
 
 	private record Left(Mined block, Timing timing, int deadline) {
@@ -157,11 +158,12 @@ public final class ComboWatch {
 					"The swap combo needs your Mining Speed: switch the Stats widget on in /tab"));
 		}
 		if (block.isEmpty() || speed <= 0) {
-			return new Mined(pos, state, ticks, 0, 0, "");
+			return new Mined(pos, state, ticks, 0, 0, "", 0);
 		}
 		int blockTicks = watch.breakTicks(block.get(), speed);
+		int formula = Breakpoints.ticks(block.get().strength(MiningConfig.alphaStrengths), speed, block.get().plain());
 		return new Mined(pos, state, ticks, blockTicks, Breakpoints.glideEnd(blockTicks, watch.ping(minecraft)),
-				BreakTimes.key(block.get(), speed));
+				BreakTimes.key(block.get(), speed), formula);
 	}
 
 	private void leave(Minecraft minecraft, Mined block) {
@@ -184,7 +186,8 @@ public final class ComboWatch {
 	// the tick it showed gone less the ping is about when the server broke it
 	private void learn(Mined block, int elapsed, Minecraft minecraft) {
 		if (!block.key().isEmpty()) {
-			FilobulusClient.mining().times().record(block.key(), elapsed - Breakpoints.pingTicks(FilobulusClient.mining().ping(minecraft)));
+			int took = elapsed - Breakpoints.pingTicks(FilobulusClient.mining().ping(minecraft));
+			FilobulusClient.mining().times().record(block.key(), took, block.formula());
 		}
 	}
 
