@@ -155,8 +155,9 @@ public final class RouteHud implements HudWidget {
 		if (session.size() < 2) {
 			return "";
 		}
+		// two shafts ten minutes apart is one every ten minutes, so the first one is the start and not a count
 		long spent = now - session.get(0).enteredAt();
-		return spent < 10 * 60_000 ? "" : String.format(Locale.ROOT, "%.1f/h", session.size() * 3_600_000d / spent);
+		return spent < 10 * 60_000 ? "" : String.format(Locale.ROOT, "%.1f/h", (session.size() - 1) * 3_600_000d / spent);
 	}
 
 	private static Row timer(String label, long left, String none) {

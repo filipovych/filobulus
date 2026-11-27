@@ -10,7 +10,7 @@ import java.util.Map;
 // what a list of visits adds up to
 // timed is how many of them have a known time inside, the average only counts those
 // activeMillis is the time spent shafting, the breaks between sessions left out
-public record JournalStats(int shafts, int jasper, int longestDry, long timeInside, int timed, long activeMillis,
+public record JournalStats(int shafts, int jasper, int longestDry, long timeInside, int timed, long activeMillis, int gaps,
 		Corpses corpses, List<Group> groups) {
 	// a gap this long between two shafts is a break and not time spent looking for the next one
 	private static final long BREAK_MILLIS = 20 * 60_000;
@@ -63,6 +63,7 @@ public record JournalStats(int shafts, int jasper, int longestDry, long timeInsi
 		long timeInside = 0;
 		int timed = 0;
 		long active = 0;
+		int gaps = 0;
 		int[] seen = new int[4];
 		int[] looted = new int[4];
 		int counted = 0;
@@ -92,7 +93,12 @@ public record JournalStats(int shafts, int jasper, int longestDry, long timeInsi
 			}
 			// up to the next shaft it is all shafting, unless that took so long it was a break
 			long gap = i + 1 < visits.size() ? visits.get(i + 1).enteredAt() - visit.enteredAt() : Long.MAX_VALUE;
-			active += gap <= BREAK_MILLIS ? gap : visit.spentMillis();
+			if (gap <= BREAK_MILLIS) {
+				active += gap;
+				gaps++;
+			} else {
+				active += visit.spentMillis();
+			}
 
 			CorpseTally corpses = visit.corpses();
 			if (!corpses.isEmpty()) {
@@ -118,7 +124,7 @@ public record JournalStats(int shafts, int jasper, int longestDry, long timeInsi
 				(int) sums[4], (int) sums[5], sums[6])));
 		// most entered first, the key keeps the order steady between equal ones
 		groups.sort(Comparator.comparingInt(Group::shafts).reversed().thenComparing(Group::key));
-		return new JournalStats(visits.size(), jasper, longestDry, timeInside, timed, active,
+		return new JournalStats(visits.size(), jasper, longestDry, timeInside, timed, active, gaps,
 				new Corpses(seen, looted, counted, paid, coins, mined, best), groups);
 	}
 
@@ -133,6 +139,6 @@ public record JournalStats(int shafts, int jasper, int longestDry, long timeInsi
 
 	// shafts entered per hour of shafting, 0 while there is too little to go by
 	public double perHour() {
-		return activeMillis < 60_000 ? 0 : shafts * 3_600_000d / activeMillis;
+		return activeMillis < 60_000 ? 0 : gaps * 3_600_000d / activeMillis;
 	}
 }
