@@ -203,6 +203,10 @@ public final class ProfitWatch {
 		active = player != null && FilobulusConfig.enabled && TrackerConfig.profit && (now - hereAt == 0 || warping);
 		if (!active) {
 			held = null;
+			// sack lines still count for a bit after leaving, those get saved here
+			if (allTime.version() != savedVersion && now - savedAt > SAVE_MILLIS) {
+				save();
+			}
 			return;
 		}
 		prices.refresh();
