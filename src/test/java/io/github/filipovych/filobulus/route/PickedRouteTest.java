@@ -23,8 +23,8 @@ class PickedRouteTest {
 	private RouteSelector selector;
 
 	@BeforeEach
-	void setUp() throws Exception {
-		library = RouteLibrary.loadBundled();
+	void setUp() {
+		library = TestRoutes.library();
 		choices = new RouteChoices();
 		selector = new RouteSelector(library, choices);
 	}

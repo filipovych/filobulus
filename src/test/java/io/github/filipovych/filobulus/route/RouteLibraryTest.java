@@ -7,46 +7,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.filipovych.filobulus.shaft.ShaftType;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class RouteLibraryTest {
-	private static RouteLibrary library;
-
-	@BeforeAll
-	static void load() throws Exception {
-		library = RouteLibrary.loadBundled();
-	}
+	private final RouteLibrary library = TestRoutes.library();
 
 	private static ShaftType type(String code) {
 		return ShaftType.parse(code).orElseThrow();
 	}
 
 	@Test
-	void loadsTheWholePack() {
-		// 17 type routes + crystal + failsayfe
-		assertEquals(19, library.all().size());
-		assertEquals(47, library.byId("jasper").orElseThrow().stops().size());
-		assertEquals(39, library.byId("jasper_failsayfe").orElseThrow().stops().size());
-		assertEquals(43, library.byId("crystal").orElseThrow().stops().size());
-	}
-
-	@Test
-	void everyRouteIsNumberedInOrder() {
-		for (LibraryRoute route : library.all()) {
-			for (int i = 0; i < route.stops().size(); i++) {
-				assertEquals(Integer.toString(i + 1), route.stops().get(i).label(), route.id());
-			}
+	void anEmptyLibraryHasNothingForAnyShaft() {
+		RouteLibrary empty = new RouteLibrary(List.of());
+		assertTrue(empty.all().isEmpty());
+		for (ShaftType shaft : ShaftType.all()) {
+			assertTrue(empty.routesFor(shaft).isEmpty(), shaft.code());
 		}
+		assertFalse(empty.find("jasper").isPresent());
 	}
 
 	@Test
 	void idsAndTitles() {
+		assertEquals(6, library.all().size());
 		assertEquals("Jasper", library.byId("jasper").orElseThrow().title());
 		assertEquals("Jasper (Failsayfe)", library.byId("jasper_failsayfe").orElseThrow().title());
 		assertEquals("Ruby 2", library.byId("ruby_2").orElseThrow().title());
-		assertEquals("Crystal", library.byId("crystal").orElseThrow().title());
-		assertTrue(library.ids().containsAll(List.of("opal", "ruby_1", "ruby_2", "topaz_1", "peridot_1", "peridot_2")));
+		assertTrue(library.ids().containsAll(List.of("ruby_1", "ruby_2", "topaz_1", "crystal")));
 	}
 
 	@Test
@@ -69,7 +55,7 @@ class RouteLibraryTest {
 
 	@Test
 	void shaftsWithoutARouteHaveNone() {
-		for (String code : List.of("TOPA_2", "SAPP_2", "AMET_2", "AMBE_2", "JADE_2", "TITA_1", "UMBE_1", "TUNG_1", "FAIR_1", "LITT_L")) {
+		for (String code : List.of("TOPA_2", "TITA_1", "UMBE_1", "TUNG_1", "FAIR_1", "LITT_L")) {
 			assertTrue(library.routesFor(type(code)).isEmpty(), code);
 			assertEquals(Optional.empty(), library.routeFor(type(code), ""), code);
 		}

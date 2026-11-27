@@ -10,7 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-// the player's own routes next to the bundled ones
+// the player's own routes next to ones marked as bundled
 class UserRoutesTest {
 	private static final ShaftLayout JASPER = ShaftLayout.byKey("JASP_1").orElseThrow();
 	private static final ShaftLayout TUNGSTEN = ShaftLayout.byKey("TUNG_1").orElseThrow();
@@ -20,8 +20,8 @@ class UserRoutesTest {
 	private RouteLibrary library;
 
 	@BeforeEach
-	void setUp() throws Exception {
-		library = RouteLibrary.loadBundled();
+	void setUp() {
+		library = TestRoutes.library();
 	}
 
 	@Test

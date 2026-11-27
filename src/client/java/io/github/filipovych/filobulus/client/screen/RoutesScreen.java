@@ -64,8 +64,7 @@ public final class RoutesScreen extends RoutesFrame {
 		int x = left + 8;
 		if (button(graphics, x, y, buttonWidth("Import"), "Import", TEXT, mouseX, mouseY, () -> importInto(null))) {
 			tooltip(graphics, "Import what is on your clipboard: a route collection, or a route for the shaft you are in. "
-					+ "Routes copied from Coleweight, SkyHanni or Skyblocker work too. The bundled routes are only a starting point.",
-					mouseX, mouseY);
+					+ "Routes copied from Coleweight, SkyHanni or Skyblocker work too.", mouseX, mouseY);
 		}
 		x += buttonWidth("Import") + GAP;
 		if (button(graphics, x, y, buttonWidth("Export all"), "Export all", TEXT, mouseX, mouseY, this::exportAll)) {
@@ -330,7 +329,7 @@ public final class RoutesScreen extends RoutesFrame {
 	private void exportAll() {
 		RouteCollection collection = store.picked(minecraft.getUser().getName() + "'s routes");
 		if (collection.routes().isEmpty()) {
-			say("Nothing to export yet, every shaft uses its bundled route.", MUTED);
+			say("Nothing to export yet, import a route first.", MUTED);
 			return;
 		}
 		minecraft.keyboardHandler.setClipboard(CollectionCodec.export(collection));

@@ -24,11 +24,9 @@ import io.github.filipovych.filobulus.client.route.RouteStore;
 import io.github.filipovych.filobulus.client.route.RouteTracker;
 import io.github.filipovych.filobulus.client.route.SplitStore;
 import io.github.filipovych.filobulus.client.sound.SoundBoard;
-import io.github.filipovych.filobulus.route.RouteFormatException;
 import io.github.filipovych.filobulus.route.RouteLibrary;
 import io.github.filipovych.filobulus.route.RouteSelector;
 import io.github.filipovych.filobulus.route.RouteSelector.LoadResult;
-import java.io.IOException;
 import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -68,13 +66,8 @@ public final class FilobulusClient implements ClientModInitializer {
 		// reads config/filobulus.jsonc, creates it on first run
 		CONFIGURATOR.register(FilobulusConfig.class);
 
+		// the mod ships no shaft routes, every one of those is the player's own
 		RouteLibrary routes = new RouteLibrary(List.of());
-		try {
-			routes = RouteLibrary.loadBundled();
-		} catch (IOException | RouteFormatException e) {
-			// keep the empty library, the mod still loads
-			LOGGER.error("Could not load the bundled routes", e);
-		}
 		// the player's own routes and choices sit next to the settings file
 		store = new RouteStore(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("routes.json"), routes);
 		store.load();
@@ -134,7 +127,7 @@ public final class FilobulusClient implements ClientModInitializer {
 		LevelRenderEvents.BEFORE_GIZMOS.register(RouteRenderer::draw);
 		Hud.register();
 
-		LOGGER.info("Filobulus loaded with {} routes", routes.all().size());
+		LOGGER.info("Filobulus loaded");
 	}
 
 	public static Configurator configurator() {

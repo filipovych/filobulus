@@ -45,7 +45,7 @@ class RouteSelectorTest {
 
 	@BeforeEach
 	void setUp() throws Exception {
-		List<LibraryRoute> routes = new java.util.ArrayList<>(RouteLibrary.loadBundled().all());
+		List<LibraryRoute> routes = new java.util.ArrayList<>(TestRoutes.library().all());
 		routes.add(new LibraryRoute("my_tunnels", "My tunnels route", "TUNNELS", List.of(new Waypoint(0, 100, 0, "1"))));
 		settings = new FakeSettings();
 		selector = new RouteSelector(new RouteLibrary(routes), settings);

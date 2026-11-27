@@ -3,9 +3,6 @@ package io.github.filipovych.filobulus.route;
 import io.github.filipovych.filobulus.shaft.ShaftLayout;
 import io.github.filipovych.filobulus.shaft.ShaftMaterial;
 import io.github.filipovych.filobulus.shaft.ShaftType;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -14,15 +11,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+// every route for a shaft, all of them the player's own since the mod ships none, and the names they answer to
 public final class RouteLibrary {
-	private static final String RESOURCE_FOLDER = "/filobulus/routes/";
-
-	// extra routes for a shaft, listed after the default one
-	private record Alternative(String routeKey, String suffix, String author) {
-	}
-
-	private static final List<Alternative> ALTERNATIVES = List.of(new Alternative("JASP_1", "failsayfe", "Failsayfe"));
-
 	private final Map<String, LibraryRoute> byId = new LinkedHashMap<>();
 	private final Map<String, List<LibraryRoute>> byRouteKey = new LinkedHashMap<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
@@ -37,38 +27,6 @@ public final class RouteLibrary {
 	private void put(LibraryRoute route) {
 		byId.put(route.id(), route);
 		byRouteKey.computeIfAbsent(route.routeKey(), key -> new ArrayList<>()).add(route);
-	}
-
-	public static RouteLibrary loadBundled() throws IOException, RouteFormatException {
-		List<LibraryRoute> routes = new ArrayList<>();
-		Map<String, ShaftType> firstTypePerKey = new LinkedHashMap<>();
-		for (ShaftType type : ShaftType.all()) {
-			firstTypePerKey.putIfAbsent(type.routeKey(), type);
-		}
-		for (Map.Entry<String, ShaftType> entry : firstTypePerKey.entrySet()) {
-			String routeKey = entry.getKey();
-			ShaftLayout layout = ShaftLayout.of(entry.getValue());
-			String file = routeKey.toLowerCase(Locale.ROOT);
-			String text = readResource(file + ".json");
-			if (text != null) {
-				routes.add(new LibraryRoute(layout.name(), layout.title(), routeKey, RouteCodec.parseColeweight(text)));
-			}
-			for (Alternative alternative : ALTERNATIVES) {
-				if (!alternative.routeKey().equals(routeKey)) {
-					continue;
-				}
-				String altText = readResource(file + "." + alternative.suffix() + ".json");
-				if (altText != null) {
-					routes.add(new LibraryRoute(
-							layout.name() + "_" + alternative.suffix(),
-							layout.title() + " (" + alternative.author() + ")",
-							routeKey,
-							RouteCodec.parseColeweight(altText),
-							alternative.author(), alternative.author(), true));
-				}
-			}
-		}
-		return new RouteLibrary(routes);
 	}
 
 	public Collection<LibraryRoute> all() {
@@ -211,11 +169,5 @@ public final class RouteLibrary {
 
 	private static String materialName(ShaftMaterial material) {
 		return material.name().toLowerCase(Locale.ROOT);
-	}
-
-	private static String readResource(String fileName) throws IOException {
-		try (InputStream in = RouteLibrary.class.getResourceAsStream(RESOURCE_FOLDER + fileName)) {
-			return in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8);
-		}
 	}
 }
