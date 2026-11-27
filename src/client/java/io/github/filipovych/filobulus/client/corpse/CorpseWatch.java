@@ -82,7 +82,8 @@ public final class CorpseWatch {
 			verdict.ifPresent(CrackHud::play);
 		}
 		// the profit tracker counts the corpse as one gain, its items are not counted again when they reach the sacks
-		double profit = verdict.map(CorpseVerdict::profit).orElse(CorpseVerdict.worth(loot, prices));
+		double profit = verdict.map(CorpseVerdict::profit)
+				.orElse(loot.type().keyId().isPresent() ? 0 : CorpseVerdict.worth(loot, prices));
 		List<Map.Entry<String, Long>> items = new ArrayList<>();
 		for (CorpseLoot.Reward reward : loot.rewards()) {
 			CorpseItems.id(reward.name()).ifPresent(id -> items.add(Map.entry(id, reward.amount())));

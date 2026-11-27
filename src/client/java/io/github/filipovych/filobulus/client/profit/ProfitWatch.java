@@ -141,7 +141,9 @@ public final class ProfitWatch {
 	// /filo profit reset, forgets what the period on show has counted
 	public void reset() {
 		totals().clear();
-		atShaftStart = session.items();
+		if (totals() == session) {
+			atShaftStart = session.items();
+		}
 		save();
 	}
 
@@ -222,7 +224,9 @@ public final class ProfitWatch {
 		if (ticks++ % INVENTORY_INTERVAL == 0 && now >= settledAt) {
 			lookAtInventory(player, now);
 		}
-		if (ticks % SHAFT_INTERVAL == 0) {
+		// the start of a shaft is taken the tick it opens, so nothing of the first second is left out
+		ShaftVisit open = FilobulusClient.shaftLog().open();
+		if (ticks % SHAFT_INTERVAL == 0 || (open != null && open.enteredAt() != shaftAt)) {
 			shaft();
 		}
 		if (ticks % SLOW_INTERVAL == 0 && allTime.version() != savedVersion && now - savedAt > SAVE_MILLIS) {
