@@ -10,7 +10,7 @@ if (!project.property('supported').toString().split(',').contains(mc)) {
 def fabricApi = project.property("fabric_api_${mc}")
 def (resourcefulArtifact, resourcefulVersion) = project.property("resourceful_config_${mc}").toString().split(':')
 
-// jars are named filobulus-0.1.0+26.3.jar
+// jars are named filobulus-0.4.0+26.3.jar
 version = "${project.version}+${mc}"
 
 repositories {
